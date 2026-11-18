@@ -1241,6 +1241,11 @@ async function saveAdminSettings() {
   applyConfigToUI();
 
   if (APPS_SCRIPT_URL && adminPasswordCache) {
+    const btn = document.getElementById("btn-save-settings");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Menyimpan...";
+    }
     try {
       const res = await fetch(APPS_SCRIPT_URL, {
         method: "POST",
@@ -1252,6 +1257,10 @@ async function saveAdminSettings() {
         })
       });
       const data = await res.json();
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Simpan Pengaturan";
+      }
       if (data.ok) {
         if (data.config) {
           appConfig = { ...appConfig, ...data.config };
@@ -1259,6 +1268,26 @@ async function saveAdminSettings() {
           syncSettingsCheckboxes();
           applyConfigToUI();
         }
+        const tokInfo = appConfig.sessionToken
+          ? `Token aktif tersimpan: "${appConfig.sessionToken}"`
+          : "Mode tanpa token (bebas masuk)";
+        showToast(`Pengaturan tersimpan di Google Sheets! ${tokInfo}.`, "success");
+        return;
+      } else {
+        showToast(data.message || "Gagal menyimpan pengaturan ke server.", "error");
+        return;
+      }
+    } catch (err) {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Simpan Pengaturan";
+      }
+      showToast("Gagal menyimpan pengaturan ke server: " + err.message, "error");
+      return;
+    }
+  }
+  showToast("Pengaturan disimpan pada mode pratinjau.", "success");
+}
         showToast("Pengaturan & Token berhasil disimpan ke tab 'Pengaturan' Google Sheets.", "success");
         return;
       } else {
@@ -1286,152 +1315,96 @@ function switchAdminTab(tabName) {
 }
 
 // =========================================================================
-// FITUR A: KOREKSI MANUAL & NILAI PARSIAL ISIAN / URAIAN
+// DATA UJI SIMULASI ADMIN (TERSIMPAN KE GOOGLE SHEETS)
 // =========================================================================
-function openGradingModal(subIndex) {
-  const sub = adminSubmissions[subIndex];
-  if (!sub) return;
-  activeGradingSubmission = { index: subIndex, data: sub };
-
-  document.getElementById("grading-student-title").textContent = `Koreksi: ${sub.nama}`;
-  document.getElementById("grading-student-meta").textContent = `Kelas ${sub.kelas} • No. Absen ${sub.absen} • Nilai Saat Ini: ${sub.totalScore}`;
-
-  const manualQuestions = QUESTIONS_BANK.filter((q) => q.type === "ISIAN" || q.type === "URAIAN");
-  const listEl = document.getElementById("grading-items-list");
-
-  listEl.innerHTML = manualQuestions
-    .map((q) => {
-      const stuAns = (sub.answers && sub.answers[q.no]) || "";
-      const curScore = Number((sub.itemScores && sub.itemScores[q.no]) || 0);
-      const keyRef = adminKeysMap[q.no] || "-";
-      return `
-      <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <span class="font-extrabold text-sm text-slate-900">No. ${q.no} (${q.type}) — Maks. ${q.weight} Poin</span>
-          <div class="flex items-center gap-2">
-            <label class="text-xs font-bold text-slate-700">Skor Diberikan:</label>
-            <input
-              type="number"
-              step="0.5"
-              min="0"
-              max="${q.weight}"
-              data-qno="${q.no}"
-              value="${curScore}"
-              class="manual-score-input w-20 px-2.5 py-1.5 rounded-lg border-2 border-blue-400 bg-white font-extrabold text-center text-sm"
-            />
-          </div>
-        </div>
-        <div class="text-xs text-slate-600">${q.text}</div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs">
-          <div class="p-2.5 rounded-lg bg-white border border-slate-200">
-            <div class="font-bold text-slate-500">Jawaban Siswa:</div>
-            <div class="font-semibold text-slate-900 mt-0.5 whitespace-pre-wrap">${escapeHtml(stuAns || "(Kosong)")}</div>
-          </div>
-          <div class="p-2.5 rounded-lg bg-emerald-50/60 border border-emerald-200">
-            <div class="font-bold text-emerald-800">Kunci Acuan:</div>
-            <div class="font-semibold text-emerald-950 mt-0.5">${escapeHtml(String(keyRef))}</div>
-          </div>
-        </div>
-      </div>`;
-    })
-    .join("");
-
-  const modal = document.getElementById("grading-modal");
-  modal.classList.remove("hidden");
-  modal.classList.add("flex");
-
-  if (typeof renderMathInElement === "function") {
-    renderMathInElement(listEl, {
-      delimiters: [{ left: "$", right: "$", display: false }],
-      throwOnError: false
-    });
-  }
-}
-
-function closeGradingModal() {
-  const modal = document.getElementById("grading-modal");
-  modal.classList.add("hidden");
-  modal.classList.remove("flex");
-  activeGradingSubmission = null;
-}
-
-async function saveManualGrading() {
-  if (!activeGradingSubmission) return;
-  const sub = activeGradingSubmission.data;
-  const inputs = document.querySelectorAll(".manual-score-input");
-  const updatedItemScores = { ...(sub.itemScores || {}) };
-
-  inputs.forEach((inp) => {
-    const qNo = Number(inp.getAttribute("data-qno"));
-    const maxW = Number(inp.getAttribute("max"));
-    let val = parseFloat(inp.value);
-    if (isNaN(val) || val < 0) val = 0;
-    if (val > maxW) val = maxW;
-    updatedItemScores[qNo] = val;
-  });
-
-  let newTotal = 0;
-  QUESTIONS_BANK.forEach((q) => {
-    newTotal += Number(updatedItemScores[q.no] || 0);
-  });
-  newTotal = Math.round(newTotal * 100) / 100;
-
+async function loadTenSampleStudents() {
   if (APPS_SCRIPT_URL && adminPasswordCache) {
-    const btn = document.getElementById("btn-save-grading");
-    btn.disabled = true;
-    btn.textContent = "Menyimpan...";
+    const btn = document.getElementById("btn-load-sample");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Menyimpan Data Uji...";
+    }
     try {
       const res = await fetch(APPS_SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({
-          action: "adminUpdateScores",
-          password: adminPasswordCache,
-          rowNumber: sub.rowNumber,
-          submittedAt: sub.submittedAt,
-          nama: sub.nama,
-          itemScores: updatedItemScores,
-          totalScore: newTotal
+          action: "adminSeedSampleData",
+          password: adminPasswordCache
         })
       });
       const data = await res.json();
-      btn.disabled = false;
-      btn.textContent = "Simpan Koreksi";
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Muat 10 Data Uji";
+      }
       if (!data.ok) {
-        showToast(data.message || "Gagal menyimpan koreksi ke server.", "error");
+        showToast(data.message || "Gagal menyimpan 10 data uji ke Google Sheets.", "error");
         return;
       }
-      sub.itemScores = updatedItemScores;
-      sub.totalScore = newTotal;
-      closeGradingModal();
-      renderAdminTables();
-      showToast("Koreksi skor berhasil disimpan ke Google Sheets.", "success");
+      await loadAdminData();
+      showToast("10 data uji berhasil disimpan ke Google Sheets & sheet analisis ANATES diperbarui!", "success");
     } catch (err) {
-      btn.disabled = false;
-      btn.textContent = "Simpan Koreksi";
-      showToast("Kesalahan koneksi saat menyimpan koreksi: " + err.message, "error");
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Muat 10 Data Uji";
+      }
+      showToast("Kesalahan koneksi saat menyimpan data uji: " + err.message, "error");
     }
     return;
   }
 
-  // Mode Pratinjau Lokal
-  sub.itemScores = updatedItemScores;
-  sub.totalScore = newTotal;
-  localStorage.setItem(STORAGE_KEY_LOCAL_DB, JSON.stringify(adminSubmissions));
-  closeGradingModal();
+  // Fallback jika belum terhubung ke Google Apps Script
+  const sampleNames = [
+    ["[UJI] Alya Putri Ramadhani", "1", "VIII A"],
+    ["[UJI] Bagas Pratama Wijaya", "4", "VIII A"],
+    ["[UJI] Citra Kirana Dewi", "7", "VIII B"],
+    ["[UJI] Dimas Aditya Nugroho", "12", "VIII B"],
+    ["[UJI] Eka Sari Wulandari", "15", "VIII C"],
+    ["[UJI] Fajar Ramadhan", "19", "VIII D"],
+    ["[UJI] Gita Permata Sari", "22", "VIII E"],
+    ["[UJI] Hendra Kusuma", "25", "VIII F"],
+    ["[UJI] Indah Lestari", "30", "VIII G"],
+    ["[UJI] Joko Susilo", "34", "VIII G"]
+  ];
+  const targetScores = [94, 88, 82, 74, 68, 62, 54, 46, 38, 24];
+  const generated = sampleNames.map((info, idx) => {
+    const answers = {};
+    const itemScores = {};
+    let acc = 0;
+    const target = targetScores[idx];
+    QUESTIONS_BANK.forEach((q) => {
+      const isCorrect = q.no === 8 ? idx < 2 : acc + q.weight <= target;
+      if (isCorrect) {
+        answers[q.no] = q.type === "PG" ? "A" : q.type === "PGK" ? "B,C" : q.type === "BS" ? "Benar" : "Contoh Benar";
+        itemScores[q.no] = q.weight;
+        acc += q.weight;
+      } else {
+        answers[q.no] = q.type === "PG" || q.type === "PGK" ? (idx % 2 === 0 ? "B" : "D") : q.type === "BS" ? "Salah" : "-";
+        itemScores[q.no] = 0;
+      }
+    });
+    return {
+      nama: info[0],
+      absen: info[1],
+      kelas: info[2],
+      tabSwitches: idx === 7 ? 2 : 0,
+      answers,
+      itemScores,
+      totalScore: acc,
+      submittedAt: new Date(Date.now() - idx * 60000).toISOString()
+    };
+  });
+  adminSubmissions = generated;
+  localStorage.setItem(STORAGE_KEY_LOCAL_DB, JSON.stringify(generated));
   renderAdminTables();
-  showToast("Koreksi skor disimpan pada mode pratinjau.", "success");
+  showToast("10 data uji dimuat pada mode pratinjau lokal.", "success");
 }
 
-// =========================================================================
-// FITUR E: HAPUS / IZINKAN ULANG PESERTA DARI ADMIN
-// =========================================================================
-function askDeleteSubmission(subIndex) {
-  const sub = adminSubmissions[subIndex];
-  if (!sub) return;
+function clearSampleStudents() {
   openConfirmDialog(
-    "Hapus & Izinkan Mengulang?",
-    `Data pengerjaan milik ${sub.nama} (Kelas ${sub.kelas}, Absen ${sub.absen}) akan dihapus sehingga siswa tersebut dapat mengerjakan ulang. Lanjutkan?`,
+    "Hapus Semua Data Uji ([UJI])?",
+    "Seluruh baris peserta uji coba bertanda [UJI] akan dihapus dari Google Sheets dan tabel analisis akan dihitung ulang. Data siswa asli tidak akan terhapus.",
     async () => {
       if (APPS_SCRIPT_URL && adminPasswordCache) {
         try {
@@ -1439,30 +1412,27 @@ function askDeleteSubmission(subIndex) {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify({
-              action: "adminDeleteSubmission",
-              password: adminPasswordCache,
-              rowNumber: sub.rowNumber,
-              submittedAt: sub.submittedAt,
-              nama: sub.nama
+              action: "adminClearSampleData",
+              password: adminPasswordCache
             })
           });
           const data = await res.json();
           if (!data.ok) {
-            showToast(data.message || "Gagal menghapus data siswa di server.", "error");
+            showToast(data.message || "Gagal menghapus data uji.", "error");
             return;
           }
           await loadAdminData();
-          showToast(`Data ${sub.nama} berhasil dihapus. Siswa kini diizinkan mengulang.`, "success");
+          showToast(data.message || "Data uji berhasil dibersihkan dari Google Sheets.", "success");
         } catch (err) {
           showToast("Kesalahan koneksi: " + err.message, "error");
         }
         return;
       }
 
-      adminSubmissions.splice(subIndex, 1);
+      adminSubmissions = adminSubmissions.filter((s) => !String(s.nama || "").startsWith("[UJI]"));
       localStorage.setItem(STORAGE_KEY_LOCAL_DB, JSON.stringify(adminSubmissions));
       renderAdminTables();
-      showToast(`Data ${sub.nama} dihapus pada mode pratinjau.`, "success");
+      showToast("Data uji dihapus dari pratinjau lokal.", "success");
     }
   );
 }
