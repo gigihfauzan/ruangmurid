@@ -440,9 +440,14 @@
             <input type="number" id="cfg-duration" value="90" min="5" max="240" class="w-20 px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold text-center bg-white" />
           </div>
 
+          <label class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <span class="font-semibold text-slate-800">Wajib Token Sesi</span>
+            <input type="checkbox" id="cfg-requireToken" class="w-5 h-5 accent-blue-600" />
+          </label>
+
           <div class="flex items-center justify-between gap-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
             <span class="font-semibold text-slate-800 shrink-0">Token Sesi</span>
-            <input type="text" id="cfg-sessionToken" placeholder="Kosong = bebas" oninput="this.value = this.value.toUpperCase()" class="w-28 px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold text-center uppercase bg-white text-xs" />
+            <input type="text" id="cfg-sessionToken" placeholder="Contoh: MTK8A" oninput="this.value = this.value.toUpperCase(); document.getElementById('cfg-requireToken').checked = this.value.trim() !== '';" class="w-28 px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold text-center uppercase bg-white text-xs" />
           </div>
 
           <label class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
