@@ -447,7 +447,7 @@ async function fetchBootstrapFromServer() {
     badge.classList.remove("hidden");
     return;
   }
-  badge.textContent = "Terhubung ke Google Sheets";
+  badge.textContent = "Terhubung ke Server";
   badge.className = "hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200";
   try {
     const res = await fetch(APPS_SCRIPT_URL + "?action=getBootstrap&t=" + Date.now());
@@ -1166,7 +1166,7 @@ async function handleAdminLogin(e) {
     } catch (err) {
       btn.disabled = false;
       btn.textContent = "Masuk";
-      showToast("Gagal terhubung ke server Apps Script: " + err.message, "error");
+      showToast("Gagal terhubung ke server: " + err.message, "error");
     }
     return;
   }
