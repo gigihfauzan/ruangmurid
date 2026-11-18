@@ -1288,19 +1288,6 @@ async function saveAdminSettings() {
   }
   showToast("Pengaturan disimpan pada mode pratinjau.", "success");
 }
-        showToast("Pengaturan & Token berhasil disimpan ke tab 'Pengaturan' Google Sheets.", "success");
-        return;
-      } else {
-        showToast(data.message || "Gagal menyimpan pengaturan ke server.", "error");
-        return;
-      }
-    } catch (err) {
-      showToast("Gagal menyimpan pengaturan ke server: " + err.message, "error");
-      return;
-    }
-  }
-  showToast("Pengaturan disimpan.", "success");
-}
 
 function switchAdminTab(tabName) {
   ["siswa", "anates", "materi", "kelas", "soal"].forEach((t) => {
@@ -1468,6 +1455,159 @@ async function initBankSoalSheet() {
       } catch (err) {
         showToast("Kesalahan koneksi: " + err.message, "error");
       }
+    }
+  );
+}
+
+// =========================================================================
+// KOREKSI MANUAL ISIAN/URAIAN & HAPUS PESERTA (ADMIN)
+// =========================================================================
+function openGradingModal(origIdx) {
+  const sub = adminSubmissions[origIdx];
+  if (!sub) return;
+  activeGradingSubmission = { origIdx, sub };
+
+  document.getElementById("grading-student-title").textContent = "Koreksi: " + sub.nama;
+  document.getElementById("grading-student-meta").textContent = `Kelas ${sub.kelas} • No. Absen ${sub.absen} • Nilai Saat Ini: ${sub.totalScore}`;
+
+  const listEl = document.getElementById("grading-items-list");
+  const manualItems = QUESTIONS_BANK.filter((q) => q.type === "ISIAN" || q.type === "URAIAN");
+
+  listEl.innerHTML = manualItems
+    .map((q) => {
+      const ans = (sub.answers && sub.answers[q.no]) || "(Tidak dijawab)";
+      const curScore = Number((sub.itemScores && sub.itemScores[q.no]) || 0);
+      const keyText = adminKeysMap[q.no] ? String(adminKeysMap[q.no]) : "-";
+      const plainQ = q.text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      return `
+      <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-xs font-extrabold text-blue-700">Soal No. ${q.no} (${q.type} • Maks ${q.weight} poin)</span>
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-bold text-slate-700">Skor:</label>
+            <input type="number" data-qno="${q.no}" min="0" max="${q.weight}" step="0.5" value="${curScore}" class="manual-score-input w-20 px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white font-extrabold text-center text-sm" />
+          </div>
+        </div>
+        <div class="text-xs text-slate-600">${escapeHtml(plainQ)}</div>
+        <div class="p-3 rounded-lg bg-white border border-slate-200 text-xs">
+          <div class="text-slate-500 font-semibold">Jawaban Siswa:</div>
+          <div class="text-slate-900 font-bold mt-0.5 whitespace-pre-wrap">${escapeHtml(String(ans))}</div>
+        </div>
+        <div class="text-xs text-emerald-700 font-semibold">Acuan Kunci: ${escapeHtml(keyText)}</div>
+      </div>`;
+    })
+    .join("");
+
+  const modal = document.getElementById("grading-modal");
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+}
+
+function closeGradingModal() {
+  const modal = document.getElementById("grading-modal");
+  modal.classList.add("hidden");
+  modal.classList.remove("flex");
+  activeGradingSubmission = null;
+}
+
+async function saveManualGrading() {
+  if (!activeGradingSubmission) return;
+  const { origIdx, sub } = activeGradingSubmission;
+  const updatedScores = { ...(sub.itemScores || {}) };
+
+  document.querySelectorAll("#grading-items-list .manual-score-input").forEach((inp) => {
+    const qNo = Number(inp.getAttribute("data-qno"));
+    const maxW = Number(inp.getAttribute("max") || 10);
+    const val = Math.max(0, Math.min(maxW, Number(inp.value || 0)));
+    updatedScores[qNo] = val;
+  });
+
+  let newTotal = 0;
+  QUESTIONS_BANK.forEach((q) => {
+    newTotal += Number(updatedScores[q.no] || 0);
+  });
+  newTotal = Math.round(newTotal * 100) / 100;
+
+  if (APPS_SCRIPT_URL && adminPasswordCache) {
+    const btn = document.getElementById("btn-save-grading");
+    btn.disabled = true;
+    btn.textContent = "Menyimpan...";
+    try {
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          action: "adminUpdateScores",
+          password: adminPasswordCache,
+          rowNumber: sub.rowNumber,
+          submittedAt: sub.submittedAt,
+          nama: sub.nama,
+          itemScores: updatedScores
+        })
+      });
+      const data = await res.json();
+      btn.disabled = false;
+      btn.textContent = "Simpan Koreksi";
+      if (!data.ok) {
+        showToast(data.message || "Gagal menyimpan hasil koreksi.", "error");
+        return;
+      }
+      closeGradingModal();
+      await loadAdminData();
+      showToast(`Koreksi berhasil disimpan! Nilai baru ${sub.nama}: ${data.totalScore}`, "success");
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = "Simpan Koreksi";
+      showToast("Kesalahan koneksi: " + err.message, "error");
+    }
+    return;
+  }
+
+  adminSubmissions[origIdx].itemScores = updatedScores;
+  adminSubmissions[origIdx].totalScore = newTotal;
+  localStorage.setItem(STORAGE_KEY_LOCAL_DB, JSON.stringify(adminSubmissions));
+  closeGradingModal();
+  renderAdminTables();
+  showToast(`Koreksi disimpan pada mode pratinjau. Nilai baru: ${newTotal}`, "success");
+}
+
+function askDeleteSubmission(origIdx) {
+  const sub = adminSubmissions[origIdx];
+  if (!sub) return;
+  openConfirmDialog(
+    "Hapus Data & Izinkan Ulang?",
+    `Data hasil milik ${sub.nama} (Kelas ${sub.kelas}, Absen ${sub.absen}) akan dihapus dari database sehingga siswa tersebut dapat mengerjakan ulang. Lanjutkan?`,
+    async () => {
+      if (APPS_SCRIPT_URL && adminPasswordCache) {
+        try {
+          const res = await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+              action: "adminDeleteSubmission",
+              password: adminPasswordCache,
+              rowNumber: sub.rowNumber,
+              submittedAt: sub.submittedAt,
+              nama: sub.nama
+            })
+          });
+          const data = await res.json();
+          if (!data.ok) {
+            showToast(data.message || "Gagal menghapus data siswa.", "error");
+            return;
+          }
+          await loadAdminData();
+          showToast(`Data ${sub.nama} berhasil dihapus.`, "success");
+        } catch (err) {
+          showToast("Kesalahan koneksi: " + err.message, "error");
+        }
+        return;
+      }
+
+      adminSubmissions.splice(origIdx, 1);
+      localStorage.setItem(STORAGE_KEY_LOCAL_DB, JSON.stringify(adminSubmissions));
+      renderAdminTables();
+      showToast(`Data ${sub.nama} dihapus dari pratinjau lokal.`, "success");
     }
   );
 }
@@ -1854,56 +1994,6 @@ function downloadExcelWorkbook() {
 
   XLSX.writeFile(wb, "Hasil_dan_Analisis_ANATES_PraASAS_MTK8.xlsx");
   showToast("File Excel (.xlsx) 5 sheet berhasil diunduh.", "success");
-}
-
-// =========================================================================
-// DATA UJI SIMULASI ADMIN
-// =========================================================================
-function loadTenSampleStudents() {
-  const sampleNames = [
-    ["Alya Putri Ramadhani", "1", "VIII A"],
-    ["Bagas Pratama Wijaya", "4", "VIII A"],
-    ["Citra Kirana Dewi", "7", "VIII B"],
-    ["Dimas Aditya Nugroho", "12", "VIII B"],
-    ["Eka Sari Wulandari", "15", "VIII C"],
-    ["Fajar Ramadhan", "19", "VIII D"],
-    ["Gita Permata Sari", "22", "VIII E"],
-    ["Hendra Kusuma", "25", "VIII F"],
-    ["Indah Lestari", "30", "VIII G"],
-    ["Joko Susilo", "34", "VIII G"]
-  ];
-  const targetScores = [94, 88, 82, 74, 68, 62, 54, 46, 38, 24];
-  const generated = sampleNames.map((info, idx) => {
-    const answers = {};
-    const itemScores = {};
-    let acc = 0;
-    const target = targetScores[idx];
-    QUESTIONS_BANK.forEach((q) => {
-      const isCorrect = q.no === 8 ? idx < 2 : acc + q.weight <= target;
-      if (isCorrect) {
-        answers[q.no] = q.type === "PG" ? "A" : q.type === "PGK" ? "B,C" : q.type === "BS" ? "Benar" : "Contoh Benar";
-        itemScores[q.no] = q.weight;
-        acc += q.weight;
-      } else {
-        answers[q.no] = q.type === "PG" || q.type === "PGK" ? (idx % 2 === 0 ? "B" : "D") : q.type === "BS" ? "Salah" : "-";
-        itemScores[q.no] = 0;
-      }
-    });
-    return {
-      nama: info[0],
-      absen: info[1],
-      kelas: info[2],
-      tabSwitches: idx === 7 ? 2 : 0,
-      answers,
-      itemScores,
-      totalScore: acc,
-      submittedAt: new Date(Date.now() - idx * 60000).toISOString()
-    };
-  });
-  adminSubmissions = generated;
-  localStorage.setItem(STORAGE_KEY_LOCAL_DB, JSON.stringify(generated));
-  renderAdminTables();
-  showToast("10 data uji simulasi berhasil dimuat untuk pengujian analisis.", "success");
 }
 
 // =========================================================================
