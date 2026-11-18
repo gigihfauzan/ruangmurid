@@ -450,7 +450,7 @@ async function fetchBootstrapFromServer() {
   badge.textContent = "Terhubung ke Google Sheets";
   badge.className = "hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200";
   try {
-    const res = await fetch(APPS_SCRIPT_URL + "?action=getBootstrap&t=" + Date.now(), { cache: "no-store" });
+    const res = await fetch(APPS_SCRIPT_URL + "?action=getBootstrap&t=" + Date.now());
     const data = await res.json();
     if (data && data.ok) {
       if (data.config) {
@@ -1215,6 +1215,7 @@ async function loadAdminData() {
 function syncSettingsCheckboxes() {
   document.getElementById("cfg-isOpen").checked = !!appConfig.isOpen;
   document.getElementById("cfg-duration").value = appConfig.durationMinutes || 90;
+  document.getElementById("cfg-requireToken").checked = !!appConfig.requireToken;
   document.getElementById("cfg-sessionToken").value = appConfig.sessionToken || "";
   document.getElementById("cfg-pgkPartial").checked = appConfig.pgkPartialScore !== false;
   document.getElementById("cfg-showExplanation").checked = !!appConfig.showExplanation;
@@ -1225,11 +1226,16 @@ function syncSettingsCheckboxes() {
 
 async function saveAdminSettings() {
   const tokenClean = document.getElementById("cfg-sessionToken").value.trim().toUpperCase();
+  const reqTokenChecked = document.getElementById("cfg-requireToken").checked;
+  if (reqTokenChecked && !tokenClean) {
+    showToast("Isi kode Token Sesi terlebih dahulu jika Wajib Token Sesi dicentang.", "warning");
+    return;
+  }
   const updated = {
     isOpen: document.getElementById("cfg-isOpen").checked,
     durationMinutes: Math.max(5, parseInt(document.getElementById("cfg-duration").value || "90", 10)),
     sessionToken: tokenClean,
-    requireToken: tokenClean !== "",
+    requireToken: reqTokenChecked && tokenClean !== "",
     pgkPartialScore: document.getElementById("cfg-pgkPartial").checked,
     showExplanation: document.getElementById("cfg-showExplanation").checked,
     oneAttempt: document.getElementById("cfg-oneAttempt").checked,
