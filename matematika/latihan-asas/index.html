@@ -378,12 +378,12 @@
             <option value="VIII C">Kelas VIII C</option>
             <option value="VIII D">Kelas VIII D</option>
             <option value="VIII E">Kelas VIII E</option>
-            <option value="VIII F">Kelas VIII F</option>
-            <option value="VIII G">Kelas VIII G</option>
-          </select>
-
-          <button type="button" onclick="loadTenSampleStudents()" class="touch-btn px-3.5 py-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 font-bold text-xs sm:text-sm">
+          <button type="button" id="btn-load-sample" onclick="loadTenSampleStudents()" class="touch-btn px-3.5 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs sm:text-sm">
             Muat 10 Data Uji
+          </button>
+
+          <button type="button" id="btn-clear-sample" onclick="clearSampleStudents()" class="touch-btn px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs sm:text-sm">
+            Hapus Data Uji
           </button>
 
           <button type="button" onclick="downloadExcelWorkbook()" class="touch-btn px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm">
@@ -420,7 +420,7 @@
       <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
           <h3 class="font-extrabold text-slate-900 text-base">Pengaturan Sesi & Penilaian</h3>
-          <button type="button" onclick="saveAdminSettings()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm">
+          <button type="button" id="btn-save-settings" onclick="saveAdminSettings()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-bold text-xs sm:text-sm">
             Simpan Pengaturan
           </button>
         </div>
