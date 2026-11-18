@@ -151,21 +151,21 @@
       },
       {
         no: 11,
-        type: "PG",
+        type: "PGK",
         weight: 2,
         text: "Berikut pangkat dengan sifat perkalian dan pembagian bilangan berpangkat yang tepat adalah ….",
         options: [
           { key: "A", label: "$2^3 \\times 2^2 \\times 2^6 = 2^{3 \\times 2 \\times 6} = 2^{36}$" },
-          { key: "B", label: "$2^3 \\times 2^2 \\times 2^6 = 3^{3 + 2 + 6} = 2^{11}$" },
+          { key: "B", label: "$2^3 \\times 2^2 \\times 2^6 = 2^{3 + 2 + 6} = 2^{11}$" },
           { key: "C", label: "$2^3 : 2^2 : 2^6 = 2^{3 - 2 - 6} = 2^{-5}$" },
           { key: "D", label: "$2^3 : 2^2 : 2^6 = 2^{3 - 2 - 6} = 2^1$" }
         ]
       },
       {
         no: 12,
-        type: "PG",
+        type: "PGK",
         weight: 2,
-        text: "Perkalian berulang yang dapat diubah menjadi bilangan berpangkat dengan bilangan pokok $3$ adalah ….",
+        text: "Perkalian berulang yang dapat diubah menjadi bilangan berpangkat $3$ adalah ….",
         options: [
           { key: "A", label: "$2 \\times 2 \\times 2$" },
           { key: "B", label: "$3 \\times 3 \\times 3 \\times 3$" },
@@ -175,7 +175,7 @@
       },
       {
         no: 13,
-        type: "PG",
+        type: "PGK",
         weight: 2,
         text: "Penulisan bilangan biasa menjadi bentuk baku yang tepat adalah ….",
         options: [
@@ -187,7 +187,7 @@
       },
       {
         no: 14,
-        type: "PG",
+        type: "PGK",
         weight: 2,
         text: "Perhatikan gambar berikut!<br/>Berdasarkan teorema Pythagoras dan gambar tersebut, hubungan panjang sisi segitiga berikut yang tidak tepat adalah ….",
         svg: `<svg viewBox="0 0 220 175" class="w-52 mx-auto my-2 bg-white border border-slate-200 rounded-xl p-2">
@@ -206,7 +206,7 @@
       },
       {
         no: 15,
-        type: "PG",
+        type: "PGK",
         weight: 2,
         text: "Berikut yang bukan termasuk kalimat terbuka adalah ….",
         options: [
@@ -373,6 +373,7 @@
     let timerInterval = null;
     let adminPasswordCache = "";
     let adminSubmissions = [];
+    let adminKeysMap = {};
 
     // =========================================================================
     // INISIALISASI HALAMAN
@@ -517,7 +518,7 @@
         }
         const optOrders = {};
         QUESTIONS_BANK.forEach((q) => {
-          if (q.type === "PG") {
+          if (q.type === "PG" || q.type === "PGK") {
             const keys = q.options.map((o) => o.key);
             optOrders[q.no] = appConfig.shuffleOptions ? shuffleArray(keys) : keys;
           }
@@ -588,6 +589,7 @@
 
       const typeLabelMap = {
         PG: "I. Pilihan Ganda",
+        PGK: "I. Pilihan Ganda Kompleks",
         BS: "II. Benar / Salah",
         ISIAN: "III. Isian Singkat",
         URAIAN: "IV. Uraian"
@@ -625,6 +627,42 @@
             <span class="text-base">${optObj.label}</span>
           `;
           btn.onclick = () => selectAnswer(q.no, origKey);
+          wrap.appendChild(btn);
+        });
+        optionsEl.appendChild(wrap);
+      } else if (q.type === "PGK") {
+        const orderKeys = examState.optionOrders[q.no] || ["A", "B", "C", "D"];
+        const letters = ["A", "B", "C", "D"];
+        const selectedList = savedAns ? savedAns.split(",").map((s) => s.trim()) : [];
+
+        const hint = document.createElement("div");
+        hint.className = "mb-3 px-3.5 py-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold";
+        hint.textContent = "Pilihan Ganda Kompleks: Pilih semua jawaban yang benar (boleh lebih dari satu pilihan).";
+        optionsEl.appendChild(hint);
+
+        const wrap = document.createElement("div");
+        wrap.className = "space-y-3";
+
+        orderKeys.forEach((origKey, idx) => {
+          const optObj = q.options.find((o) => o.key === origKey);
+          const isSelected = selectedList.includes(origKey);
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = `touch-btn w-full text-left p-4 rounded-xl border-2 flex items-center gap-3.5 transition ${
+            isSelected
+              ? "border-blue-600 bg-blue-50 text-blue-950 font-bold"
+              : "border-slate-200 hover:border-blue-300 bg-white text-slate-800"
+          }`;
+          btn.innerHTML = `
+            <span class="w-6 h-6 rounded-md border-2 flex items-center justify-center text-xs font-extrabold shrink-0 ${
+              isSelected ? "border-blue-600 bg-blue-600 text-white" : "border-slate-400 bg-white text-transparent"
+            }">✓</span>
+            <span class="w-8 h-8 rounded-lg flex items-center justify-center font-extrabold text-sm shrink-0 ${
+              isSelected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+            }">${letters[idx]}</span>
+            <span class="text-base">${optObj.label}</span>
+          `;
+          btn.onclick = () => toggleMultiAnswer(q.no, origKey);
           wrap.appendChild(btn);
         });
         optionsEl.appendChild(wrap);
@@ -689,13 +727,22 @@
       if (rerender) renderCurrentQuestion();
     }
 
-    function moveQuestion(step) {
-      const nextIdx = examState.currentIndex + step;
-      if (nextIdx >= 0 && nextIdx < QUESTIONS_BANK.length) {
-        examState.currentIndex = nextIdx;
-        saveSessionToStorage();
-        renderQuestionNavGrid();
-        renderCurrentQuestion();
+    function toggleMultiAnswer(qNo, optionKey) {
+      const currentRaw = examState.answers[qNo] || "";
+      const set = new Set(currentRaw ? currentRaw.split(",").map((s) => s.trim()).filter(Boolean) : []);
+      if (set.has(optionKey)) {
+        set.delete(optionKey);
+      } else {
+        set.add(optionKey);
+      }
+      const combined = Array.from(set).sort().join(",");
+      selectAnswer(qNo, combined, true);
+    }
+
+    function moveQuestion(delta) {
+      const next = examState.currentIndex + delta;
+      if (next >= 0 && next < QUESTIONS_BANK.length) {
+        jumpToQuestion(next);
       }
     }
 
@@ -797,11 +844,15 @@
         return;
       }
 
-      // MODE PRATINJAU LOKAL (Hanya aktif bila APPS_SCRIPT_URL masih kosong)
-      const localResult = evaluateLocallyForPreview(payload);
+      // MODE PRATINJAU LOKAL (Tanpa kunci jawaban di sisi browser)
       clearInterval(timerInterval);
       localStorage.removeItem(STORAGE_KEY_SESSION);
-      showStudentResult(localResult);
+      if (btnFinish) btnFinish.disabled = false;
+      showToast("Mode Pratinjau: Kunci jawaban tersimpan aman di Code.gs. Pasang APPS_SCRIPT_URL untuk penilaian otomatis.", "info");
+      switchView("view-result");
+      document.getElementById("res-identity").textContent = `${examState.student.nama} • Kelas ${examState.student.kelas} • No. Absen ${examState.student.absen}`;
+      document.getElementById("res-score").textContent = "-";
+      document.getElementById("res-encouragement").textContent = "Jawaban Anda tercatat pada mode pratinjau. Setelah Google Apps Script terhubung, nilai otomatis akan muncul di sini.";
     }
 
     function showStudentResult(result) {
@@ -882,6 +933,7 @@
           }
           adminPasswordCache = pass;
           adminSubmissions = data.submissions || [];
+          if (data.adminKeys) adminKeysMap = data.adminKeys;
           if (data.config) {
             appConfig = { ...appConfig, ...data.config };
             syncSettingsCheckboxes();
@@ -925,6 +977,7 @@
           const data = await res.json();
           if (data.ok) {
             adminSubmissions = data.submissions || [];
+            if (data.adminKeys) adminKeysMap = data.adminKeys;
             if (data.config) {
               appConfig = { ...appConfig, ...data.config };
               syncSettingsCheckboxes();
@@ -1023,14 +1076,20 @@
         let countFullCorrect = 0;
 
         const optionCounts = { A: 0, B: 0, C: 0, D: 0 };
+
         rows.forEach((r) => {
           const sc = Number((r.itemScores && r.itemScores[q.no]) || 0);
           sumItemScore += sc;
           if (sc >= maxW) countFullCorrect++;
 
-          if (q.type === "PG") {
-            const ans = String((r.answers && r.answers[q.no]) || "").toUpperCase();
-            if (optionCounts[ans] !== undefined) optionCounts[ans]++;
+          if (q.type === "PG" || q.type === "PGK") {
+            String((r.answers && r.answers[q.no]) || "")
+              .toUpperCase()
+              .split(",")
+              .map((s) => s.trim())
+              .forEach((ans) => {
+                if (optionCounts[ans] !== undefined) optionCounts[ans]++;
+              });
           }
         });
 
@@ -1073,16 +1132,16 @@
         // Komponen KR-20
         const pProp = countFullCorrect / N;
         sumPQ += pProp * (1 - pProp);
-
-        // Analisis pengecoh (untuk PG)
+        // Analisis pengecoh (untuk PG & PGK)
         let distractorSummary = "-";
         let hasBadDistractor = false;
-        if (q.type === "PG") {
-          const key = PREVIEW_KEYS[q.no].key;
+        if (q.type === "PG" || q.type === "PGK") {
+          const keyRaw = adminKeysMap[q.no] || "";
+          const keyArr = Array.isArray(keyRaw) ? keyRaw : String(keyRaw).split(",").map((s) => s.trim());
           const parts = ["A", "B", "C", "D"].map((opt) => {
             const cnt = optionCounts[opt];
             const pct = Math.round((cnt / N) * 100);
-            if (opt === key) return `${opt}*:${cnt}(${pct}%)`;
+            if (keyRaw && keyArr.includes(opt)) return `${opt}*:${cnt}(${pct}%)`;
             const active = pct >= 5 && cnt >= 1;
             if (!active) hasBadDistractor = true;
             return `${opt}:${cnt}(${pct}%${active ? "" : "!"})`;
@@ -1252,10 +1311,10 @@
           Number(it.D.toFixed(3)),
           it.dCat,
           Number(it.rPbis.toFixed(3)),
-          it.type === "PG" ? it.optionCounts.A : "-",
-          it.type === "PG" ? it.optionCounts.B : "-",
-          it.type === "PG" ? it.optionCounts.C : "-",
-          it.type === "PG" ? it.optionCounts.D : "-",
+          it.type === "PG" || it.type === "PGK" ? it.optionCounts.A : "-",
+          it.type === "PG" || it.type === "PGK" ? it.optionCounts.B : "-",
+          it.type === "PG" || it.type === "PGK" ? it.optionCounts.C : "-",
+          it.type === "PG" || it.type === "PGK" ? it.optionCounts.D : "-",
           it.distractorSummary,
           it.rec
         ]);
@@ -1288,91 +1347,8 @@
     }
 
     // =========================================================================
-    // DATA UJI & EVALUATOR LOKAL (HANYA UNTUK MODE PRATINJAU TANPA APPS SCRIPT)
+    // DATA UJI SIMULASI ADMIN (TANPA MENYIMPAN KUNCI JAWABAN ASLI DI BROWSER)
     // =========================================================================
-    const PREVIEW_KEYS = {
-      1: { key: "A", exp: "(-3) dikalikan berulang sebanyak 4 kali = (-3)^4." },
-      2: { key: "D", exp: "p = L / l = 1 / 3^(-2) = 3^2 = 9 cm." },
-      3: { key: "C", exp: "7(2√3) + 4√3 - 5(3√3) = (14 + 4 - 15)√3 = 3√3." },
-      4: { key: "B", exp: "3√10 + 2√10 = 5√10." },
-      5: { key: "D", exp: "0,000012 = 1,2 x 10^(-5)." },
-      6: { key: "A", exp: "8^2 + 15^2 = 64 + 225 = 289 = 17^2." },
-      7: { key: "B", exp: "√(9^2 + 40^2) = √1681 = 41 cm." },
-      8: { key: "C", exp: "AD = 4√3 cm, sehingga AC = 4√3 x √2 = 4√6 cm." },
-      9: { key: "A", exp: "21 lebihnya dari 5a adalah 36 ditulis 5a + 21 = 36." },
-      10: { key: "B", exp: "Kelereng Andi = x - 3 = 18." },
-      11: { key: "C", exp: "2^3 : 2^2 : 2^6 = 2^(3 - 2 - 6) = 2^(-5)." },
-      12: { key: "B", exp: "3 x 3 x 3 x 3 = 3^4 (bilangan berpangkat dengan basis 3)." },
-      13: { key: "B", exp: "3,015 x 10^(-5) = 0,00003015." },
-      14: { key: "A", exp: "Sisi miring adalah BC, sehingga AB^2 = BC^2 - AC^2." },
-      15: { key: "B", exp: "Pernyataan bernilai benar (bukan kalimat terbuka)." },
-      16: { key: "Salah", exp: "(2^3 x 3^2)^3 = 72^3 = 373.248 (bukan 5.182)." },
-      17: { key: "Benar", exp: "3 x 10^8 m/s x 43.200 s = 1,296 x 10^13 m = 1,296 x 10^10 km." },
-      18: { key: "Benar", exp: "Segitiga siku-siku 45°, BC = 12√2 cm." },
-      19: { key: "Benar", exp: "Jarak Kak Ando = √(5^2+12^2) = 13 m < Diki = √(9^2+12^2) = 15 m." },
-      20: { key: "Salah", exp: "2x + 3 = 3x - 4 -> x = 7, panjang diagonal = 2(7) + 3 = 17 cm." },
-      21: { key: "2bc^7 / a^5", accept: ["2bc^7/a^5", "2bc7/a5"], exp: "Pangkat negatif a^(-5) dipindah ke penyebut menjadi a^5." },
-      22: { key: "6√7", accept: ["6√7", "6akar7"], exp: "√252 = √(36 x 7) = 6√7." },
-      23: { key: "2,534 x 10^-5", accept: ["2,534x10^-5", "2.534x10^-5", "2,534×10^-5"], exp: "0,00002534 = 2,534 x 10^(-5)." },
-      24: { key: "41 cm", accept: ["41", "41cm"], exp: "√(9^2 + 40^2) = 41 cm." },
-      25: { key: "9", accept: ["9"], exp: "2x - 8 = 10 -> 2x = 18 -> x = 9." },
-      26: { key: "64", accept: ["64", "2^6"], exp: "(2^3 / 2^5)^(-3) = (2^(-2))^(-3) = 2^6 = 64." },
-      27: { key: "11 m", accept: ["11", "11m"], exp: "AC = √(20^2-12^2) = 16 m; BC = √(13^2-12^2) = 5 m; AB = 16 - 5 = 11 m." },
-      28: { key: "Rp4.000,00", accept: ["4000", "4.000", "rp4000", "rp4.000"], exp: "6x - 10.000 = 14.000 -> 6x = 24.000 -> x = Rp4.000,00." }
-    };
-
-    function evaluateLocallyForPreview(payload) {
-      let totalScore = 0;
-      const itemScores = {};
-      const review = [];
-
-      QUESTIONS_BANK.forEach((q) => {
-        const rawAns = String(payload.answers[q.no] || "").trim();
-        const k = PREVIEW_KEYS[q.no];
-        let earned = 0;
-
-        if (q.type === "PG" || q.type === "BS") {
-          if (rawAns.toLowerCase() === k.key.toLowerCase()) earned = q.weight;
-        } else {
-          const norm = rawAns.toLowerCase().replace(/\s+/g, "");
-          if (k.accept.some((acc) => norm.includes(acc))) earned = q.weight;
-        }
-
-        itemScores[q.no] = earned;
-        totalScore += earned;
-        review.push({
-          no: q.no,
-          studentAns: rawAns,
-          correctKey: k.key,
-          earned,
-          max: q.weight,
-          isCorrect: earned === q.weight,
-          explanation: k.exp
-        });
-      });
-
-      const submission = {
-        nama: payload.student.nama,
-        absen: payload.student.absen,
-        kelas: payload.student.kelas,
-        answers: payload.answers,
-        itemScores,
-        totalScore,
-        submittedAt: payload.submittedAt
-      };
-
-      const existing = JSON.parse(localStorage.getItem(STORAGE_KEY_LOCAL_DB) || "[]");
-      existing.push(submission);
-      localStorage.setItem(STORAGE_KEY_LOCAL_DB, JSON.stringify(existing));
-
-      return {
-        ok: true,
-        totalScore,
-        showExplanation: appConfig.showExplanation,
-        review
-      };
-    }
-
     function loadTenSampleStudents() {
       const sampleNames = [
         ["Alya Putri Ramadhani", "1", "VIII A"],
@@ -1393,15 +1369,13 @@
         let acc = 0;
         const target = targetScores[idx];
         QUESTIONS_BANK.forEach((q) => {
-          const k = PREVIEW_KEYS[q.no];
-          // Butir 8 dibuat sukar (hanya 2 siswa teratas benar) untuk memverifikasi ANATES
           const isCorrect = q.no === 8 ? idx < 2 : acc + q.weight <= target;
           if (isCorrect) {
-            answers[q.no] = k.key;
+            answers[q.no] = q.type === "PG" ? "A" : q.type === "PGK" ? "B,C" : q.type === "BS" ? "Benar" : "Contoh Benar";
             itemScores[q.no] = q.weight;
             acc += q.weight;
           } else {
-            answers[q.no] = q.type === "PG" ? (idx % 2 === 0 ? "B" : "D") : q.type === "BS" ? "Salah" : "-";
+            answers[q.no] = q.type === "PG" || q.type === "PGK" ? (idx % 2 === 0 ? "B" : "D") : q.type === "BS" ? "Salah" : "-";
             itemScores[q.no] = 0;
           }
         });
@@ -1418,7 +1392,7 @@
       adminSubmissions = generated;
       localStorage.setItem(STORAGE_KEY_LOCAL_DB, JSON.stringify(generated));
       renderAdminTables();
-      showToast("10 data uji siswa berhasil dimuat untuk simulasi analisis ANATES.", "success");
+      showToast("10 data uji simulasi berhasil dimuat untuk pengujian analisis ANATES.", "success");
     }
 
     // =========================================================================
