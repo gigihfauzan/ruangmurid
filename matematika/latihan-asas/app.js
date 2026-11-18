@@ -450,7 +450,7 @@ async function fetchBootstrapFromServer() {
   badge.textContent = "Terhubung ke Google Sheets";
   badge.className = "hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200";
   try {
-    const res = await fetch(APPS_SCRIPT_URL + "?action=getBootstrap");
+    const res = await fetch(APPS_SCRIPT_URL + "?action=getBootstrap&t=" + Date.now(), { cache: "no-store" });
     const data = await res.json();
     if (data && data.ok) {
       if (data.config) {
@@ -460,6 +460,8 @@ async function fetchBootstrapFromServer() {
         QUESTIONS_BANK = data.questions;
       }
       applyConfigToUI();
+    } else {
+      showToast("Skrip Apps Script perlu di-deploy ulang sebagai New Version agar sinkronisasi berjalan.", "warning");
     }
   } catch (err) {
     showToast("Gagal memuat pengaturan terbaru dari server, memakai pengaturan cadangan.", "warning");
@@ -1151,6 +1153,9 @@ async function handleAdminLogin(e) {
       adminPasswordCache = pass;
       adminSubmissions = data.submissions || [];
       if (data.adminKeys) adminKeysMap = data.adminKeys;
+      if (!data.adminKeys) {
+        showToast("Perhatian: Apps Script masih menjalankan versi lama. Silakan Deploy -> New Version.", "warning");
+      }
       if (Array.isArray(data.questions) && data.questions.length > 0) QUESTIONS_BANK = data.questions;
       if (data.config) {
         appConfig = { ...appConfig, ...data.config };
@@ -1248,11 +1253,20 @@ async function saveAdminSettings() {
       });
       const data = await res.json();
       if (data.ok) {
-        showToast("Pengaturan berhasil disimpan ke Google Sheets.", "success");
+        if (data.config) {
+          appConfig = { ...appConfig, ...data.config };
+          localStorage.setItem(STORAGE_KEY_LOCAL_CFG, JSON.stringify(appConfig));
+          syncSettingsCheckboxes();
+          applyConfigToUI();
+        }
+        showToast("Pengaturan & Token berhasil disimpan ke tab 'Pengaturan' Google Sheets.", "success");
+        return;
+      } else {
+        showToast(data.message || "Gagal menyimpan pengaturan ke server.", "error");
         return;
       }
     } catch (err) {
-      showToast("Gagal menyimpan pengaturan ke server.", "error");
+      showToast("Gagal menyimpan pengaturan ke server: " + err.message, "error");
       return;
     }
   }
