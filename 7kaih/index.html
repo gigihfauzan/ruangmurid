@@ -2,10 +2,11 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title><?= appName ?> - <?= schoolName ?></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Jurnal 7KAIH SMP</title>
   <style>
     :root {
-      --primary: <?= themeColor ?>;
+      --primary: #0f766e;
       --bg: #f8fafc;
       --card: #ffffff;
       --text: #0f172a;
@@ -84,7 +85,7 @@
       font-size: 15px;
       font-weight: 600;
       cursor: pointer;
-      margin-top: 8px;
+      margin-top: 12px;
     }
     button:disabled { opacity: 0.6; cursor: not-allowed; }
   </style>
@@ -92,9 +93,9 @@
 <body>
   <div class="container">
     <div class="card">
-      <span class="badge">Fondasi Sistem • Tahap 1</span>
-      <h1 id="appTitle"><?= appName ?></h1>
-      <p class="subtitle" id="schoolTitle"><?= schoolName ?></p>
+      <span class="badge" id="modeBadge">Fondasi Sistem • Tahap 1</span>
+      <h1 id="appTitle">Jurnal 7KAIH SMP</h1>
+      <p class="subtitle" id="schoolTitle">Memuat identitas sekolah...</p>
 
       <div id="statusBox" class="status-box">
         Memeriksa koneksi server dan kesiapan database...
@@ -116,38 +117,91 @@
   </div>
 
   <script>
-    function checkFoundation() {
+    /**
+     * KONFIGURASI BACKEND API:
+     * - Biarkan kosong ('') jika file HTML ini dibuka langsung dari Google Apps Script.
+     * - Isi dengan URL Web App Apps Script (berakhiran /exec) jika file ini di-host di GitHub Pages / Custom Domain.
+     */
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbx6Ga95-A1doT5p9jhrYzqOMHGk1ILgOCmKOWG2b9a7mPefsUvWe25ETTlz92gXoEwB3g/exec';
+
+    /**
+     * Penghubung API universal: otomatis memilih google.script.run atau fetch() ke GAS_API_URL.
+     */
+    function callApi(payload) {
+      return new Promise(function(resolve, reject) {
+        const isInsideGas = (typeof google !== 'undefined' && google.script && google.script.run);
+        if (isInsideGas && !GAS_API_URL) {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .apiRouter(payload);
+          return;
+        }
+
+        if (!GAS_API_URL) {
+          reject(new Error('GAS_API_URL belum diisi untuk mode hosting eksternal (GitHub Pages).'));
+          return;
+        }
+
+        fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        })
+          .then(function(resp) {
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            return resp.json();
+          })
+          .then(resolve)
+          .catch(reject);
+      });
+    }
+
+    async function checkFoundation() {
       const box = document.getElementById('statusBox');
       const btn = document.getElementById('btnRecheck');
       btn.disabled = true;
       box.className = 'status-box';
       box.textContent = 'Menghubungi server Google Apps Script...';
 
-      google.script.run
-        .withSuccessHandler(function(res) {
-          btn.disabled = false;
-          if (!res || !res.ok) {
-            box.className = 'status-box status-err';
-            box.textContent = (res && res.message) ? res.message : 'Gagal terhubung ke server.';
-            return;
-          }
-          document.getElementById('serverDate').textContent = res.serverTime || '-';
-          document.getElementById('serverTz').textContent = res.data.timezone || '-';
+      try {
+        const [pingRes, cfgRes] = await Promise.all([
+          callApi({ action: 'PING' }),
+          callApi({ action: 'GET_PUBLIC_CONFIG' })
+        ]);
 
-          if (res.data.status === 'SIAP') {
-            box.className = 'status-box status-ok';
-            box.textContent = 'Database siap (' + res.data.totalSheetsRequired + ' tabel terverifikasi). Fondasi Tahap 1 berjalan normal.';
-          } else {
-            box.className = 'status-box status-warn';
-            box.textContent = 'Database belum lengkap. Sheet belum ada: ' + res.data.missingSheets.join(', ') + '. Jalankan setupDatabase() di Apps Script.';
+        if (cfgRes && cfgRes.ok && cfgRes.data) {
+          const cfg = cfgRes.data;
+          document.getElementById('appTitle').textContent = cfg.nama_aplikasi || 'Jurnal 7KAIH SMP';
+          document.getElementById('schoolTitle').textContent = cfg.nama_sekolah || '';
+          document.title = (cfg.nama_aplikasi || 'Jurnal 7KAIH') + ' - ' + (cfg.nama_sekolah || '');
+          if (cfg.warna_tema) {
+            document.documentElement.style.setProperty('--primary', cfg.warna_tema);
           }
-        })
-        .withFailureHandler(function(err) {
-          btn.disabled = false;
+        }
+
+        if (!pingRes || !pingRes.ok) {
           box.className = 'status-box status-err';
-          box.textContent = 'Kesalahan jaringan/server: ' + (err && err.message ? err.message : err);
-        })
-        .apiRouter({ action: 'PING' });
+          box.textContent = (pingRes && pingRes.message) ? pingRes.message : 'Gagal terhubung ke server.';
+          return;
+        }
+
+        document.getElementById('serverDate').textContent = pingRes.serverTime || '-';
+        document.getElementById('serverTz').textContent = pingRes.data.timezone || '-';
+
+        if (pingRes.data.status === 'SIAP') {
+          box.className = 'status-box status-ok';
+          box.textContent = 'Database siap (' + pingRes.data.totalSheetsRequired + ' tabel terverifikasi). Koneksi API berjalan normal.';
+        } else {
+          box.className = 'status-box status-warn';
+          box.textContent = 'Database belum lengkap. Sheet belum ada: ' + pingRes.data.missingSheets.join(', ');
+        }
+      } catch (err) {
+        box.className = 'status-box status-err';
+        box.textContent = 'Kesalahan jaringan/server: ' + (err && err.message ? err.message : err);
+      } finally {
+        btn.disabled = false;
+      }
     }
 
     window.addEventListener('DOMContentLoaded', checkFoundation);
