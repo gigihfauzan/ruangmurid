@@ -160,14 +160,15 @@
     input[type="tel"],
     input[type="time"],
     input[type="number"],
+    input[type="date"],
     textarea,
     select {
       width: 100%;
-      min-height: 48px;
-      padding: 10px 14px;
+      min-height: 46px;
+      padding: 9px 13px;
       border: 1.5px solid var(--border);
       border-radius: 11px;
-      font-size: 16px;
+      font-size: 15px;
       font-family: inherit;
       background: #fff;
       color: var(--text);
@@ -192,21 +193,24 @@
 
     .btn {
       width: 100%;
-      min-height: 48px;
+      min-height: 46px;
       border: none;
       border-radius: 12px;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      padding: 10px 16px;
+      gap: 6px;
+      padding: 9px 14px;
     }
+    .btn-inline { width: auto; min-height: 40px; font-size: 13px; padding: 7px 13px; border-radius: 10px; }
+    .btn-xs { width: auto; min-height: 32px; font-size: 12px; padding: 4px 10px; border-radius: 8px; }
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-primary:hover { background: var(--primary-dark); }
     .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
     /* App Shell Layout */
@@ -219,7 +223,7 @@
       z-index: 100;
     }
     .topbar-inner {
-      max-width: 1040px;
+      max-width: 1140px;
       margin: 0 auto;
       display: flex;
       align-items: center;
@@ -243,7 +247,7 @@
     }
 
     .shell-container {
-      max-width: 1040px;
+      max-width: 1140px;
       margin: 0 auto;
       padding: 16px 16px 88px;
     }
@@ -310,7 +314,7 @@
     .admin-preview-bar select { min-height: 40px; width: auto; min-width: 180px; font-size: 14px; }
 
     /* ===================================================================== */
-    /* STUDENT UI COMPONENTS (MOBILE-FIRST, TOUCH TARGET >= 48PX)            */
+    /* STUDENT & SHARED COMPONENTS                                           */
     /* ===================================================================== */
     .habit-card {
       border: 1.5px solid var(--border);
@@ -366,16 +370,8 @@
       gap: 6px;
       color: var(--text);
     }
-    .vx-btn.active-v {
-      background: #16a34a;
-      border-color: #15803d;
-      color: #fff;
-    }
-    .vx-btn.active-x {
-      background: #dc2626;
-      border-color: #b91c1c;
-      color: #fff;
-    }
+    .vx-btn.active-v { background: #16a34a; border-color: #15803d; color: #fff; }
+    .vx-btn.active-x { background: #dc2626; border-color: #b91c1c; color: #fff; }
 
     .extra-fields {
       margin-top: 12px;
@@ -401,7 +397,6 @@
       flex-shrink: 0;
     }
 
-    /* Kalender Kertas 1..31 */
     .month-toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -410,12 +405,8 @@
       gap: 10px;
       margin-bottom: 14px;
     }
-    .month-picker {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .month-picker select { min-height: 42px; font-size: 14px; width: auto; }
+    .month-picker { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .month-picker select, .month-picker input { min-height: 40px; font-size: 14px; width: auto; }
 
     .paper-scroll {
       overflow-x: auto;
@@ -426,12 +417,11 @@
     .paper-table {
       border-collapse: collapse;
       width: 100%;
-      min-width: 980px;
       font-size: 12px;
     }
     .paper-table th, .paper-table td {
       border: 1px solid #cbd5e1;
-      padding: 6px 4px;
+      padding: 7px 6px;
       text-align: center;
     }
     .paper-table th {
@@ -439,32 +429,23 @@
       color: #fff;
       font-weight: 700;
     }
-    .paper-table td.habit-col, .paper-table th.habit-col {
+    .paper-table td.sticky-col, .paper-table th.sticky-col {
       position: sticky;
       left: 0;
       z-index: 2;
       text-align: left;
       padding: 8px 10px;
-      min-width: 175px;
+      min-width: 170px;
       font-weight: 700;
     }
-    .paper-table td.habit-col {
-      background: #f8fafc;
-      color: var(--text);
-    }
+    .paper-table td.sticky-col { background: #f8fafc; color: var(--text); }
     .cell-v { background: #dcfce7; color: #166534; font-weight: 800; }
     .cell-x { background: #fee2e2; color: #991b1b; font-weight: 800; }
-    .cell-paraf {
-      display: block;
-      font-size: 9px;
-      color: #0369a1;
-      margin-top: 1px;
-    }
+    .cell-paraf { display: block; font-size: 9px; color: #0369a1; margin-top: 1px; }
 
-    /* Ringkasan & Stiker */
     .summary-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 10px;
       margin-bottom: 16px;
     }
@@ -479,13 +460,14 @@
 
     .badge-terbiasa {
       display: inline-block;
-      padding: 3px 10px;
+      padding: 3px 9px;
       border-radius: 999px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
     }
     .badge-sudah { background: var(--ok-bg); color: var(--ok-text); }
     .badge-belum { background: var(--warn-bg); color: var(--warn-text); }
+    .badge-muted { background: #e2e8f0; color: #475569; }
 
     .progress-bar-bg {
       width: 100%;
@@ -495,11 +477,7 @@
       overflow: hidden;
       margin-top: 6px;
     }
-    .progress-bar-fill {
-      height: 100%;
-      background: var(--primary);
-      border-radius: 999px;
-    }
+    .progress-bar-fill { height: 100%; background: var(--primary); border-radius: 999px; }
 
     .sticker-grid {
       display: grid;
@@ -520,7 +498,27 @@
       border-color: var(--primary);
     }
 
-    /* Modal Change PIN */
+    /* Paraf Toggle Button inside table */
+    .paraf-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 7px;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      min-height: 32px;
+    }
+    .paraf-chip.signed {
+      background: #dbeafe;
+      border-color: #2563eb;
+      color: #1e40af;
+    }
+
+    /* Modals */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -533,11 +531,14 @@
     }
     .modal-card {
       width: 100%;
-      max-width: 420px;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
       background: var(--card);
       border-radius: 16px;
-      padding: 22px;
+      padding: 20px;
     }
+    .modal-card-lg { max-width: 680px; }
   </style>
 </head>
 <body>
@@ -574,7 +575,7 @@
       <form id="loginForm" onsubmit="submitLogin(event)">
         <div class="form-group">
           <label id="lblIdentifier" for="inpIdentifier">NISN Siswa</label>
-          <input type="tel" id="inpIdentifier" inputmode="numeric" autocomplete="username" placeholder="Masukkan 10 digit NISN" required>
+          <input type="tel" id="inpIdentifier" inputmode="numeric" autocomplete="username" placeholder="Masukkan NISN" required>
         </div>
 
         <div class="form-group">
@@ -657,12 +658,22 @@
         </div>
       </section>
 
+      <!-- Bar "Lihat sebagai Wali Kelas" khusus Admin Utama -->
       <section id="adminPreviewBar" class="admin-preview-bar hidden">
         <strong style="font-size:13px;">Mode Admin Utama:</strong>
         <label for="selPreviewClass" style="margin:0; font-size:13px;">Lihat sebagai wali kelas:</label>
         <select id="selPreviewClass" onchange="handleAdminPreviewClassChange()">
           <option value="">-- Tampilan Admin Utama --</option>
         </select>
+      </section>
+
+      <!-- Pemilih Kelas aktif untuk Wali Kelas (jika mengampu >= 1 kelas) -->
+      <section id="walasClassBar" class="card hidden" style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div>
+          <strong style="font-size:14px;">Kelas Binaan Aktif:</strong>
+          <span id="walasClassSub" style="font-size:13px; color:var(--muted); margin-left:6px;"></span>
+        </div>
+        <select id="selWalasActiveClass" style="width:auto; min-width:160px; min-height:40px;" onchange="onChangeWalasActiveClass(this.value)"></select>
       </section>
 
       <nav id="roleNavStrip" class="nav-strip"></nav>
@@ -699,6 +710,13 @@
     </div>
   </div>
 
+  <!-- ===================================================================== -->
+  <!-- MODAL DINAMIS WALI KELAS (TAMBAH/EDIT SISWA, IMPOR, CATATAN)          -->
+  <!-- ===================================================================== -->
+  <div id="modalWalasDynamic" class="modal-backdrop hidden">
+    <div id="modalWalasBox" class="modal-card"></div>
+  </div>
+
   <script>
     /**
      * KONFIGURASI BACKEND API:
@@ -715,11 +733,21 @@
     let previewClassId = '';
     let latestServerDate = '';
 
-    // State khusus Modul Siswa
+    // State khusus Siswa
     let studentHomeState = null;
     let studentMonthlyState = null;
     let selectedReportYear = null;
     let selectedReportMonth = null;
+
+    // State khusus Wali Kelas
+    let walasActiveClassId = '';
+    let walasMonitorDate = '';
+    let walasValStartDate = '';
+    let walasValEndDate = '';
+    let walasValSelectedDate = '';
+    let walasValCache = null;
+    let walasRecapCache = null;
+    let walasStudentsCache = [];
 
     // ========================================================================
     // 1. KOMUNIKASI API DENGAN RETRY BERTAHAP
@@ -777,7 +805,7 @@
     }
 
     // ========================================================================
-    // 2. PENYIMPANAN TOKEN & DRAF LOKAL AMAN (TRY/CATCH)
+    // 2. PENYIMPANAN TOKEN & DRAF LOKAL AMAN
     // ========================================================================
     function getSavedToken() {
       try { return sessionStorage.getItem(STORAGE_TOKEN_KEY) || ''; }
@@ -882,7 +910,7 @@
     }
 
     // ========================================================================
-    // 4. ALUR OTENTIKASI (LOGIN, GANTI PIN, LOGOUT)
+    // 4. ALUR OTENTIKASI
     // ========================================================================
     function switchLoginTab(tab) {
       currentLoginTab = tab;
@@ -915,7 +943,7 @@
         lblId.textContent = 'Nama Pengguna (Username)';
         inpId.type = 'text';
         inpId.setAttribute('inputmode', 'text');
-        inpId.placeholder = 'Contoh: admin1 atau nip/username';
+        inpId.placeholder = 'Contoh: admin1 atau username guru';
         lblSec.textContent = 'Kata Sandi';
         inpSec.setAttribute('inputmode', 'text');
         inpSec.placeholder = 'Masukkan kata sandi';
@@ -958,6 +986,13 @@
         const parts = latestServerDate.split('-');
         if (!selectedReportYear) selectedReportYear = parseInt(parts[0], 10);
         if (!selectedReportMonth) selectedReportMonth = parseInt(parts[1], 10);
+        if (!walasMonitorDate) walasMonitorDate = latestServerDate;
+        if (!walasValEndDate) walasValEndDate = latestServerDate;
+        if (!walasValStartDate) {
+          const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+          d.setDate(d.getDate() - 6);
+          walasValStartDate = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+        }
       }
 
       document.getElementById('viewLogin').classList.add('hidden');
@@ -1028,7 +1063,10 @@
         currentUser = null;
         studentHomeState = null;
         studentMonthlyState = null;
+        walasValCache = null;
+        walasRecapCache = null;
         previewClassId = '';
+        walasActiveClassId = '';
         setLoading(false);
         showLoginView('Anda telah keluar dari aplikasi.');
       }
@@ -1066,11 +1104,11 @@
         { key: 'panduan', label: 'Panduan 7KAIH' }
       ],
       WALAS: [
-        { key: 'pantau_harian', label: 'Pemantauan Hari Ini', desc: 'Daftar siswa yang belum mengisi dan siswa yang membutuhkan perhatian (Tahap 4).' },
-        { key: 'validasi_paraf', label: 'Validasi Paraf', desc: 'Pemberian paraf digital satuan maupun massal per rentang tanggal (Tahap 4).' },
-        { key: 'rekap_kelas', label: 'Rekap & Catatan', desc: 'Rekap bulanan kelas (Lampiran 3) dan kolom catatan wali kelas (Tahap 4).' },
-        { key: 'kelola_siswa', label: 'Data Siswa', desc: 'Tambah siswa, impor massal dari Excel/CSV, edit, dan reset PIN (Tahap 4).' },
-        { key: 'ekspor_walas', label: 'Unduh Excel (.xlsx)', desc: 'Unduh Rekap Bulanan Lampiran 3 dan data harian kelas (Tahap 6).' }
+        { key: 'pantau_harian', label: 'Pemantauan Hari Ini' },
+        { key: 'validasi_paraf', label: 'Validasi Paraf' },
+        { key: 'rekap_kelas', label: 'Rekap & Catatan' },
+        { key: 'kelola_siswa', label: 'Data Siswa' },
+        { key: 'ekspor_walas', label: 'Unduh Excel (.xlsx)', desc: 'Fitur ekspor file Excel Lampiran 3 dan data harian kelas akan diaktifkan pada Tahap 6.' }
       ],
       ADMIN: [
         { key: 'dashboard_sekolah', label: 'Dashboard Sekolah', desc: 'Statistik pengisian seluruh kelas dan capaian 7 kebiasaan (Tahap 6).' },
@@ -1113,6 +1151,7 @@
           'Username: ' + currentUser.identifier + ' • NIP: ' + (currentUser.nip || '-');
       }
 
+      // Admin Utama: dropdown "Lihat sebagai wali kelas"
       const previewBar = document.getElementById('adminPreviewBar');
       if (currentUser.peran === 'ADMIN') {
         previewBar.classList.remove('hidden');
@@ -1128,6 +1167,29 @@
         previewBar.classList.add('hidden');
       }
 
+      // Wali Kelas: setup kelas binaan aktif
+      const walasBar = document.getElementById('walasClassBar');
+      if (currentUser.peran === 'WALAS') {
+        const list = currentUser.managedClasses || [];
+        if (list.length > 0) {
+          walasActiveClassId = list[0].id_kelas;
+          walasBar.classList.remove('hidden');
+          const selW = document.getElementById('selWalasActiveClass');
+          selW.innerHTML = '';
+          list.forEach(function(k) {
+            const opt = document.createElement('option');
+            opt.value = k.id_kelas;
+            opt.textContent = 'Kelas ' + k.nama_kelas;
+            selW.appendChild(opt);
+          });
+        } else {
+          walasActiveClassId = '';
+          walasBar.classList.add('hidden');
+        }
+      } else {
+        walasBar.classList.add('hidden');
+      }
+
       const effectiveRole = (currentUser.peran === 'ADMIN' && previewClassId) ? 'WALAS' : currentUser.peran;
       const menus = ROLE_MENUS[effectiveRole] || [];
       activeNavKey = menus.length > 0 ? menus[0].key : '';
@@ -1136,10 +1198,20 @@
 
     function handleAdminPreviewClassChange() {
       previewClassId = document.getElementById('selPreviewClass').value;
+      walasActiveClassId = previewClassId;
+      walasValCache = null;
+      walasRecapCache = null;
       const effectiveRole = previewClassId ? 'WALAS' : 'ADMIN';
       const menus = ROLE_MENUS[effectiveRole] || [];
       activeNavKey = menus.length > 0 ? menus[0].key : '';
       renderRoleNavigation(effectiveRole);
+    }
+
+    function onChangeWalasActiveClass(newClassId) {
+      walasActiveClassId = newClassId;
+      walasValCache = null;
+      walasRecapCache = null;
+      loadWalasView(activeNavKey);
     }
 
     function renderRoleNavigation(effectiveRole) {
@@ -1161,6 +1233,11 @@
 
       if (effectiveRole === 'SISWA') {
         loadStudentView(activeNavKey);
+        return;
+      }
+
+      if (effectiveRole === 'WALAS') {
+        loadWalasView(activeNavKey);
         return;
       }
 
@@ -1191,9 +1268,6 @@
       }
     }
 
-    // ------------------------------------------------------------------------
-    // 6A. TAB "ISI HARI INI"
-    // ------------------------------------------------------------------------
     async function renderStudentDailyFormView(container, targetDate) {
       setLoading(true, 'Memuat catatan harian...');
       try {
@@ -1225,8 +1299,6 @@
       };
 
       let html = '';
-
-      // Pengumuman Sekolah untuk Siswa
       if (st.announcements && st.announcements.length > 0) {
         st.announcements.forEach(function(ann) {
           html += '<div class="alert alert-info">' +
@@ -1241,7 +1313,6 @@
       html += '<div><h3 style="font-size:18px;">Catat Kebiasaan Harian</h3>' +
               '<p style="font-size:12px; color:var(--muted);">Isi setiap hari termasuk Sabtu dan Minggu.</p></div>';
 
-      // Pemilih tanggal (Hari ini s/d N hari mundur)
       html += '<div style="min-width:210px;">' +
               '<select id="selJournalDate" onchange="onChangeJournalDate(this.value)">';
       st.dateOptions.forEach(function(opt) {
@@ -1267,7 +1338,6 @@
       html += '<div id="dailyFormAlert" class="alert alert-err hidden"></div>';
       html += '<form id="dailyJournalForm" onsubmit="submitDailyJournal(event)">';
 
-      // Render 7 Kebiasaan secara dinamis sesuai versi form
       st.form.habits.forEach(function(h) {
         const curVal = (sourceData.status_kebiasaan && sourceData.status_kebiasaan[h.id_kebiasaan]) || '';
         const cardStateClass = curVal === 'v' ? 'state-v' : (curVal === 'x' ? 'state-x' : '');
@@ -1278,7 +1348,6 @@
                 '<div class="habit-sub">' + escapeHtml(h.panduan_singkat) + '</div>' +
                 '</div></div>';
 
-        // Jika mode Bangun Pagi otomatis dari jam bangun, tampilkan info
         const isAutoBangun = (h.kode === 'BANGUN_PAGI' && st.rules.mode_bangun_pagi === 'OTOMATIS_JAM');
         if (isAutoBangun) {
           html += '<div class="hint" style="margin-bottom:8px; color:var(--primary); font-weight:600;">' +
@@ -1296,7 +1365,6 @@
                 'onclick="setHabitStatus(\'' + escapeHtml(h.id_kebiasaan) + '\', \'x\')">&#10007; Belum (x)</button>';
         html += '</div>';
 
-        // Field tambahan (jam bangun, jam tidur, atau isian aktif lainnya)
         if (h.fields && h.fields.length > 0) {
           html += '<div class="extra-fields">';
           h.fields.forEach(function(f) {
@@ -1310,43 +1378,33 @@
                     (f.wajib ? ' <span style="color:#dc2626;">*</span>' : '') + '</label>';
 
             if (f.tipe === 'JAM') {
-              html += '<input type="time" id="fld_' + escapeHtml(f.kode_field) + '" value="' + escapeHtml(fVal) + '" ' +
-                      'onchange="onDailyInputChanged()">';
+              html += '<input type="time" id="fld_' + escapeHtml(f.kode_field) + '" value="' + escapeHtml(fVal) + '" onchange="onDailyInputChanged()">';
             } else if (f.tipe === 'ANGKA') {
-              html += '<input type="number" id="fld_' + escapeHtml(f.kode_field) + '" value="' + escapeHtml(fVal) + '" ' +
-                      'placeholder="' + escapeHtml(f.petunjuk) + '" oninput="onDailyInputChanged()">';
+              html += '<input type="number" id="fld_' + escapeHtml(f.kode_field) + '" value="' + escapeHtml(fVal) + '" placeholder="' + escapeHtml(f.petunjuk) + '" oninput="onDailyInputChanged()">';
             } else if (f.tipe === 'PILIHAN') {
-              html += '<select id="fld_' + escapeHtml(f.kode_field) + '" onchange="onDailyInputChanged()">' +
-                      '<option value="">-- Pilih --</option>';
+              html += '<select id="fld_' + escapeHtml(f.kode_field) + '" onchange="onDailyInputChanged()"><option value="">-- Pilih --</option>';
               (f.opsi || []).forEach(function(op) {
                 html += '<option value="' + escapeHtml(op) + '"' + (op === fVal ? ' selected' : '') + '>' + escapeHtml(op) + '</option>';
               });
               html += '</select>';
             } else if (f.tipe === 'TEKS_PANJANG') {
-              html += '<textarea id="fld_' + escapeHtml(f.kode_field) + '" placeholder="' + escapeHtml(f.petunjuk) + '" ' +
-                      'oninput="onDailyInputChanged()">' + escapeHtml(fVal) + '</textarea>';
+              html += '<textarea id="fld_' + escapeHtml(f.kode_field) + '" placeholder="' + escapeHtml(f.petunjuk) + '" oninput="onDailyInputChanged()">' + escapeHtml(fVal) + '</textarea>';
             } else {
-              html += '<input type="text" id="fld_' + escapeHtml(f.kode_field) + '" value="' + escapeHtml(fVal) + '" ' +
-                      'placeholder="' + escapeHtml(f.petunjuk) + '" oninput="onDailyInputChanged()">';
+              html += '<input type="text" id="fld_' + escapeHtml(f.kode_field) + '" value="' + escapeHtml(fVal) + '" placeholder="' + escapeHtml(f.petunjuk) + '" oninput="onDailyInputChanged()">';
             }
 
-            if (f.petunjuk) {
-              html += '<div class="hint">' + escapeHtml(f.petunjuk) + '</div>';
-            }
+            if (f.petunjuk) html += '<div class="hint">' + escapeHtml(f.petunjuk) + '</div>';
             html += '</div>';
           });
 
-          // Indikator informasi durasi tidur pada kartu Tidur Cepat
           if (h.kode === 'TIDUR_CEPAT') {
             html += '<div id="sleepDurationInfo" class="hint" style="font-weight:600; color:var(--primary);"></div>';
           }
           html += '</div>';
         }
-
         html += '</div>';
       });
 
-      // Penanda Diketahui Orang Tua / Wali
       html += '<label class="parent-ack-box" for="chkDiketahuiOrtu">' +
               '<input type="checkbox" id="chkDiketahuiOrtu"' + (sourceData.diketahui_ortu ? ' checked' : '') + ' onchange="onDailyInputChanged()">' +
               '<div><strong>Diketahui Orang Tua / Wali</strong>' +
@@ -1354,8 +1412,7 @@
               '</label>';
 
       const canSubmit = st.scheduleStatus.isOpen && st.calendarRule.allowed;
-      html += '<button type="submit" id="btnSaveJournal" class="btn btn-primary"' + (canSubmit ? '' : ' disabled') + '>' +
-              'Simpan Catatan Hari Ini</button>';
+      html += '<button type="submit" id="btnSaveJournal" class="btn btn-primary"' + (canSubmit ? '' : ' disabled') + '>Simpan Catatan Hari Ini</button>';
       html += '</form></div>';
 
       container.innerHTML = html;
@@ -1450,8 +1507,7 @@
     }
 
     function onChangeJournalDate(newDate) {
-      const workspace = document.getElementById('roleWorkspace');
-      renderStudentDailyFormView(workspace, newDate);
+      renderStudentDailyFormView(document.getElementById('roleWorkspace'), newDate);
     }
 
     async function submitDailyJournal(e) {
@@ -1466,8 +1522,7 @@
           showAlert('dailyFormAlert', (res && res.message) ? res.message : 'Gagal menyimpan catatan.');
           return;
         }
-        const draftKey = '7KAIH_DRAFT_' + currentUser.id + '_' + payload.tanggal;
-        clearLocalDraft(draftKey);
+        clearLocalDraft('7KAIH_DRAFT_' + currentUser.id + '_' + payload.tanggal);
         alert(res.message);
         await renderStudentDailyFormView(document.getElementById('roleWorkspace'), payload.tanggal);
       } catch (err) {
@@ -1477,9 +1532,6 @@
       }
     }
 
-    // ------------------------------------------------------------------------
-    // 6B. HELPER MUAT LAPORAN BULANAN (DIPAKAI TAB KALENDER, RINGKASAN, REFLEKSI)
-    // ------------------------------------------------------------------------
     async function ensureMonthlyReportLoaded(forceReload) {
       if (!forceReload && studentMonthlyState &&
           studentMonthlyState.year === selectedReportYear &&
@@ -1522,12 +1574,14 @@
       if (newMonth) selectedReportMonth = parseInt(newMonth, 10);
       if (newYear) selectedReportYear = parseInt(newYear, 10);
       studentMonthlyState = null;
-      await loadStudentView(activeNavKey);
+      walasRecapCache = null;
+      if (currentUser && currentUser.peran === 'SISWA') {
+        await loadStudentView(activeNavKey);
+      } else {
+        await loadWalasView(activeNavKey);
+      }
     }
 
-    // ------------------------------------------------------------------------
-    // 6C. TAB "KALENDER BULAN" (MATRIKS 1..31 MENIRU LEMBAR KERTAS RESMI)
-    // ------------------------------------------------------------------------
     async function renderStudentCalendarView(container) {
       setLoading(true, 'Memuat kalender bulanan...');
       try {
@@ -1539,8 +1593,8 @@
                 buildMonthSelectorHtml('changeReportPeriod') +
                 '</div>';
 
-        html += '<div class="paper-scroll"><table class="paper-table"><thead><tr>';
-        html += '<th class="habit-col">Tujuh Kebiasaan</th>';
+        html += '<div class="paper-scroll"><table class="paper-table" style="min-width:980px;"><thead><tr>';
+        html += '<th class="sticky-col">Tujuh Kebiasaan</th>';
         for (let d = 1; d <= rep.daysInMonth; d++) {
           html += '<th>' + d + '</th>';
         }
@@ -1548,7 +1602,7 @@
 
         rep.habits.forEach(function(h) {
           const sum = rep.summaries.find(function(s) { return s.id_kebiasaan === h.id_kebiasaan; }) || { count_v: 0, count_paraf: 0 };
-          html += '<tr><td class="habit-col">' + h.urutan + '. ' + escapeHtml(h.nama) + '</td>';
+          html += '<tr><td class="sticky-col">' + h.urutan + '. ' + escapeHtml(h.nama) + '</td>';
           rep.dailyMatrix.forEach(function(dayItem) {
             const st = dayItem.status_kebiasaan[h.id_kebiasaan] || '';
             const hasParaf = dayItem.validasi_guru && dayItem.validasi_guru[h.id_kebiasaan];
@@ -1562,21 +1616,19 @@
           html += '<td><strong>' + sum.count_paraf + '</strong></td></tr>';
         });
 
-        // Baris Jam Bangun & Jam Tidur
-        html += '<tr><td class="habit-col">Jam Bangun</td>';
+        html += '<tr><td class="sticky-col">Jam Bangun</td>';
         rep.dailyMatrix.forEach(function(dayItem) {
           html += '<td style="font-size:10px;">' + escapeHtml(dayItem.jam_bangun || '-') + '</td>';
         });
         html += '<td colspan="2">-</td></tr>';
 
-        html += '<tr><td class="habit-col">Jam Tidur</td>';
+        html += '<tr><td class="sticky-col">Jam Tidur</td>';
         rep.dailyMatrix.forEach(function(dayItem) {
           html += '<td style="font-size:10px;">' + escapeHtml(dayItem.jam_tidur || '-') + '</td>';
         });
         html += '<td colspan="2">-</td></tr>';
 
-        // Baris Diketahui Orang Tua
-        html += '<tr><td class="habit-col">Diketahui Ortu</td>';
+        html += '<tr><td class="sticky-col">Diketahui Ortu</td>';
         rep.dailyMatrix.forEach(function(dayItem) {
           html += '<td>' + (dayItem.diketahui_ortu ? '&#10003;' : '-') + '</td>';
         });
@@ -1591,9 +1643,6 @@
       }
     }
 
-    // ------------------------------------------------------------------------
-    // 6D. TAB "RINGKASAN & STIKER"
-    // ------------------------------------------------------------------------
     async function renderStudentSummaryView(container) {
       setLoading(true, 'Menghitung capaian bulanan...');
       try {
@@ -1615,7 +1664,6 @@
         html += '<div class="stat-box"><div class="num">' + escapeHtml(avgSleepText) + '</div><div class="lbl">Rata-rata Durasi Tidur (Ideal ' + rep.stats.sleepIdealMin + '–' + rep.stats.sleepIdealMaks + ' jam)</div></div>';
         html += '</div>';
 
-        // Daftar 7 Kebiasaan & Kategori Sudah/Belum Terbiasa
         rep.summaries.forEach(function(s) {
           html += '<div class="habit-card" style="margin-bottom:10px;">' +
                   '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">' +
@@ -1629,7 +1677,6 @@
         });
         html += '</div>';
 
-        // Stiker Apresiasi Digital
         html += '<div class="card">';
         html += '<h3 style="font-size:17px; margin-bottom:4px;">Stiker Apresiasi Kebiasaan</h3>';
         html += '<p style="font-size:12px; color:var(--muted); margin-bottom:10px;">Terus bangun kebiasaan baik setiap hari untuk mengumpulkan seluruh stiker bulan ini!</p>';
@@ -1652,9 +1699,6 @@
       }
     }
 
-    // ------------------------------------------------------------------------
-    // 6E. TAB "REFLEKSI BULANAN" (BERSAMA ORANG TUA / WALI)
-    // ------------------------------------------------------------------------
     async function renderStudentReflectionView(container) {
       setLoading(true, 'Memuat lembar refleksi...');
       try {
@@ -1747,9 +1791,6 @@
       }
     }
 
-    // ------------------------------------------------------------------------
-    // 6F. TAB "PANDUAN 7KAIH"
-    // ------------------------------------------------------------------------
     async function renderStudentGuideView(container) {
       setLoading(true, 'Memuat panduan 7KAIH...');
       try {
@@ -1790,7 +1831,739 @@
     }
 
     // ========================================================================
-    // 7. INISIALISASI HALAMAN SAAT PERTAMA DIBUKA
+    // 7. MODUL WALI KELAS (TAHAP 4)
+    // ========================================================================
+    async function loadWalasView(tabKey) {
+      const workspace = document.getElementById('roleWorkspace');
+      if (!walasActiveClassId) {
+        workspace.innerHTML = '<div class="card"><div class="alert alert-warn">' +
+          'Belum ada kelas yang ditugaskan kepada akun Anda. Hubungi Admin Utama untuk mengatur penugasan kelas.</div></div>';
+        return;
+      }
+
+      if (tabKey === 'pantau_harian') {
+        await renderWalasMonitoringView(workspace);
+      } else if (tabKey === 'validasi_paraf') {
+        await renderWalasValidationView(workspace);
+      } else if (tabKey === 'rekap_kelas') {
+        await renderWalasRecapView(workspace);
+      } else if (tabKey === 'kelola_siswa') {
+        await renderWalasStudentsView(workspace);
+      } else {
+        const menuObj = (ROLE_MENUS.WALAS || []).find(function(m) { return m.key === tabKey; });
+        workspace.innerHTML = '<div class="card"><h3 style="font-size:18px; margin-bottom:6px;">' +
+          escapeHtml(menuObj ? menuObj.label : 'Ekspor Excel') + '</h3>' +
+          '<p style="font-size:14px; color:var(--muted);">' +
+          escapeHtml(menuObj ? menuObj.desc : '') + '</p></div>';
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // 7A. PEMANTAUAN HARI INI & SISWA PERLU PERHATIAN
+    // ------------------------------------------------------------------------
+    async function renderWalasMonitoringView(container) {
+      setLoading(true, 'Memuat pemantauan kelas...');
+      try {
+        const res = await callApi('GET_WALAS_MONITORING', {
+          id_kelas: walasActiveClassId,
+          targetDate: walasMonitorDate
+        });
+        if (!res || !res.ok) {
+          container.innerHTML = '<div class="card"><div class="alert alert-err">' +
+            escapeHtml((res && res.message) ? res.message : 'Gagal memuat pemantauan.') + '</div></div>';
+          return;
+        }
+
+        const d = res.data;
+        let html = '<div class="card">';
+        html += '<div class="month-toolbar">' +
+                '<div><h3 style="font-size:18px;">Pemantauan Pengisian Kelas ' + escapeHtml(d.kelas.nama_kelas) + '</h3>' +
+                '<p style="font-size:12px; color:var(--muted);">Pantau kehadiran jurnal harian siswa dan berikan dukungan bagi yang membutuhkan.</p></div>' +
+                '<div class="month-picker">' +
+                '<input type="date" value="' + escapeHtml(d.targetDate) + '" max="' + escapeHtml(d.todayStr) + '" onchange="onChangeWalasMonitorDate(this.value)">' +
+                '<button type="button" class="btn btn-secondary btn-inline" onclick="renderWalasMonitoringView(document.getElementById(\'roleWorkspace\'))">Segarkan</button>' +
+                '</div></div>';
+
+        html += '<div class="summary-grid">';
+        html += '<div class="stat-box"><div class="num">' + d.summary.filledCount + ' / ' + d.summary.totalActive + '</div><div class="lbl">Sudah Mengisi (' + escapeHtml(d.targetDate) + ')</div></div>';
+        html += '<div class="stat-box"><div class="num" style="color:#b45309;">' + d.summary.unfilledCount + ' Siswa</div><div class="lbl">Belum Mengisi Tanggal Ini</div></div>';
+        html += '<div class="stat-box"><div class="num" style="color:#0369a1;">' + d.summary.attentionCount + ' Siswa</div><div class="lbl">Perlu Sapaan & Pendampingan</div></div>';
+        html += '</div></div>';
+
+        // Bagian Siswa Perlu Perhatian (Nada Mendukung)
+        html += '<div class="card">';
+        html += '<h4 style="font-size:16px; color:#0369a1; margin-bottom:4px;">Siswa yang Perlu Perhatian & Dukungan (' + d.needAttentionStudents.length + ')</h4>';
+        html += '<p style="font-size:12px; color:var(--muted); margin-bottom:12px;">Catatan ini bertujuan membantu wali kelas menyapa dan mendampingi siswa secara hangat, bukan untuk menghakimi.</p>';
+
+        if (d.needAttentionStudents.length === 0) {
+          html += '<div class="alert alert-ok" style="margin-bottom:0;">Luar biasa! Seluruh siswa aktif mengisi jurnal dan memiliki pola istirahat yang baik dalam beberapa hari terakhir.</div>';
+        } else {
+          d.needAttentionStudents.forEach(function(st) {
+            html += '<div class="habit-card" style="background:#f0f9ff; border-color:#bae6fd; margin-bottom:8px;">' +
+                    '<strong>' + escapeHtml(st.nama) + '</strong> <span style="font-size:12px; color:var(--muted);">(' + escapeHtml(st.nisn) + ' • ' + escapeHtml(st.jk) + ')</span>' +
+                    '<ul style="margin:6px 0 0 18px; font-size:13px; color:#0c4a6e;">';
+            st.reasons.forEach(function(rs) {
+              html += '<li>' + escapeHtml(rs) + '</li>';
+            });
+            html += '</ul></div>';
+          });
+        }
+        html += '</div>';
+
+        // Daftar Belum Mengisi
+        html += '<div class="card">';
+        html += '<h4 style="font-size:16px; margin-bottom:10px;">Daftar Belum Mengisi pada ' + escapeHtml(d.targetDate) + ' (' + d.unfilledStudents.length + ' Siswa)</h4>';
+        if (d.unfilledStudents.length === 0) {
+          html += '<div class="alert alert-ok" style="margin-bottom:0;">Semua siswa aktif telah mengisi jurnal pada tanggal ini!</div>';
+        } else {
+          html += '<div class="paper-scroll"><table class="paper-table"><thead><tr>' +
+                  '<th style="width:45px;">No</th><th>NISN</th><th style="text-align:left;">Nama Siswa</th><th style="width:55px;">L/P</th><th>Status</th>' +
+                  '</tr></thead><tbody>';
+          d.unfilledStudents.forEach(function(st, idx) {
+            html += '<tr><td>' + (idx + 1) + '</td><td>' + escapeHtml(st.nisn) + '</td>' +
+                    '<td style="text-align:left; font-weight:600;">' + escapeHtml(st.nama) + '</td>' +
+                    '<td>' + escapeHtml(st.jk) + '</td>' +
+                    '<td><span class="badge-terbiasa badge-belum">Belum Mengisi</span></td></tr>';
+          });
+          html += '</tbody></table></div>';
+        }
+        html += '</div>';
+
+        // Daftar Sudah Mengisi
+        html += '<div class="card">';
+        html += '<h4 style="font-size:16px; margin-bottom:10px;">Daftar Sudah Mengisi pada ' + escapeHtml(d.targetDate) + ' (' + d.filledStudents.length + ' Siswa)</h4>';
+        if (d.filledStudents.length === 0) {
+          html += '<p style="font-size:13px; color:var(--muted);">Belum ada siswa yang mengisi pada tanggal ini.</p>';
+        } else {
+          html += '<div class="paper-scroll"><table class="paper-table"><thead><tr>' +
+                  '<th style="width:45px;">No</th><th style="text-align:left;">Nama Siswa</th><th>Bangun</th><th>Tidur</th><th>Terlaksana</th><th>Ortu</th><th>Paraf</th>' +
+                  '</tr></thead><tbody>';
+          d.filledStudents.forEach(function(st, idx) {
+            html += '<tr><td>' + (idx + 1) + '</td>' +
+                    '<td style="text-align:left; font-weight:600;">' + escapeHtml(st.nama) + '</td>' +
+                    '<td>' + escapeHtml(st.jam_bangun || '-') + '</td>' +
+                    '<td>' + escapeHtml(st.jam_tidur || '-') + '</td>' +
+                    '<td><strong>' + st.count_v + '/' + st.total_habits + '</strong></td>' +
+                    '<td>' + (st.diketahui_ortu ? '<span class="badge-terbiasa badge-sudah">Ya</span>' : '<span class="badge-terbiasa badge-muted">Belum</span>') + '</td>' +
+                    '<td>' + st.count_paraf + '/' + st.total_habits + '</td></tr>';
+          });
+          html += '</tbody></table></div>';
+        }
+        html += '</div>';
+
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function onChangeWalasMonitorDate(newDate) {
+      if (newDate) {
+        walasMonitorDate = newDate;
+        renderWalasMonitoringView(document.getElementById('roleWorkspace'));
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // 7B. VALIDASI PARAF DIGITAL (SATUAN & MASSAL)
+    // ------------------------------------------------------------------------
+    async function renderWalasValidationView(container, forceReload) {
+      setLoading(true, 'Memuat data validasi paraf...');
+      try {
+        if (forceReload || !walasValCache ||
+            walasValCache.kelas.id_kelas !== walasActiveClassId ||
+            walasValCache.startDate !== walasValStartDate ||
+            walasValCache.endDate !== walasValEndDate) {
+          const res = await callApi('GET_WALAS_VALIDATION_DATA', {
+            id_kelas: walasActiveClassId,
+            startDate: walasValStartDate,
+            endDate: walasValEndDate
+          });
+          if (!res || !res.ok) {
+            container.innerHTML = '<div class="card"><div class="alert alert-err">' +
+              escapeHtml((res && res.message) ? res.message : 'Gagal memuat data paraf.') + '</div></div>';
+            return;
+          }
+          walasValCache = res.data;
+          if (!walasValSelectedDate || walasValCache.dates.indexOf(walasValSelectedDate) === -1) {
+            walasValSelectedDate = walasValCache.dates[walasValCache.dates.length - 1];
+          }
+        }
+
+        paintWalasValidationView(container);
+      } catch (err) {
+        container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function paintWalasValidationView(container) {
+      const d = walasValCache;
+      let html = '<div class="card">';
+      html += '<div class="month-toolbar">' +
+              '<div><h3 style="font-size:18px;">Validasi Paraf Digital — Kelas ' + escapeHtml(d.kelas.nama_kelas) + '</h3>' +
+              '<p style="font-size:12px; color:var(--muted);">Klik kotak kebiasaan per siswa untuk memberi/membatalkan paraf, atau gunakan Paraf Massal untuk seluruh rentang tanggal.</p></div>' +
+              '</div>';
+
+      // Filter rentang tanggal & tombol paraf massal
+      html += '<div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:10px; background:#f8fafc; padding:12px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px;">';
+      html += '<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">' +
+              '<div><label style="font-size:11px;">Dari Tanggal</label><input type="date" id="inpValStart" value="' + escapeHtml(d.startDate) + '" style="min-height:40px;"></div>' +
+              '<div><label style="font-size:11px;">Sampai Tanggal</label><input type="date" id="inpValEnd" value="' + escapeHtml(d.endDate) + '" style="min-height:40px;"></div>' +
+              '<button type="button" class="btn btn-secondary btn-inline" onclick="applyWalasValRange()">Tampilkan Rentang</button>' +
+              '</div>';
+
+      html += '<div>' +
+              '<button type="button" class="btn btn-primary btn-inline" onclick="runBulkParaf()">&#10003; Paraf Massal (' + escapeHtml(d.startDate) + ' s.d. ' + escapeHtml(d.endDate) + ')</button>' +
+              '</div></div>';
+
+      // Pemilih tanggal aktif untuk inspeksi & paraf satuan per siswa x 7 kebiasaan
+      html += '<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;">' +
+              '<div style="display:flex; align-items:center; gap:8px;">' +
+              '<label for="selValInspectDate" style="margin:0;">Tanggal Tampilan Rinci:</label>' +
+              '<select id="selValInspectDate" style="width:auto; min-height:40px;" onchange="onChangeValInspectDate(this.value)">';
+      d.dates.slice().reverse().forEach(function(dt) {
+        html += '<option value="' + escapeHtml(dt) + '"' + (dt === walasValSelectedDate ? ' selected' : '') + '>' + escapeHtml(dt) + '</option>';
+      });
+      html += '</select></div>' +
+              '<div class="hint">Angka biru kecil menunjukkan total paraf pada rentang ' + escapeHtml(d.startDate) + ' s.d. ' + escapeHtml(d.endDate) + '.</div>' +
+              '</div>';
+
+      html += '<div class="paper-scroll"><table class="paper-table" style="min-width:960px;"><thead><tr>';
+      html += '<th style="width:40px;">No</th><th class="sticky-col">Nama Siswa</th>';
+      d.habits.forEach(function(h) {
+        html += '<th>' + h.urutan + '. ' + escapeHtml(h.nama) + '</th>';
+      });
+      html += '<th>Ortu</th></tr></thead><tbody>';
+
+      d.students.forEach(function(st, idx) {
+        const dayEntry = st.byDate[walasValSelectedDate] || null;
+        html += '<tr><td>' + (idx + 1) + '</td>' +
+                '<td class="sticky-col">' + escapeHtml(st.nama) +
+                '<div style="font-size:11px; font-weight:400; color:var(--muted);">' + escapeHtml(st.nisn) + '</div></td>';
+
+        d.habits.forEach(function(h) {
+          const totalParafRange = st.parafCountPerHabit[h.id_kebiasaan] || 0;
+          if (!dayEntry) {
+            html += '<td style="color:var(--muted);">-<div style="font-size:10px; color:#0369a1;">Total: ' + totalParafRange + '</div></td>';
+            return;
+          }
+          const stVal = dayEntry.status_kebiasaan[h.id_kebiasaan] || '';
+          const isSigned = Boolean(dayEntry.validasi_guru && dayEntry.validasi_guru[h.id_kebiasaan]);
+          const badgeSym = stVal === 'v' ? '<span style="color:#16a34a;">&#10003;</span>' : (stVal === 'x' ? '<span style="color:#dc2626;">&#10007;</span>' : '-');
+
+          html += '<td>' +
+                  '<button type="button" class="paraf-chip ' + (isSigned ? 'signed' : '') + '" ' +
+                  'onclick="toggleSingleParaf(\'' + escapeHtml(st.id_siswa) + '\', \'' + escapeHtml(walasValSelectedDate) + '\', \'' + escapeHtml(h.id_kebiasaan) + '\', ' + (!isSigned) + ')">' +
+                  badgeSym + ' ' + (isSigned ? 'Paraf &#10003;' : 'Paraf') +
+                  '</button>' +
+                  '<div style="font-size:10px; color:#0369a1; margin-top:2px;">Jml: ' + totalParafRange + '</div>' +
+                  '</td>';
+        });
+
+        html += '<td>' + (dayEntry ? (dayEntry.diketahui_ortu ? '&#10003;' : 'Belum') : '-') + '</td></tr>';
+      });
+
+      html += '</tbody></table></div></div>';
+      container.innerHTML = html;
+    }
+
+    function applyWalasValRange() {
+      const s = document.getElementById('inpValStart').value;
+      const e = document.getElementById('inpValEnd').value;
+      if (!s || !e) return;
+      walasValStartDate = s;
+      walasValEndDate = e;
+      renderWalasValidationView(document.getElementById('roleWorkspace'), true);
+    }
+
+    function onChangeValInspectDate(dt) {
+      walasValSelectedDate = dt;
+      paintWalasValidationView(document.getElementById('roleWorkspace'));
+    }
+
+    async function toggleSingleParaf(idSiswa, tanggal, idKebiasaan, nextState) {
+      setLoading(true, 'Menyimpan paraf...');
+      try {
+        const res = await callApi('SAVE_WALAS_PARAF_SINGLE', {
+          id_kelas: walasActiveClassId,
+          id_siswa: idSiswa,
+          tanggal: tanggal,
+          id_kebiasaan: idKebiasaan,
+          paraf: nextState
+        }, 1);
+        if (!res || !res.ok) {
+          alert((res && res.message) ? res.message : 'Gagal menyimpan paraf.');
+          return;
+        }
+        await renderWalasValidationView(document.getElementById('roleWorkspace'), true);
+      } catch (err) {
+        alert('Gangguan jaringan: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function runBulkParaf() {
+      if (!confirm('Beri paraf digital massal untuk seluruh catatan siswa kelas ini pada rentang ' +
+          walasValStartDate + ' s.d. ' + walasValEndDate + '?')) {
+        return;
+      }
+      setLoading(true, 'Memproses paraf massal...');
+      try {
+        const res = await callApi('SAVE_WALAS_PARAF_BULK', {
+          id_kelas: walasActiveClassId,
+          startDate: walasValStartDate,
+          endDate: walasValEndDate,
+          mode: 'FILLED_ONLY'
+        }, 1);
+        if (!res || !res.ok) {
+          alert((res && res.message) ? res.message : 'Gagal memproses paraf massal.');
+          return;
+        }
+        alert(res.message);
+        await renderWalasValidationView(document.getElementById('roleWorkspace'), true);
+      } catch (err) {
+        alert('Gangguan jaringan: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // 7C. REKAP BULANAN KELAS, REFLEKSI SISWA & CATATAN WALI KELAS
+    // ------------------------------------------------------------------------
+    async function renderWalasRecapView(container, forceReload) {
+      setLoading(true, 'Menyusun rekap bulanan kelas...');
+      try {
+        if (forceReload || !walasRecapCache ||
+            walasRecapCache.kelas.id_kelas !== walasActiveClassId ||
+            walasRecapCache.year !== selectedReportYear ||
+            walasRecapCache.month !== selectedReportMonth) {
+          const res = await callApi('GET_WALAS_MONTHLY_RECAP', {
+            id_kelas: walasActiveClassId,
+            year: selectedReportYear,
+            month: selectedReportMonth
+          });
+          if (!res || !res.ok) {
+            container.innerHTML = '<div class="card"><div class="alert alert-err">' +
+              escapeHtml((res && res.message) ? res.message : 'Gagal memuat rekap kelas.') + '</div></div>';
+            return;
+          }
+          walasRecapCache = res.data;
+        }
+
+        const r = walasRecapCache;
+        let html = '<div class="card">';
+        html += '<div class="month-toolbar">' +
+                '<div><h3 style="font-size:18px;">Rekap Bulanan Kelas ' + escapeHtml(r.kelas.nama_kelas) + '</h3>' +
+                '<p style="font-size:12px; color:var(--muted);">L: ' + r.kelas.count_l + ' • P: ' + r.kelas.count_p + ' • Total: ' + r.kelas.total_siswa +
+                ' siswa • Ambang Sudah Terbiasa: minimal <strong>' + r.minDaysRequired + '</strong> dari ' + r.daysInMonth + ' hari.</p></div>' +
+                buildMonthSelectorHtml('changeReportPeriod') +
+                '</div>';
+
+        html += '<div class="paper-scroll"><table class="paper-table" style="min-width:1050px;"><thead><tr>';
+        html += '<th style="width:40px;">No</th><th class="sticky-col">Nama Siswa</th><th style="width:45px;">L/P</th>';
+        r.habits.forEach(function(h) {
+          html += '<th>' + h.urutan + '. ' + escapeHtml(h.nama) + '</th>';
+        });
+        html += '<th>Refleksi</th><th>Catatan Wali Kelas</th><th>Aksi</th></tr></thead><tbody>';
+
+        if (r.students.length === 0) {
+          html += '<tr><td colspan="' + (r.habits.length + 6) + '">Belum ada siswa aktif di kelas ini.</td></tr>';
+        } else {
+          r.students.forEach(function(st) {
+            html += '<tr><td>' + st.no + '</td>' +
+                    '<td class="sticky-col">' + escapeHtml(st.nama) +
+                    '<div style="font-size:11px; font-weight:400; color:var(--muted);">' + escapeHtml(st.nisn) + '</div></td>' +
+                    '<td>' + escapeHtml(st.jk) + '</td>';
+
+            r.habits.forEach(function(h) {
+              const hs = st.habitStats[h.id_kebiasaan] || { count_v: 0, percentage: 0, is_terbiasa: false };
+              html += '<td><strong>' + hs.count_v + '</strong> <span style="font-size:11px; color:var(--muted);">(' + hs.percentage + '%)</span><br>' +
+                      '<span class="badge-terbiasa ' + (hs.is_terbiasa ? 'badge-sudah' : 'badge-belum') + '">' +
+                      (hs.is_terbiasa ? 'Sudah' : 'Belum') + '</span></td>';
+            });
+
+            html += '<td>' + (st.has_reflection
+              ? '<span class="badge-terbiasa badge-sudah">Sudah Diisi</span>'
+              : '<span class="badge-terbiasa badge-muted">Belum</span>') + '</td>';
+
+            html += '<td style="text-align:left; max-width:190px; font-size:12px;">' +
+                    escapeHtml(st.catatan_walas || '-') + '</td>';
+
+            html += '<td><button type="button" class="btn btn-secondary btn-xs" ' +
+                    'onclick="openStudentRecapDetailModal(\'' + escapeHtml(st.id_siswa) + '\')">Refleksi & Catatan</button></td></tr>';
+          });
+        }
+
+        html += '</tbody></table></div></div>';
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function openStudentRecapDetailModal(idSiswa) {
+      if (!walasRecapCache) return;
+      const st = walasRecapCache.students.find(function(x) { return x.id_siswa === idSiswa; });
+      if (!st) return;
+
+      const box = document.getElementById('modalWalasBox');
+      box.className = 'modal-card modal-card-lg';
+
+      let html = '<h3 style="font-size:18px; margin-bottom:4px;">Refleksi Bulanan & Catatan Wali Kelas</h3>';
+      html += '<p style="font-size:13px; color:var(--muted); margin-bottom:14px;">Siswa: <strong>' +
+              escapeHtml(st.nama) + '</strong> (' + escapeHtml(st.nisn) + ')</p>';
+
+      html += '<div id="modalWalasAlert" class="alert alert-err hidden"></div>';
+
+      // Tampilkan refleksi orang tua & siswa per kebiasaan
+      html += '<div style="margin-bottom:14px;"><strong style="font-size:14px;">Refleksi Siswa & Orang Tua/Wali:</strong></div>';
+      walasRecapCache.habits.forEach(function(h) {
+        const refItem = (st.refleksi && st.refleksi[h.id_kebiasaan]) || { kesimpulan: '', tindak_lanjut: '' };
+        const hs = st.habitStats[h.id_kebiasaan] || { count_v: 0, kategori: 'Belum Terbiasa', is_terbiasa: false };
+        html += '<div class="habit-card" style="padding:10px 12px; margin-bottom:8px;">' +
+                '<div style="display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:4px;">' +
+                '<strong style="font-size:13px;">' + h.urutan + '. ' + escapeHtml(h.nama) + '</strong>' +
+                '<span class="badge-terbiasa ' + (hs.is_terbiasa ? 'badge-sudah' : 'badge-belum') + '">' +
+                escapeHtml(hs.kategori) + ' (' + hs.count_v + ' hari)</span></div>' +
+                '<div style="font-size:12px;"><strong>Kesimpulan:</strong> ' + escapeHtml(refItem.kesimpulan || 'Belum diisi') + '</div>' +
+                '<div style="font-size:12px;"><strong>Tindak Lanjut:</strong> ' + escapeHtml(refItem.tindak_lanjut || 'Belum diisi') + '</div>' +
+                '</div>';
+      });
+
+      // Form catatan wali kelas
+      html += '<form onsubmit="submitWalasStudentNote(event, \'' + escapeHtml(st.id_siswa) + '\')">' +
+              '<div class="form-group" style="margin-top:14px;">' +
+              '<label for="inpCatatanWalas">Catatan Wali Kelas untuk ' + escapeHtml(st.nama) + '</label>' +
+              '<textarea id="inpCatatanWalas" placeholder="Tuliskan apresiasi atau catatan pembinaan untuk siswa...">' +
+              escapeHtml(st.catatan_walas || '') + '</textarea></div>' +
+              '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">' +
+              '<button type="button" class="btn btn-secondary" onclick="closeWalasModal()">Tutup</button>' +
+              '<button type="submit" class="btn btn-primary">Simpan Catatan</button>' +
+              '</div></form>';
+
+      box.innerHTML = html;
+      document.getElementById('modalWalasDynamic').classList.remove('hidden');
+    }
+
+    async function submitWalasStudentNote(e, idSiswa) {
+      e.preventDefault();
+      showAlert('modalWalasAlert', '');
+      const catatan = document.getElementById('inpCatatanWalas').value.trim();
+
+      setLoading(true, 'Menyimpan catatan wali kelas...');
+      try {
+        const res = await callApi('SAVE_WALAS_STUDENT_NOTE', {
+          id_kelas: walasActiveClassId,
+          id_siswa: idSiswa,
+          year: selectedReportYear,
+          month: selectedReportMonth,
+          catatan_walas: catatan
+        }, 1);
+        if (!res || !res.ok) {
+          showAlert('modalWalasAlert', (res && res.message) ? res.message : 'Gagal menyimpan catatan.');
+          return;
+        }
+        closeWalasModal();
+        alert(res.message);
+        await renderWalasRecapView(document.getElementById('roleWorkspace'), true);
+      } catch (err) {
+        showAlert('modalWalasAlert', 'Gangguan jaringan: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // 7D. KELOLA DATA SISWA (TAMBAH, IMPOR MASSAL, EDIT, NONAKTIF, RESET PIN)
+    // ------------------------------------------------------------------------
+    async function renderWalasStudentsView(container) {
+      setLoading(true, 'Memuat data siswa...');
+      try {
+        const res = await callApi('GET_WALAS_STUDENTS', { id_kelas: walasActiveClassId });
+        if (!res || !res.ok) {
+          container.innerHTML = '<div class="card"><div class="alert alert-err">' +
+            escapeHtml((res && res.message) ? res.message : 'Gagal memuat daftar siswa.') + '</div></div>';
+          return;
+        }
+
+        walasStudentsCache = res.data.students || [];
+        paintWalasStudentsView(container, res.data.kelas);
+      } catch (err) {
+        container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function paintWalasStudentsView(container, kelasObj) {
+      let html = '<div class="card">';
+      html += '<div class="month-toolbar">' +
+              '<div><h3 style="font-size:18px;">Data Siswa Kelas ' + escapeHtml(kelasObj.nama_kelas) + '</h3>' +
+              '<p style="font-size:12px; color:var(--muted);">Kelola akun siswa untuk masuk aplikasi menggunakan NISN dan PIN 6 digit.</p></div>' +
+              '<div style="display:flex; flex-wrap:wrap; gap:8px;">' +
+              '<button type="button" class="btn btn-primary btn-inline" onclick="openStudentFormModal(\'\')">+ Tambah Siswa</button>' +
+              '<button type="button" class="btn btn-secondary btn-inline" onclick="openBulkImportModal()">Impor dari Excel/CSV</button>' +
+              '</div></div>';
+
+      html += '<div class="form-group">' +
+              '<input type="text" id="inpSearchSiswa" placeholder="Cari nama atau NISN siswa..." oninput="filterWalasStudentTable()">' +
+              '</div>';
+
+      html += '<div class="paper-scroll"><table class="paper-table" id="tblWalasStudents"><thead><tr>' +
+              '<th style="width:45px;">No</th><th>NISN</th><th style="text-align:left;">Nama Siswa</th><th style="width:55px;">L/P</th><th>Status Akun</th><th>Aksi</th>' +
+              '</tr></thead><tbody>';
+
+      if (walasStudentsCache.length === 0) {
+        html += '<tr><td colspan="6">Belum ada siswa di kelas ini. Klik "+ Tambah Siswa" atau "Impor dari Excel/CSV".</td></tr>';
+      } else {
+        walasStudentsCache.forEach(function(st, idx) {
+          const statusBadge = st.aktif
+            ? (st.wajib_ganti_pin
+                ? '<span class="badge-terbiasa badge-belum">Aktif (PIN Awal)</span>'
+                : '<span class="badge-terbiasa badge-sudah">Aktif</span>')
+            : '<span class="badge-terbiasa badge-muted">Nonaktif</span>';
+
+          html += '<tr data-search="' + escapeHtml((st.nisn + ' ' + st.nama).toLowerCase()) + '">' +
+                  '<td>' + (idx + 1) + '</td>' +
+                  '<td>' + escapeHtml(st.nisn) + '</td>' +
+                  '<td style="text-align:left; font-weight:600;">' + escapeHtml(st.nama) + '</td>' +
+                  '<td>' + escapeHtml(st.jk) + '</td>' +
+                  '<td>' + statusBadge + '</td>' +
+                  '<td><div style="display:flex; gap:5px; justify-content:center; flex-wrap:wrap;">' +
+                  '<button type="button" class="btn btn-secondary btn-xs" onclick="openStudentFormModal(\'' + escapeHtml(st.id_siswa) + '\')">Edit</button>' +
+                  '<button type="button" class="btn btn-secondary btn-xs" onclick="resetSingleStudentPin(\'' + escapeHtml(st.id_siswa) + '\', \'' + escapeHtml(st.nama) + '\')">Reset PIN</button>' +
+                  '<button type="button" class="btn ' + (st.aktif ? 'btn-danger' : 'btn-primary') + ' btn-xs" ' +
+                  'onclick="toggleSingleStudentActive(\'' + escapeHtml(st.id_siswa) + '\', \'' + escapeHtml(st.nama) + '\', ' + (!st.aktif) + ')">' +
+                  (st.aktif ? 'Nonaktifkan' : 'Aktifkan') + '</button>' +
+                  '</div></td></tr>';
+        });
+      }
+
+      html += '</tbody></table></div></div>';
+      container.innerHTML = html;
+    }
+
+    function filterWalasStudentTable() {
+      const q = (document.getElementById('inpSearchSiswa').value || '').trim().toLowerCase();
+      const rows = document.querySelectorAll('#tblWalasStudents tbody tr[data-search]');
+      rows.forEach(function(tr) {
+        const hay = tr.getAttribute('data-search') || '';
+        tr.style.display = (!q || hay.indexOf(q) !== -1) ? '' : 'none';
+      });
+    }
+
+    function openStudentFormModal(idSiswa) {
+      const existing = idSiswa ? walasStudentsCache.find(function(s) { return s.id_siswa === idSiswa; }) : null;
+      const box = document.getElementById('modalWalasBox');
+      box.className = 'modal-card';
+
+      let html = '<h3 style="font-size:18px; margin-bottom:12px;">' + (existing ? 'Edit Data Siswa' : 'Tambah Siswa Baru') + '</h3>';
+      html += '<div id="modalWalasAlert" class="alert alert-err hidden"></div>';
+      html += '<form onsubmit="submitWalasStudentForm(event, \'' + escapeHtml(idSiswa || '') + '\')">';
+
+      html += '<div class="form-group"><label for="stFormNisn">NISN</label>' +
+              '<input type="tel" id="stFormNisn" inputmode="numeric" value="' + escapeHtml(existing ? existing.nisn : '') + '" placeholder="Contoh: 0123456789" required></div>';
+
+      html += '<div class="form-group"><label for="stFormNama">Nama Lengkap Siswa</label>' +
+              '<input type="text" id="stFormNama" value="' + escapeHtml(existing ? existing.nama : '') + '" placeholder="Sesuai daftar hadir kelas" required></div>';
+
+      html += '<div class="form-group"><label for="stFormJk">Jenis Kelamin</label>' +
+              '<select id="stFormJk">' +
+              '<option value="L"' + (existing && existing.jk === 'L' ? ' selected' : '') + '>Laki-laki (L)</option>' +
+              '<option value="P"' + (existing && existing.jk === 'P' ? ' selected' : '') + '>Perempuan (P)</option>' +
+              '</select></div>';
+
+      if (!existing) {
+        html += '<div class="form-group"><label for="stFormPin">PIN Awal (6 Digit Angka)</label>' +
+                '<input type="tel" id="stFormPin" inputmode="numeric" value="123456" maxlength="6" required>' +
+                '<div class="hint">Siswa wajib mengganti PIN ini saat pertama kali login.</div></div>';
+      }
+
+      html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">' +
+              '<button type="button" class="btn btn-secondary" onclick="closeWalasModal()">Batal</button>' +
+              '<button type="submit" class="btn btn-primary">Simpan</button>' +
+              '</div></form>';
+
+      box.innerHTML = html;
+      document.getElementById('modalWalasDynamic').classList.remove('hidden');
+    }
+
+    async function submitWalasStudentForm(e, idSiswa) {
+      e.preventDefault();
+      showAlert('modalWalasAlert', '');
+      const nisn = document.getElementById('stFormNisn').value.trim();
+      const nama = document.getElementById('stFormNama').value.trim();
+      const jk = document.getElementById('stFormJk').value;
+      const pinEl = document.getElementById('stFormPin');
+      const initialPin = pinEl ? pinEl.value.trim() : '123456';
+
+      setLoading(true, 'Menyimpan data siswa...');
+      try {
+        const res = await callApi('SAVE_WALAS_STUDENT', {
+          id_kelas: walasActiveClassId,
+          id_siswa: idSiswa,
+          nisn: nisn,
+          nama: nama,
+          jk: jk,
+          initial_pin: initialPin
+        }, 1);
+
+        if (!res || !res.ok) {
+          showAlert('modalWalasAlert', (res && res.message) ? res.message : 'Gagal menyimpan siswa.');
+          return;
+        }
+        closeWalasModal();
+        alert(res.message);
+        await renderWalasStudentsView(document.getElementById('roleWorkspace'));
+      } catch (err) {
+        showAlert('modalWalasAlert', 'Gangguan jaringan: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function openBulkImportModal() {
+      const box = document.getElementById('modalWalasBox');
+      box.className = 'modal-card modal-card-lg';
+
+      const sampleTemplate = '0123456701\tAhmad Fauzan\tL\n0123456702\tSiti Aisyah\tP';
+
+      let html = '<h3 style="font-size:18px; margin-bottom:6px;">Impor Massal Siswa dari Excel / CSV</h3>';
+      html += '<p style="font-size:13px; color:var(--muted); margin-bottom:12px;">Salin 3 kolom dari Excel/Google Sheets dengan urutan: <strong>NISN</strong>, <strong>Nama Lengkap</strong>, dan <strong>L/P</strong>, lalu tempel di kotak bawah ini.</p>';
+
+      html += '<div style="margin-bottom:12px;">' +
+              '<button type="button" class="btn btn-secondary btn-inline" onclick="fillSampleImportTemplate()">Isi Contoh Format</button>' +
+              '</div>';
+
+      html += '<div id="modalWalasAlert" class="alert alert-err hidden"></div>';
+      html += '<form onsubmit="submitBulkImportStudents(event)">';
+      html += '<div class="form-group"><label for="inpBulkPaste">Tempel Data Siswa di Sini</label>' +
+              '<textarea id="inpBulkPaste" style="min-height:150px; font-family:monospace; font-size:13px;" ' +
+              'placeholder="0123456701&#9;Ahmad Fauzan&#9;L&#10;0123456702&#9;Siti Aisyah&#9;P" required></textarea></div>';
+
+      html += '<div class="form-group"><label for="inpBulkPin">PIN Awal untuk Semua Siswa Impor (6 Digit)</label>' +
+              '<input type="tel" id="inpBulkPin" inputmode="numeric" value="123456" maxlength="6" required></div>';
+
+      html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">' +
+              '<button type="button" class="btn btn-secondary" onclick="closeWalasModal()">Batal</button>' +
+              '<button type="submit" class="btn btn-primary">Proses Impor Siswa</button>' +
+              '</div></form>';
+
+      box.innerHTML = html;
+      window.__sampleCsvTemplate = sampleTemplate;
+      document.getElementById('modalWalasDynamic').classList.remove('hidden');
+    }
+
+    function fillSampleImportTemplate() {
+      const el = document.getElementById('inpBulkPaste');
+      if (el) el.value = window.__sampleCsvTemplate || '';
+    }
+
+    async function submitBulkImportStudents(e) {
+      e.preventDefault();
+      showAlert('modalWalasAlert', '');
+      const rawText = document.getElementById('inpBulkPaste').value.trim();
+      const defaultPin = document.getElementById('inpBulkPin').value.trim();
+
+      const lines = rawText.split(/\r?\n/).filter(function(l) { return l.trim() !== ''; });
+      const parsedRows = [];
+
+      lines.forEach(function(line, idx) {
+        const cols = line.indexOf('\t') !== -1 ? line.split('\t') : (line.indexOf(';') !== -1 ? line.split(';') : line.split(','));
+        const c0 = (cols[0] || '').trim();
+        const c1 = (cols[1] || '').trim();
+        const c2 = (cols[2] || '').trim();
+        // Lewati baris header jika baris pertama bertuliskan 'NISN'
+        if (idx === 0 && c0.toUpperCase() === 'NISN') return;
+        parsedRows.push({ nisn: c0, nama: c1, jk: c2 });
+      });
+
+      if (parsedRows.length === 0) {
+        showAlert('modalWalasAlert', 'Tidak ada baris data siswa yang terbaca.');
+        return;
+      }
+
+      setLoading(true, 'Mengimpor ' + parsedRows.length + ' data siswa...');
+      try {
+        const res = await callApi('IMPORT_WALAS_STUDENTS', {
+          id_kelas: walasActiveClassId,
+          rows: parsedRows,
+          default_pin: defaultPin
+        }, 1);
+
+        if (!res || !res.ok) {
+          showAlert('modalWalasAlert', (res && res.message) ? res.message : 'Gagal mengimpor data.');
+          return;
+        }
+
+        let summaryMsg = res.message;
+        if (res.data.errors && res.data.errors.length > 0) {
+          summaryMsg += '\n\nCatatan baris dilewati:\n- ' + res.data.errors.join('\n- ');
+        }
+        closeWalasModal();
+        alert(summaryMsg);
+        await renderWalasStudentsView(document.getElementById('roleWorkspace'));
+      } catch (err) {
+        showAlert('modalWalasAlert', 'Gangguan jaringan: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function resetSingleStudentPin(idSiswa, nama) {
+      if (!confirm('Reset PIN siswa "' + nama + '" menjadi 123456? Siswa akan diminta membuat PIN baru saat masuk kembali.')) {
+        return;
+      }
+      setLoading(true, 'Mereset PIN siswa...');
+      try {
+        const res = await callApi('RESET_WALAS_STUDENT_PIN', {
+          id_kelas: walasActiveClassId,
+          id_siswa: idSiswa,
+          new_pin: '123456'
+        }, 1);
+        alert((res && res.message) ? res.message : 'Selesai.');
+        await renderWalasStudentsView(document.getElementById('roleWorkspace'));
+      } catch (err) {
+        alert('Gangguan jaringan: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function toggleSingleStudentActive(idSiswa, nama, nextActive) {
+      const verb = nextActive ? 'mengaktifkan kembali' : 'menonaktifkan';
+      if (!confirm('Yakin ingin ' + verb + ' akun siswa "' + nama + '"?')) return;
+
+      setLoading(true, 'Memperbarui status siswa...');
+      try {
+        const res = await callApi('TOGGLE_WALAS_STUDENT_STATUS', {
+          id_kelas: walasActiveClassId,
+          id_siswa: idSiswa,
+          aktif: nextActive
+        }, 1);
+        alert((res && res.message) ? res.message : 'Status diperbarui.');
+        await renderWalasStudentsView(document.getElementById('roleWorkspace'));
+      } catch (err) {
+        alert('Gangguan jaringan: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function closeWalasModal() {
+      document.getElementById('modalWalasDynamic').classList.add('hidden');
+    }
+
+    // ========================================================================
+    // 8. INISIALISASI HALAMAN SAAT PERTAMA DIBUKA
     // ========================================================================
     async function initApp() {
       setLoading(true, 'Menyiapkan aplikasi...');
