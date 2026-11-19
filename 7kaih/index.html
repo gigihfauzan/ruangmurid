@@ -143,6 +143,7 @@
 
     /* Form Controls */
     .form-group { margin-bottom: 14px; }
+    .form-row-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
     label {
       display: block;
       font-size: 13px;
@@ -161,14 +162,15 @@
     input[type="time"],
     input[type="number"],
     input[type="date"],
+    input[type="color"],
     textarea,
     select {
       width: 100%;
-      min-height: 46px;
-      padding: 9px 13px;
+      min-height: 44px;
+      padding: 8px 12px;
       border: 1.5px solid var(--border);
       border-radius: 11px;
-      font-size: 15px;
+      font-size: 14px;
       font-family: inherit;
       background: #fff;
       color: var(--text);
@@ -193,7 +195,7 @@
 
     .btn {
       width: 100%;
-      min-height: 46px;
+      min-height: 44px;
       border: none;
       border-radius: 12px;
       font-size: 14px;
@@ -203,7 +205,7 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      padding: 9px 14px;
+      padding: 8px 14px;
     }
     .btn-inline { width: auto; min-height: 40px; font-size: 13px; padding: 7px 13px; border-radius: 10px; }
     .btn-xs { width: auto; min-height: 32px; font-size: 12px; padding: 4px 10px; border-radius: 8px; }
@@ -298,6 +300,33 @@
       background: var(--primary);
       color: #fff;
       border-color: var(--primary);
+    }
+
+    .subnav-strip {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 6px;
+      background: var(--bg);
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    .subnav-btn {
+      min-height: 38px;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .subnav-btn.active {
+      background: var(--card);
+      color: var(--primary);
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
     }
 
     .admin-preview-bar {
@@ -727,7 +756,7 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- MODAL DINAMIS (WALI KELAS & PEMBACA)                                  -->
+  <!-- MODAL DINAMIS (WALI KELAS, ADMIN & PEMBACA)                           -->
   <!-- ===================================================================== -->
   <div id="modalWalasDynamic" class="modal-backdrop hidden">
     <div id="modalWalasBox" class="modal-card"></div>
@@ -749,13 +778,13 @@
     let previewClassId = '';
     let latestServerDate = '';
 
-    // State khusus Siswa
+    // State khusus Siswa (Tahap 3)
     let studentHomeState = null;
     let studentMonthlyState = null;
     let selectedReportYear = null;
     let selectedReportMonth = null;
 
-    // State khusus Wali Kelas
+    // State khusus Wali Kelas (Tahap 4)
     let walasActiveClassId = '';
     let walasMonitorDate = '';
     let walasValStartDate = '';
@@ -764,6 +793,14 @@
     let walasValCache = null;
     let walasRecapCache = null;
     let walasStudentsCache = [];
+
+    // State khusus Admin Utama (Tahap 5)
+    let adminSettingsSubTab = 'MOD1_TA';
+    let adminSettingsCache = null;
+    let adminSelectedFormVer = null;
+    let adminClassesCache = null;
+    let adminUsersCache = [];
+    let adminAnnouncementsCache = [];
 
     // State khusus Dashboard Sekolah & Pembaca (Tahap 6)
     let schoolDashTingkat = 'ALL';
@@ -829,7 +866,7 @@
     }
 
     // ========================================================================
-    // 2. PENYIMPANAN TOKEN, DRAF LOKAL & UNDUH FILE BASE64
+    // 2. PENYIMPANAN TOKEN, DRAF LOKAL & UNDUH FILE
     // ========================================================================
     function getSavedToken() {
       try { return sessionStorage.getItem(STORAGE_TOKEN_KEY) || ''; }
@@ -1128,6 +1165,8 @@
         studentMonthlyState = null;
         walasValCache = null;
         walasRecapCache = null;
+        adminSettingsCache = null;
+        adminClassesCache = null;
         schoolDashCache = null;
         readerClassRecapCache = null;
         previewClassId = '';
@@ -1177,16 +1216,31 @@
       ],
       ADMIN: [
         { key: 'dashboard_sekolah', label: 'Dashboard Sekolah' },
-        { key: 'pengaturan_sistem', label: 'Pengaturan (8 Modul)', desc: 'Tahun ajaran, form 7 kebiasaan, kriteria, aturan, identitas, dan ekspor (Tahap 5).' },
-        { key: 'kelas_naik', label: 'Kelas & Naik Kelas', desc: 'Kelola rombel, jadwal buka-tutup kelas, dan wizard Naik Kelas (Tahap 5).' },
-        { key: 'akun_keamanan', label: 'Akun & Keamanan', desc: 'Kelola akun Admin, Wali Kelas, Pembaca, log aktivitas, dan arsip (Tahap 5).' },
-        { key: 'pengumuman', label: 'Pengumuman', desc: 'Kelola pengumuman singkat di beranda siswa (Tahap 5).' }
+        { key: 'pengaturan_sistem', label: 'Pengaturan (8 Modul)' },
+        { key: 'kelas_naik', label: 'Kelas & Naik Kelas' },
+        { key: 'akun_keamanan', label: 'Akun & Keamanan' },
+        { key: 'pengumuman', label: 'Pengumuman' }
       ],
       PEMBACA: [
         { key: 'dashboard_pembaca', label: 'Dashboard Sekolah' },
         { key: 'rekap_pembaca', label: 'Rekap Per Kelas' }
       ]
     };
+
+    function refreshAdminPreviewDropdown(classList) {
+      const sel = document.getElementById('selPreviewClass');
+      if (!sel) return;
+      const prevVal = sel.value;
+      sel.innerHTML = '<option value="">-- Tampilan Admin Utama --</option>';
+      (classList || []).forEach(function(k) {
+        if (k.aktif === false) return;
+        const opt = document.createElement('option');
+        opt.value = k.id_kelas;
+        opt.textContent = 'Kelas ' + k.nama_kelas;
+        if (String(k.id_kelas) === String(prevVal)) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
 
     function renderRoleShell(serverDate) {
       document.getElementById('viewAppShell').classList.remove('hidden');
@@ -1216,23 +1270,14 @@
           'Username: ' + currentUser.identifier + ' • NIP: ' + (currentUser.nip || '-');
       }
 
-      // Admin Utama: dropdown "Lihat sebagai wali kelas"
       const previewBar = document.getElementById('adminPreviewBar');
       if (currentUser.peran === 'ADMIN') {
         previewBar.classList.remove('hidden');
-        const sel = document.getElementById('selPreviewClass');
-        sel.innerHTML = '<option value="">-- Tampilan Admin Utama --</option>';
-        (currentUser.managedClasses || []).forEach(function(k) {
-          const opt = document.createElement('option');
-          opt.value = k.id_kelas;
-          opt.textContent = 'Kelas ' + k.nama_kelas;
-          sel.appendChild(opt);
-        });
+        refreshAdminPreviewDropdown(currentUser.managedClasses || []);
       } else {
         previewBar.classList.add('hidden');
       }
 
-      // Wali Kelas: setup kelas binaan aktif
       const walasBar = document.getElementById('walasClassBar');
       if (currentUser.peran === 'WALAS') {
         const list = currentUser.managedClasses || [];
@@ -1300,29 +1345,18 @@
         loadStudentView(activeNavKey);
         return;
       }
-
       if (effectiveRole === 'WALAS') {
         loadWalasView(activeNavKey);
         return;
       }
-
       if (effectiveRole === 'PEMBACA') {
         loadReaderView(activeNavKey);
         return;
       }
-
-      if (effectiveRole === 'ADMIN' && activeNavKey === 'dashboard_sekolah') {
-        renderSchoolDashboardView(document.getElementById('roleWorkspace'), false);
+      if (effectiveRole === 'ADMIN') {
+        loadAdminView(activeNavKey);
         return;
       }
-
-      const activeMenu = menus.find(function(m) { return m.key === activeNavKey; }) || menus[0];
-      const workspace = document.getElementById('roleWorkspace');
-      workspace.innerHTML =
-        '<div class="card">' +
-          '<h3 style="font-size:18px; margin-bottom:6px;">' + escapeHtml(activeMenu.label) + '</h3>' +
-          '<p style="font-size:14px; color:var(--muted);">' + escapeHtml(activeMenu.desc || '') + '</p>' +
-        '</div>';
     }
 
     // ========================================================================
@@ -2675,7 +2709,1051 @@
     }
 
     // ========================================================================
-    // 8. DASHBOARD SEKOLAH & MODUL PEMBACA (TAHAP 6)
+    // 8. MODUL ADMIN UTAMA (TAHAP 5)
+    // ========================================================================
+    async function loadAdminView(tabKey) {
+      const workspace = document.getElementById('roleWorkspace');
+      if (tabKey === 'dashboard_sekolah') {
+        await renderSchoolDashboardView(workspace, false);
+      } else if (tabKey === 'pengaturan_sistem') {
+        await renderAdminSettingsView(workspace, false);
+      } else if (tabKey === 'kelas_naik') {
+        await renderAdminClassesAndPromotionView(workspace, false);
+      } else if (tabKey === 'akun_keamanan') {
+        await renderAdminUsersAndLogsView(workspace);
+      } else if (tabKey === 'pengumuman') {
+        await renderAdminAnnouncementsView(workspace);
+      }
+    }
+
+    // --- 8A. PENGATURAN SISTEM (8 MODUL) ---
+    async function renderAdminSettingsView(container, forceReload) {
+      setLoading(true, 'Memuat pengaturan sistem...');
+      try {
+        if (forceReload || !adminSettingsCache) {
+          const res = await callApi('GET_ADMIN_SETTINGS', {
+            formVersion: adminSelectedFormVer || ''
+          });
+          if (!res || !res.ok) {
+            container.innerHTML = '<div class="card"><div class="alert alert-err">' +
+              escapeHtml((res && res.message) ? res.message : 'Gagal memuat pengaturan.') + '</div></div>';
+            return;
+          }
+          adminSettingsCache = res.data;
+          adminSelectedFormVer = adminSettingsCache.selectedFormVersion;
+        }
+        paintAdminSettingsView(container);
+      } catch (err) {
+        container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function switchAdminSettingsSubTab(subKey) {
+      adminSettingsSubTab = subKey;
+      paintAdminSettingsView(document.getElementById('roleWorkspace'));
+    }
+
+    function paintAdminSettingsView(container) {
+      const d = adminSettingsCache;
+      const cfg = d.settings || {};
+
+      const modules = [
+        { key: 'MOD1_TA', label: '1. Tahun Ajaran' },
+        { key: 'MOD2_FORM', label: '2. Form 7 Kebiasaan' },
+        { key: 'MOD3_KRITERIA', label: '3. Kriteria & Waktu' },
+        { key: 'MOD4_ATURAN', label: '4. Aturan & Hari Libur' },
+        { key: 'MOD5_IDENTITAS', label: '5. Identitas & Tema' },
+        { key: 'MOD6_JADWAL', label: '6. Jadwal Global' },
+        { key: 'MOD7_APRESIASI', label: '7. Apresiasi Siswa' },
+        { key: 'MOD8_CADANGAN', label: '8. Ekspor & Cadangan' }
+      ];
+
+      let html = '<div class="card">';
+      html += '<h3 style="font-size:18px; margin-bottom:4px;">Pengaturan Sistem Sekolah (8 Modul)</h3>';
+      html += '<p style="font-size:12px; color:var(--muted); margin-bottom:12px;">Seluruh perubahan pengaturan disimpan langsung ke spreadsheet pusat dan berlaku seketika bagi siswa serta wali kelas.</p>';
+
+      html += '<div class="subnav-strip">';
+      modules.forEach(function(m) {
+        html += '<button type="button" class="subnav-btn ' + (m.key === adminSettingsSubTab ? 'active' : '') + '" ' +
+                'onclick="switchAdminSettingsSubTab(\'' + m.key + '\')">' + escapeHtml(m.label) + '</button>';
+      });
+      html += '</div>';
+
+      // MODUL 1: TAHUN AJARAN & SEMESTER
+      if (adminSettingsSubTab === 'MOD1_TA') {
+        html += '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">' +
+                '<h4 style="font-size:16px;">Tahun Ajaran & Semester Aktif</h4>' +
+                '<button type="button" class="btn btn-primary btn-inline" onclick="openAcademicYearModal(\'\')">+ Tambah Tahun Ajaran</button>' +
+                '</div>';
+
+        html += '<div class="paper-scroll"><table class="paper-table"><thead><tr>' +
+                '<th>Tahun Ajaran</th><th>Semester</th><th>Mulai</th><th>Selesai</th><th>Status</th><th>Aksi</th>' +
+                '</tr></thead><tbody>';
+        if (d.academicYears.length === 0) {
+          html += '<tr><td colspan="6">Belum ada data tahun ajaran.</td></tr>';
+        } else {
+          d.academicYears.forEach(function(ta) {
+            html += '<tr><td><strong>' + escapeHtml(ta.nama_tahun) + '</strong></td>' +
+                    '<td>' + escapeHtml(ta.semester) + '</td>' +
+                    '<td>' + escapeHtml(ta.tanggal_mulai || '-') + '</td>' +
+                    '<td>' + escapeHtml(ta.tanggal_selesai || '-') + '</td>' +
+                    '<td>' + (ta.aktif
+                      ? '<span class="badge-terbiasa badge-sudah">Aktif</span>'
+                      : '<span class="badge-terbiasa badge-muted">Nonaktif</span>') + '</td>' +
+                    '<td><div style="display:flex; gap:5px; justify-content:center;">' +
+                    '<button type="button" class="btn btn-secondary btn-xs" onclick="openAcademicYearModal(\'' + escapeHtml(ta.id_tahun) + '\')">Edit</button>' +
+                    (!ta.aktif ? '<button type="button" class="btn btn-primary btn-xs" onclick="activateAcademicYear(\'' + escapeHtml(ta.id_tahun) + '\')">Aktifkan</button>' : '') +
+                    '</div></td></tr>';
+          });
+        }
+        html += '</tbody></table></div>';
+      }
+
+      // MODUL 2: PEMBUAT FORM DINAMIS 7 KEBIASAAN (BERVERSI)
+      if (adminSettingsSubTab === 'MOD2_FORM') {
+        const formDef = d.formDefinition;
+        html += '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">' +
+                '<div><h4 style="font-size:16px;">Pembuat Form Dinamis 7 Kebiasaan (Berversi)</h4>' +
+                '<p style="font-size:12px; color:var(--muted);">Versi aktif saat ini: <strong>Versi ' + d.activeFormVersion + '</strong>. Anda dapat menyalin ke versi baru agar riwayat data lama tetap konsisten.</p></div>' +
+                '<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">' +
+                '<select style="width:auto; min-height:40px;" onchange="changeAdminFormVersionView(this.value)">';
+        d.availableVersions.forEach(function(v) {
+          html += '<option value="' + v + '"' + (v === d.selectedFormVersion ? ' selected' : '') + '>Versi ' + v + (v === d.activeFormVersion ? ' (Aktif)' : '') + '</option>';
+        });
+        html += '</select>' +
+                '<button type="button" class="btn btn-secondary btn-inline" onclick="cloneNewFormVersion()">+ Salin ke Versi Baru</button>' +
+                '</div></div>';
+
+        html += '<form onsubmit="saveAdminFormVersionContent(event)">';
+        formDef.habits.forEach(function(h) {
+          html += '<div class="habit-card" style="background:#f8fafc;">';
+          html += '<div style="font-weight:800; font-size:15px; margin-bottom:8px; color:var(--primary);">Kebiasaan ' + h.urutan + ' (' + escapeHtml(h.kode) + ')</div>';
+          html += '<div class="form-row-2">' +
+                  '<div class="form-group"><label>Judul Kebiasaan</label><input type="text" id="kebNama_' + escapeHtml(h.id_kebiasaan) + '" value="' + escapeHtml(h.nama) + '" required></div>' +
+                  '<div class="form-group"><label>Panduan Singkat Siswa</label><input type="text" id="kebPanduan_' + escapeHtml(h.id_kebiasaan) + '" value="' + escapeHtml(h.panduan_singkat) + '"></div>' +
+                  '</div>';
+          html += '<div class="form-group" style="margin-bottom:8px;"><label>Deskripsi Lengkap</label>' +
+                  '<input type="text" id="kebDesk_' + escapeHtml(h.id_kebiasaan) + '" value="' + escapeHtml(h.deskripsi) + '"></div>';
+
+          // Pertanyaan Tambahan per Kebiasaan
+          html += '<div style="background:#fff; border:1px solid var(--border); border-radius:10px; padding:10px; margin-top:8px;">';
+          html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">' +
+                  '<strong style="font-size:12px;">Kolom Isian Tambahan (' + (h.fields ? h.fields.length : 0) + ')</strong>' +
+                  '<button type="button" class="btn btn-secondary btn-xs" onclick="addDynamicFieldRow(\'' + escapeHtml(h.id_kebiasaan) + '\')">+ Tambah Isian</button>' +
+                  '</div>';
+
+          html += '<div id="fieldsWrap_' + escapeHtml(h.id_kebiasaan) + '">';
+          (h.fields || []).forEach(function(f) {
+            html += buildDynamicFieldEditorRowHtml(h.id_kebiasaan, f);
+          });
+          html += '</div></div></div>';
+        });
+
+        html += '<label style="display:flex; align-items:center; gap:8px; margin-bottom:12px; cursor:pointer;">' +
+                '<input type="checkbox" id="chkActivateThisFormVer" style="width:18px; height:18px;"' + (d.selectedFormVersion === d.activeFormVersion ? ' checked' : '') + '>' +
+                '<span>Jadikan Versi ' + d.selectedFormVersion + ' sebagai form aktif untuk siswa</span></label>';
+
+        html += '<button type="submit" class="btn btn-primary">Simpan Struktur Form Versi ' + d.selectedFormVersion + '</button>';
+        html += '</form>';
+      }
+
+      // MODUL 3: KRITERIA PEMBIASAAN & WAKTU
+      if (adminSettingsSubTab === 'MOD3_KRITERIA') {
+        html += '<h4 style="font-size:16px; margin-bottom:12px;">Kriteria Waktu & Predikat "Sudah Terbiasa"</h4>';
+        html += '<form onsubmit="saveSettingsForm(event, [\'bangun_pagi_mulai\',\'bangun_pagi_selesai\',\'mode_bangun_pagi\',\'tidur_ideal_min_jam\',\'tidur_ideal_maks_jam\',\'ambang_terbiasa_pembilang\',\'ambang_terbiasa_penyebut\'])">';
+        html += '<div class="form-row-2">' +
+                '<div class="form-group"><label for="set_bangun_pagi_mulai">Batas Awal Bangun Pagi (WIB)</label><input type="time" id="set_bangun_pagi_mulai" value="' + escapeHtml(cfg.bangun_pagi_mulai || '04:00') + '" required></div>' +
+                '<div class="form-group"><label for="set_bangun_pagi_selesai">Batas Akhir Bangun Pagi (WIB)</label><input type="time" id="set_bangun_pagi_selesai" value="' + escapeHtml(cfg.bangun_pagi_selesai || '05:30') + '" required></div>' +
+                '</div>';
+        html += '<div class="form-group"><label for="set_mode_bangun_pagi">Mode Penilaian Bangun Pagi</label>' +
+                '<select id="set_mode_bangun_pagi">' +
+                '<option value="MANUAL"' + ((cfg.mode_bangun_pagi || 'MANUAL') === 'MANUAL' ? ' selected' : '') + '>Manual oleh Siswa (Siswa memilih Sudah/Belum sendiri)</option>' +
+                '<option value="OTOMATIS_JAM"' + (cfg.mode_bangun_pagi === 'OTOMATIS_JAM' ? ' selected' : '') + '>Otomatis Berdasarkan Jam Bangun (Terhitung Sudah jika dalam rentang WIB)</option>' +
+                '</select></div>';
+        html += '<div class="form-row-2">' +
+                '<div class="form-group"><label for="set_tidur_ideal_min_jam">Durasi Tidur Ideal Minimal (Jam)</label><input type="number" step="0.5" id="set_tidur_ideal_min_jam" value="' + escapeHtml(cfg.tidur_ideal_min_jam || '8') + '" required></div>' +
+                '<div class="form-group"><label for="set_tidur_ideal_maks_jam">Durasi Tidur Ideal Maksimal (Jam)</label><input type="number" step="0.5" id="set_tidur_ideal_maks_jam" value="' + escapeHtml(cfg.tidur_ideal_maks_jam || '10') + '" required></div>' +
+                '</div>';
+        html += '<div class="form-row-2">' +
+                '<div class="form-group"><label for="set_ambang_terbiasa_pembilang">Ambang Terbiasa — Pembilang</label><input type="number" min="1" max="30" id="set_ambang_terbiasa_pembilang" value="' + escapeHtml(cfg.ambang_terbiasa_pembilang || '2') + '" required></div>' +
+                '<div class="form-group"><label for="set_ambang_terbiasa_penyebut">Ambang Terbiasa — Penyebut</label><input type="number" min="1" max="31" id="set_ambang_terbiasa_penyebut" value="' + escapeHtml(cfg.ambang_terbiasa_penyebut || '3') + '" required></div>' +
+                '</div>';
+        html += '<div class="hint" style="margin-bottom:12px;">Standar Panduan SMP Kemendikdasmen: pembilang <strong>2</strong>, penyebut <strong>3</strong> (minimal 2/3 hari dalam 1 bulan).</div>';
+        html += '<button type="submit" class="btn btn-primary">Simpan Kriteria Pembiasaan</button></form>';
+      }
+
+      // MODUL 4: ATURAN PENGISIAN & HARI LIBUR
+      if (adminSettingsSubTab === 'MOD4_ATURAN') {
+        html += '<h4 style="font-size:16px; margin-bottom:12px;">Aturan Pengisian Susulan & Kalender Hari Libur</h4>';
+        html += '<form onsubmit="saveSettingsForm(event, [\'maks_hari_susulan\',\'izinkan_isi_hari_libur\'])" style="margin-bottom:18px;">';
+        html += '<div class="form-row-2">' +
+                '<div class="form-group"><label for="set_maks_hari_susulan">Batas Hari Isi Susulan ke Belakang</label><input type="number" min="0" max="14" id="set_maks_hari_susulan" value="' + escapeHtml(cfg.maks_hari_susulan || '2') + '" required><div class="hint">0 = hanya hari ini; 2 = hari ini + 2 hari sebelumnya.</div></div>' +
+                '<div class="form-group"><label for="set_izinkan_isi_hari_libur">Pengisian Jurnal pada Hari Libur</label><select id="set_izinkan_isi_hari_libur">' +
+                '<option value="TRUE"' + (String(cfg.izinkan_isi_hari_libur || 'TRUE').toUpperCase() === 'TRUE' ? ' selected' : '') + '>Diizinkan (Sesuai panduan 7KAIH diisi setiap hari termasuk libur)</option>' +
+                '<option value="FALSE"' + (String(cfg.izinkan_isi_hari_libur).toUpperCase() === 'FALSE' ? ' selected' : '') + '>Dikunci pada tanggal libur terdaftar</option>' +
+                '</select></div></div>';
+        html += '<button type="submit" class="btn btn-primary">Simpan Aturan Pengisian</button></form>';
+
+        html += '<hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">';
+        html += '<h4 style="font-size:15px; margin-bottom:8px;">Daftar Tanggal Libur Nasional / Sekolah</h4>';
+        html += '<form onsubmit="submitAddHoliday(event)" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">' +
+                '<input type="date" id="inpHolidayDate" style="width:auto;" required>' +
+                '<input type="text" id="inpHolidayDesc" placeholder="Keterangan libur (misal: Libur Semester)" style="flex:1; min-width:200px;" required>' +
+                '<button type="submit" class="btn btn-secondary btn-inline">+ Tambah Tanggal</button></form>';
+
+        html += '<div class="paper-scroll"><table class="paper-table"><thead><tr><th>Tanggal</th><th style="text-align:left;">Keterangan</th><th>Aksi</th></tr></thead><tbody>';
+        if (d.holidays.length === 0) {
+          html += '<tr><td colspan="3">Belum ada tanggal libur khusus yang ditambahkan.</td></tr>';
+        } else {
+          d.holidays.forEach(function(h) {
+            html += '<tr><td>' + escapeHtml(h.tanggal) + '</td><td style="text-align:left;">' + escapeHtml(h.keterangan) + '</td>' +
+                    '<td><button type="button" class="btn btn-danger btn-xs" onclick="deleteHoliday(\'' + escapeHtml(h.id_libur) + '\')">Hapus</button></td></tr>';
+          });
+        }
+        html += '</tbody></table></div>';
+      }
+
+      // MODUL 5: IDENTITAS SEKOLAH & TAMPILAN
+      if (adminSettingsSubTab === 'MOD5_IDENTITAS') {
+        html += '<h4 style="font-size:16px; margin-bottom:12px;">Identitas Sekolah & Warna Tema</h4>';
+        html += '<form onsubmit="saveSettingsForm(event, [\'nama_aplikasi\',\'nama_sekolah\',\'kota_kabupaten\',\'provinsi\',\'logo_url\',\'warna_tema\',\'teks_sambutan\'], true)">';
+        html += '<div class="form-row-2">' +
+                '<div class="form-group"><label for="set_nama_aplikasi">Nama Aplikasi</label><input type="text" id="set_nama_aplikasi" value="' + escapeHtml(cfg.nama_aplikasi || 'Jurnal 7KAIH SMP') + '" required></div>' +
+                '<div class="form-group"><label for="set_nama_sekolah">Nama Sekolah</label><input type="text" id="set_nama_sekolah" value="' + escapeHtml(cfg.nama_sekolah || '') + '" required></div>' +
+                '</div>';
+        html += '<div class="form-row-2">' +
+                '<div class="form-group"><label for="set_kota_kabupaten">Kota / Kabupaten (Untuk Tanda Tangan Laporan)</label><input type="text" id="set_kota_kabupaten" value="' + escapeHtml(cfg.kota_kabupaten || '') + '"></div>' +
+                '<div class="form-group"><label for="set_provinsi">Provinsi</label><input type="text" id="set_provinsi" value="' + escapeHtml(cfg.provinsi || '') + '"></div>' +
+                '</div>';
+        html += '<div class="form-row-2">' +
+                '<div class="form-group"><label for="set_logo_url">URL Logo Sekolah (Opsional)</label><input type="text" id="set_logo_url" value="' + escapeHtml(cfg.logo_url || '') + '" placeholder="https://..."></div>' +
+                '<div class="form-group"><label for="set_warna_tema">Warna Tema Utama</label><input type="color" id="set_warna_tema" value="' + escapeHtml(cfg.warna_tema || '#0f766e') + '" style="padding:4px; height:44px;"></div>' +
+                '</div>';
+        html += '<div class="form-group"><label for="set_teks_sambutan">Teks Sambutan Halaman Login</label><textarea id="set_teks_sambutan">' + escapeHtml(cfg.teks_sambutan || '') + '</textarea></div>';
+        html += '<button type="submit" class="btn btn-primary">Simpan Identitas & Tema</button></form>';
+      }
+
+      // MODUL 6: JADWAL AKSES GLOBAL
+      if (adminSettingsSubTab === 'MOD6_JADWAL') {
+        html += '<h4 style="font-size:16px; margin-bottom:12px;">Jadwal Jam Buka-Tutup Pengisian Global</h4>';
+        html += '<form onsubmit="saveSettingsForm(event, [\'jadwal_buka_global\',\'jadwal_tutup_global\'])">';
+        html += '<div class="form-row-2">' +
+                '<div class="form-group"><label for="set_jadwal_buka_global">Jam Buka Pengisian (WIB)</label><input type="time" id="set_jadwal_buka_global" value="' + escapeHtml(cfg.jadwal_buka_global || '00:00') + '" required></div>' +
+                '<div class="form-group"><label for="set_jadwal_tutup_global">Jam Tutup Pengisian (WIB)</label><input type="time" id="set_jadwal_tutup_global" value="' + escapeHtml(cfg.jadwal_tutup_global || '23:59') + '" required></div>' +
+                '</div>';
+        html += '<div class="hint" style="margin-bottom:12px;">Gunakan 00:00 s.d. 23:59 agar siswa dapat mengisi kapan saja sepanjang hari.</div>';
+        html += '<button type="submit" class="btn btn-primary">Simpan Jadwal Global</button></form>';
+      }
+
+      // MODUL 7: APRESIASI & PENGINGAT SISWA
+      if (adminSettingsSubTab === 'MOD7_APRESIASI') {
+        html += '<h4 style="font-size:16px; margin-bottom:12px;">Pengaturan Apresiasi & Pengingat Siswa</h4>';
+        html += '<form onsubmit="saveSettingsForm(event, [\'aktifkan_stiker_apresiasi\',\'pesan_motivasi_harian\'])">';
+        html += '<div class="form-group"><label for="set_aktifkan_stiker_apresiasi">Tampilkan Stiker Pencapaian Bulanan</label>' +
+                '<select id="set_aktifkan_stiker_apresiasi">' +
+                '<option value="TRUE"' + (String(cfg.aktifkan_stiker_apresiasi || 'TRUE').toUpperCase() === 'TRUE' ? ' selected' : '') + '>Aktif (Tampilkan lencana & stiker motivasi di akun siswa)</option>' +
+                '<option value="FALSE"' + (String(cfg.aktifkan_stiker_apresiasi).toUpperCase() === 'FALSE' ? ' selected' : '') + '>Nonaktif</option>' +
+                '</select></div>';
+        html += '<div class="form-group"><label for="set_pesan_motivasi_harian">Pesan Motivasi Singkat untuk Siswa</label>' +
+                '<textarea id="set_pesan_motivasi_harian" placeholder="Contoh: Kebiasaan kecil yang dilakukan setiap hari membentuk masa depan hebat!">' +
+                escapeHtml(cfg.pesan_motivasi_harian || '') + '</textarea></div>';
+        html += '<button type="submit" class="btn btn-primary">Simpan Pengaturan Apresiasi</button></form>';
+      }
+
+      // MODUL 8: EKSPOR & CADANGAN KONFIGURASI
+      if (adminSettingsSubTab === 'MOD8_CADANGAN') {
+        html += '<h4 style="font-size:16px; margin-bottom:12px;">Ekspor Laporan & Cadangan Konfigurasi</h4>';
+        html += '<div class="export-grid">';
+        html += '<div class="export-card"><div><h4 style="font-size:15px; margin-bottom:6px;">Unduh Rekap Sekolah (.xlsx)</h4>' +
+                '<p style="font-size:13px; color:var(--muted);">Unduh file Microsoft Excel berisi perbandingan capaian seluruh kelas dan rekap 7 kebiasaan tingkat sekolah.</p></div>' +
+                '<button type="button" class="btn btn-primary" onclick="downloadSchoolRecapExcel()">Unduh Rekap Sekolah (.xlsx)</button></div>';
+        html += '<div class="export-card"><div><h4 style="font-size:15px; margin-bottom:6px;">Cadangan Pengaturan (JSON)</h4>' +
+                '<p style="font-size:13px; color:var(--muted);">Simpan salinan file konfigurasi sekolah, kriteria waktu, dan struktur form ke perangkat Anda.</p></div>' +
+                '<button type="button" class="btn btn-secondary" onclick="downloadSettingsJsonBackup()">Unduh Cadangan JSON</button></div>';
+        html += '</div>';
+      }
+
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function buildDynamicFieldEditorRowHtml(idKeb, f) {
+      const fid = f.id_field || ('NEW_' + Math.random().toString(36).substring(2, 8));
+      const opsiText = Array.isArray(f.opsi) ? f.opsi.join(', ') : (f.opsi || '');
+      return '<div class="dyn-field-row" data-keb="' + escapeHtml(idKeb) + '" data-fid="' + escapeHtml(f.id_field || '') + '" ' +
+             'style="display:grid; grid-template-columns:1.1fr 1.4fr 0.9fr 1.2fr auto; gap:6px; align-items:center; margin-bottom:6px;">' +
+             '<input type="text" class="df-kode" placeholder="kode_field" value="' + escapeHtml(f.kode_field || '') + '">' +
+             '<input type="text" class="df-label" placeholder="Label pertanyaan" value="' + escapeHtml(f.label || '') + '">' +
+             '<select class="df-tipe">' +
+             '<option value="TEKS"' + (f.tipe === 'TEKS' ? ' selected' : '') + '>Teks</option>' +
+             '<option value="TEKS_PANJANG"' + (f.tipe === 'TEKS_PANJANG' ? ' selected' : '') + '>Paragraf</option>' +
+             '<option value="JAM"' + (f.tipe === 'JAM' ? ' selected' : '') + '>Jam</option>' +
+             '<option value="ANGKA"' + (f.tipe === 'ANGKA' ? ' selected' : '') + '>Angka</option>' +
+             '<option value="PILIHAN"' + (f.tipe === 'PILIHAN' ? ' selected' : '') + '>Pilihan</option>' +
+             '</select>' +
+             '<input type="text" class="df-opsi" placeholder="Opsi (pisah koma) / petunjuk" value="' + escapeHtml(opsiText || f.petunjuk || '') + '">' +
+             '<button type="button" class="btn btn-danger btn-xs" onclick="this.parentElement.remove()">Hapus</button>' +
+             '</div>';
+    }
+
+    function addDynamicFieldRow(idKeb) {
+      const wrap = document.getElementById('fieldsWrap_' + idKeb);
+      if (!wrap) return;
+      const div = document.createElement('div');
+      div.innerHTML = buildDynamicFieldEditorRowHtml(idKeb, { tipe: 'TEKS' });
+      wrap.appendChild(div.firstChild);
+    }
+
+    async function changeAdminFormVersionView(ver) {
+      adminSelectedFormVer = parseInt(ver, 10);
+      await renderAdminSettingsView(document.getElementById('roleWorkspace'), true);
+    }
+
+    async function cloneNewFormVersion() {
+      if (!confirm('Buat versi form baru berdasarkan Versi ' + adminSelectedFormVer + '?')) return;
+      setLoading(true, 'Menyalin versi form...');
+      try {
+        const res = await callApi('SAVE_ADMIN_FORM_VERSION', {
+          mode: 'CLONE_NEW_VERSION',
+          sourceVersion: adminSelectedFormVer,
+          activateImmediately: false
+        }, 1);
+        if (!res || !res.ok) {
+          alert((res && res.message) ? res.message : 'Gagal membuat versi baru.');
+          return;
+        }
+        adminSelectedFormVer = res.data.newVersion;
+        alert(res.message);
+        await renderAdminSettingsView(document.getElementById('roleWorkspace'), true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function saveAdminFormVersionContent(e) {
+      e.preventDefault();
+      const formDef = adminSettingsCache.formDefinition;
+      const habitsPayload = formDef.habits.map(function(h) {
+        const rows = document.querySelectorAll('.dyn-field-row[data-keb="' + h.id_kebiasaan + '"]');
+        const fields = [];
+        rows.forEach(function(r) {
+          const kode = r.querySelector('.df-kode').value.trim();
+          const label = r.querySelector('.df-label').value.trim();
+          const tipe = r.querySelector('.df-tipe').value;
+          const opsiRaw = r.querySelector('.df-opsi').value.trim();
+          if (kode && label) {
+            fields.push({
+              id_field: r.getAttribute('data-fid') || '',
+              kode_field: kode,
+              label: label,
+              tipe: tipe,
+              opsi: tipe === 'PILIHAN' ? opsiRaw : '',
+              petunjuk: tipe !== 'PILIHAN' ? opsiRaw : ''
+            });
+          }
+        });
+        return {
+          id_kebiasaan: h.id_kebiasaan,
+          nama: document.getElementById('kebNama_' + h.id_kebiasaan).value.trim(),
+          panduan_singkat: document.getElementById('kebPanduan_' + h.id_kebiasaan).value.trim(),
+          deskripsi: document.getElementById('kebDesk_' + h.id_kebiasaan).value.trim(),
+          fields: fields
+        };
+      });
+
+      const activateVersion = document.getElementById('chkActivateThisFormVer').checked;
+      setLoading(true, 'Menyimpan struktur form...');
+      try {
+        const res = await callApi('SAVE_ADMIN_FORM_VERSION', {
+          mode: 'SAVE_VERSION_CONTENT',
+          version: adminSelectedFormVer,
+          habits: habitsPayload,
+          activateVersion: activateVersion
+        }, 1);
+        if (!res || !res.ok) {
+          alert((res && res.message) ? res.message : 'Gagal menyimpan struktur form.');
+          return;
+        }
+        alert(res.message);
+        await renderAdminSettingsView(document.getElementById('roleWorkspace'), true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function saveSettingsForm(e, keyList, refreshBranding) {
+      e.preventDefault();
+      const entries = {};
+      keyList.forEach(function(k) {
+        const el = document.getElementById('set_' + k);
+        if (el) entries[k] = el.value.trim();
+      });
+
+      setLoading(true, 'Menyimpan pengaturan...');
+      try {
+        const res = await callApi('SAVE_ADMIN_SETTINGS_BATCH', { entries: entries }, 1);
+        if (!res || !res.ok) {
+          alert((res && res.message) ? res.message : 'Gagal menyimpan pengaturan.');
+          return;
+        }
+        if (refreshBranding) {
+          const cfgRes = await callApi('GET_PUBLIC_CONFIG', {}, 1);
+          if (cfgRes && cfgRes.ok) applyBranding(cfgRes.data);
+        }
+        alert(res.message);
+        await renderAdminSettingsView(document.getElementById('roleWorkspace'), true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function openAcademicYearModal(idTahun) {
+      const existing = idTahun ? (adminSettingsCache.academicYears || []).find(function(x) { return x.id_tahun === idTahun; }) : null;
+      const box = document.getElementById('modalWalasBox');
+      box.className = 'modal-card';
+
+      let html = '<h3 style="font-size:18px; margin-bottom:12px;">' + (existing ? 'Edit Tahun Ajaran' : 'Tambah Tahun Ajaran Baru') + '</h3>';
+      html += '<form onsubmit="submitAcademicYearForm(event, \'' + escapeHtml(idTahun || '') + '\')">';
+      html += '<div class="form-group"><label>Tahun Ajaran</label><input type="text" id="taNama" value="' + escapeHtml(existing ? existing.nama_tahun : '') + '" placeholder="Contoh: 2026/2027" required></div>';
+      html += '<div class="form-group"><label>Semester</label><select id="taSemester">' +
+              '<option value="Ganjil"' + (existing && existing.semester === 'Ganjil' ? ' selected' : '') + '>Ganjil</option>' +
+              '<option value="Genap"' + (existing && existing.semester === 'Genap' ? ' selected' : '') + '>Genap</option>' +
+              '</select></div>';
+      html += '<div class="form-row-2">' +
+              '<div class="form-group"><label>Tanggal Mulai</label><input type="date" id="taMulai" value="' + escapeHtml(existing ? existing.tanggal_mulai : '') + '"></div>' +
+              '<div class="form-group"><label>Tanggal Selesai</label><input type="date" id="taSelesai" value="' + escapeHtml(existing ? existing.tanggal_selesai : '') + '"></div>' +
+              '</div>';
+      html += '<label style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">' +
+              '<input type="checkbox" id="taAktif" style="width:18px; height:18px;"' + (existing && existing.aktif ? ' checked' : '') + '>' +
+              '<span>Langsung aktifkan tahun ajaran ini</span></label>';
+      html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">' +
+              '<button type="button" class="btn btn-secondary" onclick="closeWalasModal()">Batal</button>' +
+              '<button type="submit" class="btn btn-primary">Simpan</button></div></form>';
+
+      box.innerHTML = html;
+      document.getElementById('modalWalasDynamic').classList.remove('hidden');
+    }
+
+    async function submitAcademicYearForm(e, idTahun) {
+      e.preventDefault();
+      setLoading(true, 'Menyimpan tahun ajaran...');
+      try {
+        const res = await callApi('SAVE_ADMIN_ACADEMIC_YEAR', {
+          mode: 'UPSERT',
+          id_tahun: idTahun,
+          nama_tahun: document.getElementById('taNama').value.trim(),
+          semester: document.getElementById('taSemester').value,
+          tanggal_mulai: document.getElementById('taMulai').value,
+          tanggal_selesai: document.getElementById('taSelesai').value,
+          aktif: document.getElementById('taAktif').checked
+        }, 1);
+        if (!res || !res.ok) {
+          alert((res && res.message) ? res.message : 'Gagal menyimpan tahun ajaran.');
+          return;
+        }
+        closeWalasModal();
+        alert(res.message);
+        await renderAdminSettingsView(document.getElementById('roleWorkspace'), true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function activateAcademicYear(idTahun) {
+      setLoading(true, 'Mengaktifkan tahun ajaran...');
+      try {
+        const res = await callApi('SAVE_ADMIN_ACADEMIC_YEAR', { mode: 'ACTIVATE', id_tahun: idTahun }, 1);
+        alert((res && res.message) ? res.message : 'Selesai.');
+        await renderAdminSettingsView(document.getElementById('roleWorkspace'), true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function submitAddHoliday(e) {
+      e.preventDefault();
+      setLoading(true, 'Menambahkan tanggal...');
+      try {
+        const res = await callApi('SAVE_ADMIN_HOLIDAY', {
+          mode: 'ADD',
+          tanggal: document.getElementById('inpHolidayDate').value,
+          keterangan: document.getElementById('inpHolidayDesc').value.trim()
+        }, 1);
+        if (!res || !res.ok) {
+          alert((res && res.message) ? res.message : 'Gagal menambah hari libur.');
+          return;
+        }
+        await renderAdminSettingsView(document.getElementById('roleWorkspace'), true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function deleteHoliday(idLibur) {
+      if (!confirm('Hapus tanggal libur ini?')) return;
+      setLoading(true, 'Menghapus...');
+      try {
+        await callApi('SAVE_ADMIN_HOLIDAY', { mode: 'DELETE', id_libur: idLibur }, 1);
+        await renderAdminSettingsView(document.getElementById('roleWorkspace'), true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function downloadSettingsJsonBackup() {
+      if (!adminSettingsCache) return;
+      const jsonStr = JSON.stringify(adminSettingsCache, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Cadangan_Pengaturan_7KAIH_' + (latestServerDate || 'backup') + '.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function() {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 400);
+    }
+
+    // --- 8B. KELOLA KELAS & WIZARD NAIK KELAS ---
+    async function renderAdminClassesAndPromotionView(container, forceReload) {
+      setLoading(true, 'Memuat data kelas...');
+      try {
+        if (forceReload || !adminClassesCache) {
+          const res = await callApi('GET_ADMIN_CLASSES', {});
+          if (!res || !res.ok) {
+            container.innerHTML = '<div class="card"><div class="alert alert-err">' +
+              escapeHtml((res && res.message) ? res.message : 'Gagal memuat data kelas.') + '</div></div>';
+            return;
+          }
+          adminClassesCache = res.data;
+          currentUser.managedClasses = (adminClassesCache.classes || []).filter(function(c) { return c.aktif; });
+          refreshAdminPreviewDropdown(currentUser.managedClasses);
+        }
+        paintAdminClassesAndPromotionView(container);
+      } catch (err) {
+        container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function paintAdminClassesAndPromotionView(container) {
+      const classes = adminClassesCache.classes || [];
+      let html = '<div class="card">';
+      html += '<div class="month-toolbar">' +
+              '<div><h3 style="font-size:18px;">Kelola Rombongan Belajar (Kelas 7, 8, 9)</h3>' +
+              '<p style="font-size:12px; color:var(--muted);">Atur wali kelas dan jadwal jam buka-tutup pengisian khusus per kelas (kosongkan jadwal kelas untuk mengikuti jadwal global).</p></div>' +
+              '<button type="button" class="btn btn-primary btn-inline" onclick="openAdminClassModal(\'\')">+ Tambah Kelas</button>' +
+              '</div>';
+
+      html += '<div class="paper-scroll"><table class="paper-table"><thead><tr>' +
+              '<th>Kelas</th><th>Tingkat</th><th style="text-align:left;">Wali Kelas</th><th>Siswa Aktif</th><th>Jadwal Khusus</th><th>Status</th><th>Aksi</th>' +
+              '</tr></thead><tbody>';
+
+      if (classes.length === 0) {
+        html += '<tr><td colspan="7">Belum ada rombel kelas terdaftar.</td></tr>';
+      } else {
+        classes.forEach(function(k) {
+          const sched = (k.jadwal_buka && k.jadwal_tutup) ? (k.jadwal_buka + ' – ' + k.jadwal_tutup) : 'Ikut Global';
+          html += '<tr><td><strong>' + escapeHtml(k.nama_kelas) + '</strong></td>' +
+                  '<td>Kelas ' + escapeHtml(k.tingkat) + '</td>' +
+                  '<td style="text-align:left;">' + escapeHtml(k.nama_walas) + '</td>' +
+                  '<td><strong>' + k.active_students + '</strong> siswa</td>' +
+                  '<td>' + escapeHtml(sched) + '</td>' +
+                  '<td>' + (k.aktif
+                    ? '<span class="badge-terbiasa badge-sudah">Aktif</span>'
+                    : '<span class="badge-terbiasa badge-muted">Nonaktif</span>') + '</td>' +
+                  '<td><button type="button" class="btn btn-secondary btn-xs" onclick="openAdminClassModal(\'' + escapeHtml(k.id_kelas) + '\')">Edit</button></td></tr>';
+        });
+      }
+      html += '</tbody></table></div></div>';
+
+      // WIZARD NAIK KELAS
+      html += '<div class="card">';
+      html += '<h3 style="font-size:18px; margin-bottom:4px;">Wizard Kenaikan Kelas & Kelulusan Akhir Tahun</h3>';
+      html += '<p style="font-size:12px; color:var(--muted); margin-bottom:12px;">Tentukan rombel tujuan untuk setiap kelas saat pergantian tahun ajaran. Siswa kelas 9 yang dipilih <strong>Lulus</strong> akan dinonaktifkan dari daftar aktif namun riwayat jurnalnya tetap tersimpan.</p>';
+
+      const activeClasses = classes.filter(function(c) { return c.aktif; });
+      if (activeClasses.length === 0) {
+        html += '<div class="alert alert-warn">Belum ada kelas aktif yang dapat diproses.</div>';
+      } else {
+        html += '<div class="paper-scroll" style="margin-bottom:12px;"><table class="paper-table"><thead><tr>' +
+                '<th style="text-align:left;">Kelas Asal Saat Ini</th><th>Siswa Aktif</th><th style="text-align:left;">Tujuan Tahun Ajaran Baru</th>' +
+                '</tr></thead><tbody>';
+
+        activeClasses.forEach(function(src) {
+          const nextGrade = String((parseInt(src.tingkat, 10) || 7) + 1);
+          const suffix = src.nama_kelas.replace(/^[789]/, '');
+          const suggestedName = (nextGrade + suffix).toLowerCase();
+
+          html += '<tr><td style="text-align:left;"><strong>Kelas ' + escapeHtml(src.nama_kelas) + '</strong> (Tingkat ' + escapeHtml(src.tingkat) + ')</td>' +
+                  '<td><strong>' + src.active_students + '</strong> siswa</td>' +
+                  '<td style="text-align:left;">' +
+                  '<select class="promo-map-select" data-src="' + escapeHtml(src.id_kelas) + '">' +
+                  '<option value="KEEP">-- Tetap di Kelas ' + escapeHtml(src.nama_kelas) + ' --</option>';
+
+          if (src.tingkat === '9') {
+            html += '<option value="GRADUATE" selected>Lulus Sekolah (Nonaktifkan Akun Siswa)</option>';
+          } else {
+            html += '<option value="GRADUATE">Lulus / Keluar (Nonaktifkan Akun)</option>';
+          }
+
+          activeClasses.forEach(function(tgt) {
+            if (tgt.id_kelas === src.id_kelas) return;
+            const autoSelect = (src.tingkat !== '9' && tgt.nama_kelas.toLowerCase() === suggestedName) ? ' selected' : '';
+            html += '<option value="' + escapeHtml(tgt.id_kelas) + '"' + autoSelect + '>Naik ke Kelas ' + escapeHtml(tgt.nama_kelas) + '</option>';
+          });
+
+          html += '</select></td></tr>';
+        });
+
+        html += '</tbody></table></div>';
+        html += '<div style="display:flex; flex-wrap:wrap; gap:8px;">' +
+                '<button type="button" class="btn btn-secondary btn-inline" onclick="previewPromotionWizard()">1. Lihat Pratinjau Kenaikan</button>' +
+                '<button type="button" class="btn btn-primary btn-inline" onclick="executePromotionWizard()">2. Eksekusi Naik Kelas Sekarang</button>' +
+                '</div>';
+        html += '<div id="promotionPreviewBox" style="margin-top:12px;"></div>';
+      }
+
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function openAdminClassModal(idKelas) {
+      const existing = idKelas ? (adminClassesCache.classes || []).find(function(c) { return c.id_kelas === idKelas; }) : null;
+      const walasOpts = adminClassesCache.walasOptions || [];
+      const box = document.getElementById('modalWalasBox');
+      box.className = 'modal-card';
+
+      let html = '<h3 style="font-size:18px; margin-bottom:12px;">' + (existing ? 'Edit Rombel Kelas' : 'Tambah Rombel Kelas Baru') + '</h3>';
+      html += '<form onsubmit="submitAdminClassForm(event, \'' + escapeHtml(idKelas || '') + '\')">';
+      html += '<div class="form-row-2">' +
+              '<div class="form-group"><label>Nama Kelas</label><input type="text" id="clsNama" value="' + escapeHtml(existing ? existing.nama_kelas : '') + '" placeholder="Contoh: 7A" required></div>' +
+              '<div class="form-group"><label>Tingkat</label><select id="clsTingkat">' +
+              '<option value="7"' + (existing && existing.tingkat === '7' ? ' selected' : '') + '>Kelas 7</option>' +
+              '<option value="8"' + (existing && existing.tingkat === '8' ? ' selected' : '') + '>Kelas 8</option>' +
+              '<option value="9"' + (existing && existing.tingkat === '9' ? ' selected' : '') + '>Kelas 9</option>' +
+              '</select></div></div>';
+
+      html += '<div class="form-group"><label>Wali Kelas</label><select id="clsWalas">' +
+              '<option value="">-- Pilih Wali Kelas --</option>';
+      walasOpts.forEach(function(w) {
+        html += '<option value="' + escapeHtml(w.id_pengguna) + '"' + (existing && existing.id_walas === w.id_pengguna ? ' selected' : '') + '>' +
+                escapeHtml(w.nama) + ' (' + escapeHtml(w.username) + ')</option>';
+      });
+      html += '</select></div>';
+
+      html += '<div class="form-row-2">' +
+              '<div class="form-group"><label>Jam Buka Khusus (Opsional)</label><input type="time" id="clsBuka" value="' + escapeHtml(existing ? existing.jadwal_buka : '') + '"></div>' +
+              '<div class="form-group"><label>Jam Tutup Khusus (Opsional)</label><input type="time" id="clsTutup" value="' + escapeHtml(existing ? existing.jadwal_tutup : '') + '"></div>' +
+              '</div>';
+
+      html += '<label style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">' +
+              '<input type="checkbox" id="clsAktif" style="width:18px; height:18px;"' + (!existing || existing.aktif ? ' checked' : '') + '>' +
+              '<span>Kelas Aktif</span></label>';
+
+      html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">' +
+              '<button type="button" class="btn btn-secondary" onclick="closeWalasModal()">Batal</button>' +
+              '<button type="submit" class="btn btn-primary">Simpan Kelas</button></div></form>';
+
+      box.innerHTML = html;
+      document.getElementById('modalWalasDynamic').classList.remove('hidden');
+    }
+
+    async function submitAdminClassForm(e, idKelas) {
+      e.preventDefault();
+      setLoading(true, 'Menyimpan kelas...');
+      try {
+        const res = await callApi('SAVE_ADMIN_CLASS', {
+          id_kelas: idKelas,
+          nama_kelas: document.getElementById('clsNama').value.trim(),
+          tingkat: document.getElementById('clsTingkat').value,
+          id_walas: document.getElementById('clsWalas').value,
+          jadwal_buka: document.getElementById('clsBuka').value,
+          jadwal_tutup: document.getElementById('clsTutup').value,
+          aktif: document.getElementById('clsAktif').checked
+        }, 1);
+        if (!res || !res.ok) {
+          alert((res && res.message) ? res.message : 'Gagal menyimpan kelas.');
+          return;
+        }
+        closeWalasModal();
+        alert(res.message);
+        await renderAdminClassesAndPromotionView(document.getElementById('roleWorkspace'), true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function collectPromotionMappings() {
+      const selects = document.querySelectorAll('.promo-map-select');
+      const mappings = [];
+      selects.forEach(function(sel) {
+        mappings.push({
+          source_class_id: sel.getAttribute('data-src'),
+          target_class_id: sel.value
+        });
+      });
+      return mappings;
+    }
+
+    async function previewPromotionWizard() {
+      const mappings = collectPromotionMappings();
+      setLoading(true, 'Menghitung pratinjau kenaikan kelas...');
+      try {
+        const res = await callApi('PREVIEW_PROMOTION', { mappings: mappings }, 1);
+        if (!res || !res.ok) {
+          alert((res && res.message) ? res.message : 'Gagal membuat pratinjau.');
+          return;
+        }
+        const d = res.data;
+        let html = '<div class="alert alert-info">' +
+                   '<strong>Ringkasan Pratinjau:</strong> ' + d.summary.totalPromoted + ' siswa naik kelas, ' +
+                   d.summary.totalGraduated + ' siswa diluluskan (nonaktif), ' +
+                   d.summary.totalKept + ' siswa tetap di kelas asal.' +
+                   '<ul style="margin:6px 0 0 18px;">';
+        d.details.forEach(function(item) {
+          html += '<li>Kelas <strong>' + escapeHtml(item.source_class_name) + '</strong> (' + item.student_count + ' siswa) &rarr; ' + escapeHtml(item.action_label) + '</li>';
+        });
+        html += '</ul></div>';
+        document.getElementById('promotionPreviewBox').innerHTML = html;
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function executePromotionWizard() {
+      const mappings = collectPromotionMappings();
+      if (!confirm('PERHATIAN: Proses ini akan memindahkan kelas seluruh siswa aktif sesuai pemetaan di atas. Pastikan pemetaan kelas tujuan sudah benar. Lanjutkan?')) {
+        return;
+      }
+      setLoading(true, 'Memproses kenaikan kelas massal...');
+      try {
+        const res = await callApi('EXECUTE_PROMOTION', { mappings: mappings }, 1);
+        if (!res || !res.ok) {
+          alert((res && res.message) ? res.message : 'Gagal menjalankan kenaikan kelas.');
+          return;
+        }
+        alert(res.message);
+        await renderAdminClassesAndPromotionView(document.getElementById('roleWorkspace'), true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // --- 8C. AKUN STAF, LOG AKTIVITAS & ARSIP ---
+    async function renderAdminUsersAndLogsView(container) {
+      setLoading(true, 'Memuat akun staf & log keamanan...');
+      try {
+        const [uRes, lRes] = await Promise.all([
+          callApi('GET_ADMIN_USERS', {}),
+          callApi('GET_ADMIN_LOGS_AND_ARCHIVE', {})
+        ]);
+        if (!uRes || !uRes.ok) {
+          container.innerHTML = '<div class="card"><div class="alert alert-err">' +
+            escapeHtml((uRes && uRes.message) ? uRes.message : 'Gagal memuat akun staf.') + '</div></div>';
+          return;
+        }
+        adminUsersCache = uRes.data.users || [];
+        const logsData = (lRes && lRes.ok) ? lRes.data : { stats: {}, logs: [] };
+
+        let html = '<div class="card">';
+        html += '<div class="month-toolbar">' +
+                '<div><h3 style="font-size:18px;">Kelola Akun Staf (Admin, Wali Kelas, Pembaca)</h3>' +
+                '<p style="font-size:12px; color:var(--muted);">Peran <strong>PEMBACA</strong> (Kepala Sekolah / Guru BK) memiliki akses baca ke Dashboard Sekolah & Rekap Kelas tanpa mengubah data.</p></div>' +
+                '<button type="button" class="btn btn-primary btn-inline" onclick="openAdminUserModal(\'\')">+ Tambah Akun Staf</button>' +
+                '</div>';
+
+        html += '<div class="paper-scroll"><table class="paper-table"><thead><tr>' +
+                '<th>Username</th><th style="text-align:left;">Nama Lengkap</th><th>NIP</th><th>Peran</th><th>Status</th><th>Aksi</th>' +
+                '</tr></thead><tbody>';
+
+        adminUsersCache.forEach(function(u) {
+          const roleBadge = u.peran === 'ADMIN' ? 'badge-sudah' : (u.peran === 'PEMBACA' ? 'badge-belum' : 'badge-muted');
+          html += '<tr><td><strong>' + escapeHtml(u.username) + '</strong></td>' +
+                  '<td style="text-align:left;">' + escapeHtml(u.nama) + '</td>' +
+                  '<td>' + escapeHtml(u.nip || '-') + '</td>' +
+                  '<td><span class="badge-terbiasa ' + roleBadge + '">' + escapeHtml(u.peran) + '</span></td>' +
+                  '<td>' + (u.aktif
+                    ? '<span class="badge-terbiasa badge-sudah">Aktif</span>'
+                    : '<span class="badge-terbiasa badge-muted">Nonaktif</span>') + '</td>' +
+                  '<td><div style="display:flex; gap:5px; justify-content:center; flex-wrap:wrap;">' +
+                  '<button type="button" class="btn btn-secondary btn-xs" onclick="openAdminUserModal(\'' + escapeHtml(u.id_pengguna) + '\')">Edit</button>' +
+                  '<button type="button" class="btn btn-secondary btn-xs" onclick="resetAdminUserPassword(\'' + escapeHtml(u.id_pengguna) + '\', \'' + escapeHtml(u.nama) + '\')">Reset Sandi</button>' +
+                  '<button type="button" class="btn ' + (u.aktif ? 'btn-danger' : 'btn-primary') + ' btn-xs" ' +
+                  'onclick="toggleAdminUserStatus(\'' + escapeHtml(u.id_pengguna) + '\', \'' + escapeHtml(u.nama) + '\', ' + (!u.aktif) + ')">' +
+                  (u.aktif ? 'Nonaktifkan' : 'Aktifkan') + '</button>' +
+                  '</div></td></tr>';
+        });
+        html += '</tbody></table></div></div>';
+
+        // STATISTIK DATABASE & ARSIP DRIVE
+        const st = logsData.stats || {};
+        html += '<div class="card">';
+        html += '<div class="month-toolbar">' +
+                '<div><h3 style="font-size:17px;">Arsip Cadangan & Statistik Database</h3>' +
+                '<p style="font-size:12px; color:var(--muted);">Buat salinan cadangan penuh spreadsheet ke Google Drive sebelum pergantian semester/tahun ajaran.</p></div>' +
+                '<button type="button" class="btn btn-secondary btn-inline" onclick="runArchiveDatabaseDrive()">Buat Salinan Arsip ke Google Drive</button>' +
+                '</div>';
+
+        html += '<div class="summary-grid">' +
+                '<div class="stat-box"><div class="num">' + (st.totalSiswa || 0) + '</div><div class="lbl">Baris Data Siswa</div></div>' +
+                '<div class="stat-box"><div class="num">' + (st.totalJurnal || 0) + '</div><div class="lbl">Baris Catatan Jurnal</div></div>' +
+                '<div class="stat-box"><div class="num">' + (st.totalRefleksi || 0) + '</div><div class="lbl">Baris Refleksi Bulanan</div></div>' +
+                '<div class="stat-box"><div class="num">' + (st.totalLog || 0) + '</div><div class="lbl">Baris Log Aktivitas</div></div>' +
+                '</div></div>';
+
+        // LOG AKTIVITAS TERBARU
+        html += '<div class="card">';
+        html += '<h3 style="font-size:17px; margin-bottom:10px;">Log Aktivitas Keamanan Terbaru (100 Terakhir)</h3>';
+        html += '<div class="paper-scroll" style="max-height:360px;"><table class="paper-table"><thead><tr>' +
+                '<th>Waktu</th><th style="text-align:left;">Aktor</th><th>Peran</th><th>Aksi</th><th style="text-align:left;">Detail</th><th>Status</th>' +
+                '</tr></thead><tbody>';
+        if ((logsData.logs || []).length === 0) {
+          html += '<tr><td colspan="6">Belum ada catatan log aktivitas.</td></tr>';
+        } else {
+          logsData.logs.forEach(function(l) {
+            html += '<tr><td style="font-size:11px; white-space:nowrap;">' + escapeHtml(l.waktu) + '</td>' +
+                    '<td style="text-align:left;">' + escapeHtml(l.nama_aktor) + '</td>' +
+                    '<td>' + escapeHtml(l.peran) + '</td>' +
+                    '<td style="font-size:11px; font-weight:700;">' + escapeHtml(l.aksi) + '</td>' +
+                    '<td style="text-align:left; font-size:11px;">' + escapeHtml(l.detail) + '</td>' +
+                    '<td>' + escapeHtml(l.status) + '</td></tr>';
+          });
+        }
+        html += '</tbody></table></div></div>';
+
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function openAdminUserModal(idPengguna) {
+      const existing = idPengguna ? adminUsersCache.find(function(u) { return u.id_pengguna === idPengguna; }) : null;
+      const box = document.getElementById('modalWalasBox');
+      box.className = 'modal-card';
+
+      let html = '<h3 style="font-size:18px; margin-bottom:12px;">' + (existing ? 'Edit Akun Staf' : 'Tambah Akun Staf Baru') + '</h3>';
+      html += '<form onsubmit="submitAdminUserForm(event, \'' + escapeHtml(idPengguna || '') + '\')">';
+      html += '<div class="form-group"><label>Username Login</label><input type="text" id="usrUsername" value="' + escapeHtml(existing ? existing.username : '') + '" placeholder="Contoh: walas_7a" required></div>';
+      html += '<div class="form-group"><label>Nama Lengkap & Gelar</label><input type="text" id="usrNama" value="' + escapeHtml(existing ? existing.nama : '') + '" placeholder="Contoh: Budi Santoso, S.Pd." required></div>';
+      html += '<div class="form-row-2">' +
+              '<div class="form-group"><label>NIP (Opsional)</label><input type="text" id="usrNip" value="' + escapeHtml(existing ? existing.nip : '') + '"></div>' +
+              '<div class="form-group"><label>Peran Sistem</label><select id="usrPeran">' +
+              '<option value="WALAS"' + (existing && existing.peran === 'WALAS' ? ' selected' : '') + '>Wali Kelas (WALAS)</option>' +
+              '<option value="PEMBACA"' + (existing && existing.peran === 'PEMBACA' ? ' selected' : '') + '>Pembaca / Kepsek / BK (PEMBACA)</option>' +
+              '<option value="ADMIN"' + (existing && existing.peran === 'ADMIN' ? ' selected' : '') + '>Admin Utama (ADMIN)</option>' +
+              '</select></div></div>';
+
+      if (!existing) {
+        html += '<div class="form-group"><label>Kata Sandi Awal (Minimal 6 Karakter)</label>' +
+                '<input type="text" id="usrInitPass" value="guru123" required>' +
+                '<div class="hint">Pengguna wajib mengganti kata sandi ini saat pertama kali login.</div></div>';
+      }
+
+      html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">' +
+              '<button type="button" class="btn btn-secondary" onclick="closeWalasModal()">Batal</button>' +
+              '<button type="submit" class="btn btn-primary">Simpan Akun</button></div></form>';
+
+      box.innerHTML = html;
+      document.getElementById('modalWalasDynamic').classList.remove('hidden');
+    }
+
+    async function submitAdminUserForm(e, idPengguna) {
+      e.preventDefault();
+      const passEl = document.getElementById('usrInitPass');
+      setLoading(true, 'Menyimpan akun staf...');
+      try {
+        const res = await callApi('SAVE_ADMIN_USER', {
+          id_pengguna: idPengguna,
+          username: document.getElementById('usrUsername').value.trim(),
+          nama: document.getElementById('usrNama').value.trim(),
+          nip: document.getElementById('usrNip').value.trim(),
+          peran: document.getElementById('usrPeran').value,
+          initial_password: passEl ? passEl.value.trim() : ''
+        }, 1);
+        if (!res || !res.ok) {
+          alert((res && res.message) ? res.message : 'Gagal menyimpan akun.');
+          return;
+        }
+        closeWalasModal();
+        alert(res.message);
+        await renderAdminUsersAndLogsView(document.getElementById('roleWorkspace'));
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function resetAdminUserPassword(idPengguna, nama) {
+      if (!confirm('Reset kata sandi "' + nama + '" menjadi "guru123"?')) return;
+      setLoading(true, 'Mereset kata sandi...');
+      try {
+        const res = await callApi('RESET_ADMIN_USER_PASSWORD', {
+          id_pengguna: idPengguna,
+          new_password: 'guru123'
+        }, 1);
+        alert((res && res.message) ? res.message : 'Selesai.');
+        await renderAdminUsersAndLogsView(document.getElementById('roleWorkspace'));
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function toggleAdminUserStatus(idPengguna, nama, nextActive) {
+      const verb = nextActive ? 'mengaktifkan' : 'menonaktifkan';
+      if (!confirm('Yakin ingin ' + verb + ' akun "' + nama + '"?')) return;
+      setLoading(true, 'Memperbarui status akun...');
+      try {
+        const res = await callApi('TOGGLE_ADMIN_USER_STATUS', {
+          id_pengguna: idPengguna,
+          aktif: nextActive
+        }, 1);
+        alert((res && res.message) ? res.message : 'Selesai.');
+        await renderAdminUsersAndLogsView(document.getElementById('roleWorkspace'));
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function runArchiveDatabaseDrive() {
+      if (!confirm('Buat salinan cadangan spreadsheet database ke Google Drive Anda sekarang?')) return;
+      setLoading(true, 'Menyalin database ke Google Drive...');
+      try {
+        const res = await callApi('ARCHIVE_OLD_DATA', {}, 1);
+        if (!res || !res.ok) {
+          alert((res && res.message) ? res.message : 'Gagal membuat arsip.');
+          return;
+        }
+        alert(res.message);
+        await renderAdminUsersAndLogsView(document.getElementById('roleWorkspace'));
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // --- 8D. KELOLA PENGUMUMAN SISWA ---
+    async function renderAdminAnnouncementsView(container) {
+      setLoading(true, 'Memuat pengumuman...');
+      try {
+        const res = await callApi('GET_ADMIN_ANNOUNCEMENTS', {});
+        if (!res || !res.ok) {
+          container.innerHTML = '<div class="card"><div class="alert alert-err">' +
+            escapeHtml((res && res.message) ? res.message : 'Gagal memuat pengumuman.') + '</div></div>';
+          return;
+        }
+        adminAnnouncementsCache = res.data.announcements || [];
+
+        let html = '<div class="card">';
+        html += '<div class="month-toolbar">' +
+                '<div><h3 style="font-size:18px;">Kelola Pengumuman Beranda Siswa</h3>' +
+                '<p style="font-size:12px; color:var(--muted);">Pengumuman aktif akan tampil di bagian atas halaman "Isi Hari Ini" siswa sesuai target tingkat.</p></div>' +
+                '<button type="button" class="btn btn-primary btn-inline" onclick="openAnnouncementModal(\'\')">+ Buat Pengumuman</button>' +
+                '</div>';
+
+        if (adminAnnouncementsCache.length === 0) {
+          html += '<div class="alert alert-info">Belum ada pengumuman yang dibuat.</div>';
+        } else {
+          adminAnnouncementsCache.forEach(function(ann) {
+            const targetLabel = ann.target_tingkat === 'ALL' ? 'Semua Tingkat (7, 8, 9)' : ('Khusus Kelas ' + ann.target_tingkat);
+            html += '<div class="habit-card">' +
+                    '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap; margin-bottom:6px;">' +
+                    '<div><strong>' + escapeHtml(ann.judul) + '</strong> ' +
+                    '<span class="badge-terbiasa ' + (ann.aktif ? 'badge-sudah' : 'badge-muted') + '">' + (ann.aktif ? 'Aktif' : 'Nonaktif') + '</span></div>' +
+                    '<div style="display:flex; gap:5px;">' +
+                    '<button type="button" class="btn btn-secondary btn-xs" onclick="openAnnouncementModal(\'' + escapeHtml(ann.id_pengumuman) + '\')">Edit</button>' +
+                    '<button type="button" class="btn btn-danger btn-xs" onclick="deleteAnnouncement(\'' + escapeHtml(ann.id_pengumuman) + '\')">Hapus</button>' +
+                    '</div></div>' +
+                    '<p style="font-size:13px; margin-bottom:6px;">' + escapeHtml(ann.isi) + '</p>' +
+                    '<div class="hint">Target: <strong>' + escapeHtml(targetLabel) + '</strong> • Berlaku: ' +
+                    escapeHtml(ann.tanggal_mulai || '-') + ' s.d. ' + escapeHtml(ann.tanggal_selesai || 'Seterusnya') + '</div>' +
+                    '</div>';
+          });
+        }
+        html += '</div>';
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function openAnnouncementModal(idAnn) {
+      const existing = idAnn ? adminAnnouncementsCache.find(function(a) { return a.id_pengumuman === idAnn; }) : null;
+      const box = document.getElementById('modalWalasBox');
+      box.className = 'modal-card';
+
+      let html = '<h3 style="font-size:18px; margin-bottom:12px;">' + (existing ? 'Edit Pengumuman' : 'Buat Pengumuman Baru') + '</h3>';
+      html += '<form onsubmit="submitAnnouncementForm(event, \'' + escapeHtml(idAnn || '') + '\')">';
+      html += '<div class="form-group"><label>Judul Pengumuman</label><input type="text" id="annJudul" value="' + escapeHtml(existing ? existing.judul : '') + '" placeholder="Contoh: Pengisian Refleksi Akhir Bulan" required></div>';
+      html += '<div class="form-group"><label>Isi Pesan</label><textarea id="annIsi" required>' + escapeHtml(existing ? existing.isi : '') + '</textarea></div>';
+      html += '<div class="form-group"><label>Target Tingkat</label><select id="annTarget">' +
+              '<option value="ALL"' + (!existing || existing.target_tingkat === 'ALL' ? ' selected' : '') + '>Semua Tingkat (Kelas 7, 8, 9)</option>' +
+              '<option value="7"' + (existing && existing.target_tingkat === '7' ? ' selected' : '') + '>Khusus Kelas 7</option>' +
+              '<option value="8"' + (existing && existing.target_tingkat === '8' ? ' selected' : '') + '>Khusus Kelas 8</option>' +
+              '<option value="9"' + (existing && existing.target_tingkat === '9' ? ' selected' : '') + '>Khusus Kelas 9</option>' +
+              '</select></div>';
+      html += '<div class="form-row-2">' +
+              '<div class="form-group"><label>Mulai Tampil</label><input type="date" id="annMulai" value="' + escapeHtml(existing ? existing.tanggal_mulai : (latestServerDate || '')) + '"></div>' +
+              '<div class="form-group"><label>Selesai Tampil (Opsional)</label><input type="date" id="annSelesai" value="' + escapeHtml(existing ? existing.tanggal_selesai : '') + '"></div>' +
+              '</div>';
+      html += '<label style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">' +
+              '<input type="checkbox" id="annAktif" style="width:18px; height:18px;"' + (!existing || existing.aktif ? ' checked' : '') + '>' +
+              '<span>Tampilkan Pengumuman (Aktif)</span></label>';
+      html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">' +
+              '<button type="button" class="btn btn-secondary" onclick="closeWalasModal()">Batal</button>' +
+              '<button type="submit" class="btn btn-primary">Simpan Pengumuman</button></div></form>';
+
+      box.innerHTML = html;
+      document.getElementById('modalWalasDynamic').classList.remove('hidden');
+    }
+
+    async function submitAnnouncementForm(e, idAnn) {
+      e.preventDefault();
+      setLoading(true, 'Menyimpan pengumuman...');
+      try {
+        const res = await callApi('SAVE_ADMIN_ANNOUNCEMENT', {
+          mode: 'UPSERT',
+          id_pengumuman: idAnn,
+          judul: document.getElementById('annJudul').value.trim(),
+          isi: document.getElementById('annIsi').value.trim(),
+          target_tingkat: document.getElementById('annTarget').value,
+          tanggal_mulai: document.getElementById('annMulai').value,
+          tanggal_selesai: document.getElementById('annSelesai').value,
+          aktif: document.getElementById('annAktif').checked
+        }, 1);
+        if (!res || !res.ok) {
+          alert((res && res.message) ? res.message : 'Gagal menyimpan pengumuman.');
+          return;
+        }
+        closeWalasModal();
+        alert(res.message);
+        await renderAdminAnnouncementsView(document.getElementById('roleWorkspace'));
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function deleteAnnouncement(idAnn) {
+      if (!confirm('Hapus pengumuman ini?')) return;
+      setLoading(true, 'Menghapus pengumuman...');
+      try {
+        await callApi('SAVE_ADMIN_ANNOUNCEMENT', { mode: 'DELETE', id_pengumuman: idAnn }, 1);
+        await renderAdminAnnouncementsView(document.getElementById('roleWorkspace'));
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ========================================================================
+    // 9. DASHBOARD SEKOLAH & MODUL PEMBACA (TAHAP 6)
     // ========================================================================
     async function loadReaderView(tabKey) {
       const workspace = document.getElementById('roleWorkspace');
@@ -2687,13 +3765,13 @@
     }
 
     async function renderSchoolDashboardView(container, forceReload) {
-      setLoading(true, 'Menyusun statistik sekolah...');
+      setLoading(true, 'Memuat dashboard pembiasaan sekolah...');
       try {
         if (forceReload || !schoolDashCache ||
-            schoolDashCache.filters.year !== selectedReportYear ||
-            schoolDashCache.filters.month !== selectedReportMonth ||
-            schoolDashCache.filters.tingkat !== schoolDashTingkat ||
-            schoolDashCache.filters.targetDate !== schoolDashDate) {
+            schoolDashCache.year !== selectedReportYear ||
+            schoolDashCache.month !== selectedReportMonth ||
+            schoolDashCache.tingkat !== schoolDashTingkat ||
+            schoolDashCache.targetDate !== schoolDashDate) {
           const res = await callApi('GET_SCHOOL_DASHBOARD', {
             year: selectedReportYear,
             month: selectedReportMonth,
@@ -2708,103 +3786,91 @@
           schoolDashCache = res.data;
         }
 
-        const d = schoolDashCache;
-        let html = '<div class="card">';
-        html += '<div class="month-toolbar">' +
-                '<div><h3 style="font-size:18px;">Dashboard Pelaksanaan 7KAIH Tingkat Sekolah</h3>' +
-                '<p style="font-size:12px; color:var(--muted);">Pantau kepatuhan pengisian harian dan capaian pembiasaan seluruh kelas.</p></div>' +
-                '<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">' +
-                '<select style="width:auto; min-height:40px;" onchange="onChangeSchoolDashTingkat(this.value)">' +
-                '<option value="ALL"' + (d.filters.tingkat === 'ALL' ? ' selected' : '') + '>Semua Tingkat (7, 8, 9)</option>' +
-                '<option value="7"' + (d.filters.tingkat === '7' ? ' selected' : '') + '>Kelas 7</option>' +
-                '<option value="8"' + (d.filters.tingkat === '8' ? ' selected' : '') + '>Kelas 8</option>' +
-                '<option value="9"' + (d.filters.tingkat === '9' ? ' selected' : '') + '>Kelas 9</option>' +
-                '</select>' +
-                '<input type="date" value="' + escapeHtml(d.filters.targetDate) + '" max="' + escapeHtml(d.filters.todayStr) + '" style="width:auto; min-height:40px;" onchange="onChangeSchoolDashDate(this.value)">' +
-                buildMonthSelectorHtml('changeReportPeriod') +
-                '<button type="button" class="btn btn-primary btn-inline" onclick="downloadSchoolRecapExcel()">Unduh Rekap Sekolah (.xlsx)</button>' +
-                '</div></div>';
-
-        html += '<div class="summary-grid">';
-        html += '<div class="stat-box"><div class="num">' + d.summary.filledToday + ' / ' + d.summary.totalStudents + ' (' + d.summary.todayPct + '%)</div><div class="lbl">Mengisi pada ' + escapeHtml(d.filters.targetDate) + '</div></div>';
-        html += '<div class="stat-box"><div class="num">' + d.summary.totalClasses + ' Kelas • ' + d.summary.totalStudents + ' Siswa</div><div class="lbl">Rombel Aktif (L: ' + d.summary.totalL + ' • P: ' + d.summary.totalP + ')</div></div>';
-        html += '<div class="stat-box"><div class="num">' + d.summary.avgFilledDays + ' / ' + d.daysInMonth + ' Hari</div><div class="lbl">Rata-rata Hari Terisi Bulan Ini</div></div>';
-        html += '<div class="stat-box"><div class="num" style="color:#0369a1;">' + d.summary.attentionCount + ' Siswa</div><div class="lbl">Perlu Pendampingan BK / Walas</div></div>';
-        html += '</div></div>';
-
-        // Grafik Batang Capaian 7 Kebiasaan Tingkat Sekolah
-        html += '<div class="card">';
-        html += '<h4 style="font-size:16px; margin-bottom:4px;">Capaian Predikat "Sudah Terbiasa" per Kebiasaan</h4>';
-        html += '<p style="font-size:12px; color:var(--muted); margin-bottom:12px;">Target minimal <strong>' + d.minDaysRequired + ' hari</strong> dari ' + d.daysInMonth + ' hari pada bulan terpilih.</p>';
-
-        d.schoolHabitsSummary.forEach(function(hs) {
-          html += '<div style="margin-bottom:10px;">' +
-                  '<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px;">' +
-                  '<strong>' + hs.urutan + '. ' + escapeHtml(hs.nama) + '</strong>' +
-                  '<span><strong>' + hs.percentage + '%</strong> (' + hs.terbiasa_count + ' dari ' + d.summary.totalStudents + ' siswa)</span>' +
-                  '</div>' +
-                  '<div class="progress-bar-bg"><div class="progress-bar-fill" style="width:' + Math.min(100, hs.percentage) + '%;"></div></div>' +
-                  '</div>';
-        });
-        html += '</div>';
-
-        // Tabel Perbandingan Antar Kelas
-        html += '<div class="card">';
-        html += '<h4 style="font-size:16px; margin-bottom:10px;">Perbandingan Pelaksanaan Antar Kelas</h4>';
-        html += '<div class="paper-scroll"><table class="paper-table" style="min-width:1050px;"><thead><tr>' +
-                '<th style="width:40px;">No</th><th class="sticky-col">Kelas</th><th>Wali Kelas</th><th>L/P</th><th>Isi Harian (' + escapeHtml(d.filters.targetDate) + ')</th><th>Rata-rata Hari</th>';
-        d.habits.forEach(function(h) {
-          html += '<th>K' + h.urutan + '</th>';
-        });
-        html += '<th>Rata-rata 7KAIH</th></tr></thead><tbody>';
-
-        if (d.classRecaps.length === 0) {
-          html += '<tr><td colspan="' + (d.habits.length + 7) + '">Belum ada kelas aktif pada filter terpilih.</td></tr>';
-        } else {
-          d.classRecaps.forEach(function(c, idx) {
-            html += '<tr><td>' + (idx + 1) + '</td>' +
-                    '<td class="sticky-col">Kelas ' + escapeHtml(c.nama_kelas) + '</td>' +
-                    '<td style="text-align:left;">' + escapeHtml(c.nama_walas) + '</td>' +
-                    '<td>' + c.count_l + '/' + c.count_p + '</td>' +
-                    '<td><strong>' + c.filled_today + '/' + c.total_siswa + '</strong> (' + c.today_pct + '%)</td>' +
-                    '<td>' + c.avg_filled_days + ' hr</td>';
-            d.habits.forEach(function(h) {
-              const pct = c.habit_terbiasa_pct[h.id_kebiasaan] || 0;
-              html += '<td>' + pct + '%</td>';
-            });
-            html += '<td><span class="badge-terbiasa ' + (c.avg_habits_pct >= 67 ? 'badge-sudah' : 'badge-belum') + '">' +
-                    c.avg_habits_pct + '%</span></td></tr>';
-          });
-        }
-        html += '</tbody></table></div></div>';
-
-        // Ringkasan Siswa Perlu Perhatian Lintas Kelas (Suportif)
-        html += '<div class="card">';
-        html += '<h4 style="font-size:16px; color:#0369a1; margin-bottom:4px;">Koordinasi Pendampingan Siswa (Wali Kelas & Guru BK)</h4>';
-        html += '<p style="font-size:12px; color:var(--muted); margin-bottom:12px;">Daftar berikut membantu Guru BK dan Wali Kelas menyapa siswa yang belum sempat mengisi jurnal atau memiliki waktu istirahat kurang.</p>';
-        if (d.attentionStudents.length === 0) {
-          html += '<div class="alert alert-ok" style="margin-bottom:0;">Seluruh siswa pada tingkat terpilih aktif mengisi jurnal dan memiliki pola istirahat baik.</div>';
-        } else {
-          html += '<div class="paper-scroll"><table class="paper-table"><thead><tr>' +
-                  '<th style="width:40px;">No</th><th style="text-align:left;">Nama Siswa</th><th>Kelas</th><th style="text-align:left;">Wali Kelas</th><th style="text-align:left;">Catatan Pendampingan</th>' +
-                  '</tr></thead><tbody>';
-          d.attentionStudents.forEach(function(st, idx) {
-            html += '<tr><td>' + (idx + 1) + '</td>' +
-                    '<td style="text-align:left; font-weight:600;">' + escapeHtml(st.nama) + ' <span style="font-weight:400; color:var(--muted);">(' + escapeHtml(st.nisn) + ')</span></td>' +
-                    '<td>' + escapeHtml(st.nama_kelas) + '</td>' +
-                    '<td style="text-align:left;">' + escapeHtml(st.nama_walas) + '</td>' +
-                    '<td style="text-align:left;">' + escapeHtml(st.notes.join('; ')) + '</td></tr>';
-          });
-          html += '</tbody></table></div>';
-        }
-        html += '</div>';
-
-        container.innerHTML = html;
+        paintSchoolDashboardView(container);
       } catch (err) {
         container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
       } finally {
         setLoading(false);
       }
+    }
+
+    function paintSchoolDashboardView(container) {
+      const d = schoolDashCache;
+      const ov = d.overview;
+
+      let html = '<div class="card">';
+      html += '<div class="month-toolbar">' +
+              '<div><h3 style="font-size:18px;">Dashboard Pembiasaan Sekolah (7KAIH)</h3>' +
+              '<p style="font-size:12px; color:var(--muted);">Pantauan agregat pelaksanaan 7 kebiasaan dan partisipasi pengisian seluruh rombel SMP.</p></div>' +
+              '<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">' +
+              '<select style="width:auto; min-height:40px;" onchange="onChangeSchoolDashTingkat(this.value)">' +
+              '<option value="ALL"' + (d.tingkat === 'ALL' ? ' selected' : '') + '>Semua Tingkat (7, 8, 9)</option>' +
+              '<option value="7"' + (d.tingkat === '7' ? ' selected' : '') + '>Khusus Kelas 7</option>' +
+              '<option value="8"' + (d.tingkat === '8' ? ' selected' : '') + '>Khusus Kelas 8</option>' +
+              '<option value="9"' + (d.tingkat === '9' ? ' selected' : '') + '>Khusus Kelas 9</option>' +
+              '</select>' +
+              buildMonthSelectorHtml('changeReportPeriod') +
+              '<button type="button" class="btn btn-primary btn-inline" onclick="downloadSchoolRecapExcel()">Unduh Rekap Sekolah (.xlsx)</button>' +
+              '</div></div>';
+
+      html += '<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; background:#f8fafc; padding:10px 12px; border-radius:10px; border:1px solid var(--border); margin-bottom:14px;">' +
+              '<span style="font-size:13px;">Tanggal Pemantauan Harian: <strong>' + escapeHtml(d.targetDate) + '</strong></span>' +
+              '<div style="display:flex; gap:8px; align-items:center;">' +
+              '<input type="date" value="' + escapeHtml(d.targetDate) + '" style="width:auto; min-height:38px;" onchange="onChangeSchoolDashDate(this.value)">' +
+              '<button type="button" class="btn btn-secondary btn-inline" onclick="renderSchoolDashboardView(document.getElementById(\'roleWorkspace\'), true)">Segarkan</button>' +
+              '</div></div>';
+
+      html += '<div class="summary-grid">';
+      html += '<div class="stat-box"><div class="num">' + ov.totalClasses + ' Rombel</div><div class="lbl">Jumlah Kelas Aktif (' + ov.totalStudents + ' Siswa)</div></div>';
+      html += '<div class="stat-box"><div class="num">' + ov.filledTodayCount + ' / ' + ov.totalStudents + '</div><div class="lbl">Mengisi Jurnal pada ' + escapeHtml(d.targetDate) + ' (' + ov.filledTodayPct + '%)</div></div>';
+      html += '<div class="stat-box"><div class="num">' + ov.monthlyFillRatePct + '%</div><div class="lbl">Partisipasi Pengisian Bulan Ini (s.d. Tgl ' + ov.effectiveDays + ')</div></div>';
+      html += '<div class="stat-box"><div class="num">' + ov.reflectionCount + ' / ' + ov.totalStudents + '</div><div class="lbl">Refleksi Bulanan Terisi (' + ov.reflectionPct + '%)</div></div>';
+      html += '</div></div>';
+
+      html += '<div class="card">';
+      html += '<h4 style="font-size:16px; margin-bottom:4px;">Capaian 7 Kebiasaan Tingkat Sekolah (Bulan Terpilih)</h4>';
+      html += '<p style="font-size:12px; color:var(--muted); margin-bottom:12px;">Target predikat <em>Sudah Terbiasa</em>: minimal <strong>' + d.minDaysRequired + '</strong> dari ' + d.daysInMonth + ' hari.</p>';
+
+      d.habitAggregates.forEach(function(ha) {
+        html += '<div class="habit-card" style="margin-bottom:10px;">' +
+                '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">' +
+                '<strong>' + ha.urutan + '. ' + escapeHtml(ha.nama) + '</strong>' +
+                '<span class="badge-terbiasa badge-sudah">' + ha.terbiasaCount + ' dari ' + ov.totalStudents + ' siswa Sudah Terbiasa (' + ha.terbiasaPct + '%)</span>' +
+                '</div>' +
+                '<div style="font-size:12px; color:var(--muted); margin-top:4px;">Rata-rata keterlaksanaan bulan ini: <strong>' + ha.avgDaysV + '</strong> hari per siswa (' + ha.avgPct + '%)</div>' +
+                '<div class="progress-bar-bg"><div class="progress-bar-fill" style="width:' + Math.min(100, ha.avgPct) + '%;"></div></div>' +
+                '</div>';
+      });
+      html += '</div>';
+
+      html += '<div class="card">';
+      html += '<h4 style="font-size:16px; margin-bottom:4px;">Perbandingan Partisipasi & Pembiasaan Per Kelas</h4>';
+      html += '<p style="font-size:12px; color:var(--muted); margin-bottom:12px;">Digunakan untuk memetakan kelas yang membutuhkan dukungan pendampingan program pembiasaan.</p>';
+
+      html += '<div class="paper-scroll"><table class="paper-table" style="min-width:860px;"><thead><tr>' +
+              '<th style="width:40px;">No</th><th class="sticky-col">Kelas</th><th>Tingkat</th><th style="text-align:left;">Wali Kelas</th>' +
+              '<th>Siswa</th><th>Isi (' + escapeHtml(d.targetDate) + ')</th><th>Partisipasi Bulan</th><th>Rata-rata 7KAIH</th><th>Refleksi</th>' +
+              '</tr></thead><tbody>';
+
+      if (d.classComparison.length === 0) {
+        html += '<tr><td colspan="9">Belum ada data kelas pada filter ini.</td></tr>';
+      } else {
+        d.classComparison.forEach(function(c, idx) {
+          const badgeCls = c.avgHabitPct >= 75 ? 'badge-sudah' : (c.avgHabitPct >= 50 ? 'badge-belum' : 'badge-muted');
+          html += '<tr><td>' + (idx + 1) + '</td>' +
+                  '<td class="sticky-col">Kelas ' + escapeHtml(c.nama_kelas) + '</td>' +
+                  '<td>' + escapeHtml(c.tingkat) + '</td>' +
+                  '<td style="text-align:left;">' + escapeHtml(c.nama_walas) + '</td>' +
+                  '<td>' + c.total_siswa + '</td>' +
+                  '<td><strong>' + c.filled_today + '/' + c.total_siswa + '</strong> (' + c.filled_today_pct + '%)</td>' +
+                  '<td><strong>' + c.monthly_fill_pct + '%</strong></td>' +
+                  '<td><span class="badge-terbiasa ' + badgeCls + '">' + c.avg_habit_pct + '%</span></td>' +
+                  '<td>' + c.reflection_count + '/' + c.total_siswa + ' (' + c.reflection_pct + '%)</td></tr>';
+        });
+      }
+
+      html += '</tbody></table></div></div>';
+      container.innerHTML = html;
     }
 
     function onChangeSchoolDashTingkat(val) {
@@ -2822,15 +3888,14 @@
     function downloadSchoolRecapExcel() {
       triggerExcelExport({
         exportType: 'SCHOOL_RECAP',
-        tingkat: schoolDashTingkat,
-        targetDate: schoolDashDate,
         year: selectedReportYear,
-        month: selectedReportMonth
-      }, 'Menyusun file Excel rekap sekolah (.xlsx)...');
+        month: selectedReportMonth,
+        tingkat: schoolDashTingkat
+      }, 'Menyusun rekap sekolah (.xlsx)...');
     }
 
     async function renderReaderClassRecapView(container, forceReload) {
-      setLoading(true, 'Memuat data kelas...');
+      setLoading(true, 'Memuat rekap kelas...');
       try {
         if (readerClassesCache.length === 0) {
           const clsRes = await callApi('GET_READER_CLASSES', {});
@@ -2840,14 +3905,15 @@
             return;
           }
           readerClassesCache = clsRes.data.classes || [];
-          if (readerClassesCache.length > 0 && !readerSelectedClassId) {
-            readerSelectedClassId = readerClassesCache[0].id_kelas;
-          }
         }
 
         if (readerClassesCache.length === 0) {
-          container.innerHTML = '<div class="card"><div class="alert alert-warn">Belum ada kelas aktif yang terdaftar di sistem.</div></div>';
+          container.innerHTML = '<div class="card"><div class="alert alert-warn">Belum ada rombel kelas aktif di sekolah.</div></div>';
           return;
+        }
+
+        if (!readerSelectedClassId || !readerClassesCache.some(function(c) { return c.id_kelas === readerSelectedClassId; })) {
+          readerSelectedClassId = readerClassesCache[0].id_kelas;
         }
 
         if (forceReload || !readerClassRecapCache ||
@@ -2867,59 +3933,7 @@
           readerClassRecapCache = recRes.data;
         }
 
-        const r = readerClassRecapCache;
-        let html = '<div class="card">';
-        html += '<div class="month-toolbar">' +
-                '<div><h3 style="font-size:18px;">Rekap Bulanan Kelas ' + escapeHtml(r.kelas.nama_kelas) + ' (Mode Pembaca)</h3>' +
-                '<p style="font-size:12px; color:var(--muted);">Wali Kelas: <strong>' + escapeHtml(r.kelas.nama_walas) + '</strong> • L: ' + r.kelas.count_l + ' • P: ' + r.kelas.count_p + ' • Total: ' + r.kelas.total_siswa + ' siswa.</p></div>' +
-                '<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">' +
-                '<select style="width:auto; min-height:40px;" onchange="onChangeReaderClass(this.value)">';
-        readerClassesCache.forEach(function(c) {
-          html += '<option value="' + escapeHtml(c.id_kelas) + '"' + (c.id_kelas === readerSelectedClassId ? ' selected' : '') + '>' +
-                  'Kelas ' + escapeHtml(c.nama_kelas) + ' (' + escapeHtml(c.nama_walas) + ')</option>';
-        });
-        html += '</select>' +
-                buildMonthSelectorHtml('changeReportPeriod') +
-                '<button type="button" class="btn btn-primary btn-inline" onclick="downloadReaderClassExcel()">Unduh Lampiran 3 (.xlsx)</button>' +
-                '</div></div>';
-
-        html += '<div class="paper-scroll"><table class="paper-table" style="min-width:1020px;"><thead><tr>';
-        html += '<th style="width:40px;">No</th><th class="sticky-col">Nama Siswa</th><th style="width:45px;">L/P</th>';
-        r.habits.forEach(function(h) {
-          html += '<th>' + h.urutan + '. ' + escapeHtml(h.nama) + '</th>';
-        });
-        html += '<th>Refleksi</th><th>Catatan Wali Kelas</th><th>Detail</th></tr></thead><tbody>';
-
-        if (r.students.length === 0) {
-          html += '<tr><td colspan="' + (r.habits.length + 6) + '">Belum ada siswa aktif di kelas ini.</td></tr>';
-        } else {
-          r.students.forEach(function(st) {
-            html += '<tr><td>' + st.no + '</td>' +
-                    '<td class="sticky-col">' + escapeHtml(st.nama) +
-                    '<div style="font-size:11px; font-weight:400; color:var(--muted);">' + escapeHtml(st.nisn) + '</div></td>' +
-                    '<td>' + escapeHtml(st.jk) + '</td>';
-
-            r.habits.forEach(function(h) {
-              const hs = st.habitStats[h.id_kebiasaan] || { count_v: 0, percentage: 0, is_terbiasa: false };
-              html += '<td><strong>' + hs.count_v + '</strong> <span style="font-size:11px; color:var(--muted);">(' + hs.percentage + '%)</span><br>' +
-                      '<span class="badge-terbiasa ' + (hs.is_terbiasa ? 'badge-sudah' : 'badge-belum') + '">' +
-                      (hs.is_terbiasa ? 'Sudah' : 'Belum') + '</span></td>';
-            });
-
-            html += '<td>' + (st.has_reflection
-              ? '<span class="badge-terbiasa badge-sudah">Sudah Diisi</span>'
-              : '<span class="badge-terbiasa badge-muted">Belum</span>') + '</td>';
-
-            html += '<td style="text-align:left; max-width:190px; font-size:12px;">' +
-                    escapeHtml(st.catatan_walas || '-') + '</td>';
-
-            html += '<td><button type="button" class="btn btn-secondary btn-xs" ' +
-                    'onclick="openStudentRecapDetailModal(\'' + escapeHtml(st.id_siswa) + '\', true)">Lihat Refleksi</button></td></tr>';
-          });
-        }
-
-        html += '</tbody></table></div></div>';
-        container.innerHTML = html;
+        paintReaderClassRecapView(container);
       } catch (err) {
         container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
       } finally {
@@ -2927,8 +3941,64 @@
       }
     }
 
-    function onChangeReaderClass(cid) {
-      readerSelectedClassId = cid;
+    function paintReaderClassRecapView(container) {
+      const r = readerClassRecapCache;
+      let html = '<div class="card">';
+      html += '<div class="month-toolbar">' +
+              '<div><h3 style="font-size:18px;">Rekap Bulanan Kelas ' + escapeHtml(r.kelas.nama_kelas) + ' (Mode Baca)</h3>' +
+              '<p style="font-size:12px; color:var(--muted);">Wali Kelas: <strong>' + escapeHtml(r.kelas.nama_walas) + '</strong> • L: ' + r.kelas.count_l + ' • P: ' + r.kelas.count_p + ' • Total: ' + r.kelas.total_siswa + ' siswa.</p></div>' +
+              '<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">' +
+              '<select style="width:auto; min-height:40px;" onchange="onChangeReaderClass(this.value)">';
+      readerClassesCache.forEach(function(c) {
+        html += '<option value="' + escapeHtml(c.id_kelas) + '"' + (c.id_kelas === readerSelectedClassId ? ' selected' : '') + '>' +
+                'Kelas ' + escapeHtml(c.nama_kelas) + ' (' + escapeHtml(c.nama_walas) + ')</option>';
+      });
+      html += '</select>' +
+              buildMonthSelectorHtml('changeReportPeriod') +
+              '<button type="button" class="btn btn-primary btn-inline" onclick="downloadReaderClassExcel()">Unduh Excel Lampiran 3</button>' +
+              '</div></div>';
+
+      html += '<div class="paper-scroll"><table class="paper-table" style="min-width:1040px;"><thead><tr>';
+      html += '<th style="width:40px;">No</th><th class="sticky-col">Nama Siswa</th><th style="width:45px;">L/P</th>';
+      r.habits.forEach(function(h) {
+        html += '<th>' + h.urutan + '. ' + escapeHtml(h.nama) + '</th>';
+      });
+      html += '<th>Refleksi</th><th>Catatan Wali Kelas</th><th>Detail</th></tr></thead><tbody>';
+
+      if (r.students.length === 0) {
+        html += '<tr><td colspan="' + (r.habits.length + 6) + '">Belum ada siswa aktif di kelas ini.</td></tr>';
+      } else {
+        r.students.forEach(function(st) {
+          html += '<tr><td>' + st.no + '</td>' +
+                  '<td class="sticky-col">' + escapeHtml(st.nama) +
+                  '<div style="font-size:11px; font-weight:400; color:var(--muted);">' + escapeHtml(st.nisn) + '</div></td>' +
+                  '<td>' + escapeHtml(st.jk) + '</td>';
+
+          r.habits.forEach(function(h) {
+            const hs = st.habitStats[h.id_kebiasaan] || { count_v: 0, percentage: 0, is_terbiasa: false };
+            html += '<td><strong>' + hs.count_v + '</strong> <span style="font-size:11px; color:var(--muted);">(' + hs.percentage + '%)</span><br>' +
+                    '<span class="badge-terbiasa ' + (hs.is_terbiasa ? 'badge-sudah' : 'badge-belum') + '">' +
+                    (hs.is_terbiasa ? 'Sudah' : 'Belum') + '</span></td>';
+          });
+
+          html += '<td>' + (st.has_reflection
+            ? '<span class="badge-terbiasa badge-sudah">Sudah Diisi</span>'
+            : '<span class="badge-terbiasa badge-muted">Belum</span>') + '</td>';
+
+          html += '<td style="text-align:left; max-width:190px; font-size:12px;">' +
+                  escapeHtml(st.catatan_walas || '-') + '</td>';
+
+          html += '<td><button type="button" class="btn btn-secondary btn-xs" ' +
+                  'onclick="openStudentRecapDetailModal(\'' + escapeHtml(st.id_siswa) + '\', true)">Lihat Refleksi</button></td></tr>';
+        });
+      }
+
+      html += '</tbody></table></div></div>';
+      container.innerHTML = html;
+    }
+
+    function onChangeReaderClass(newClassId) {
+      readerSelectedClassId = newClassId;
       renderReaderClassRecapView(document.getElementById('roleWorkspace'), true);
     }
 
@@ -2938,18 +4008,19 @@
         id_kelas: readerSelectedClassId,
         year: selectedReportYear,
         month: selectedReportMonth
-      }, 'Menyusun file Excel Lampiran 3 (.xlsx)...');
+      }, 'Menyusun file Excel kelas (.xlsx)...');
     }
 
     // ========================================================================
-    // 9. INISIALISASI HALAMAN SAAT PERTAMA DIBUKA
+    // 10. INISIALISASI SAAT HALAMAN DIBUKA
     // ========================================================================
     async function initApp() {
-      setLoading(true, 'Menyiapkan aplikasi...');
+      setLoading(true, 'Menghubungkan ke server sekolah...');
       try {
         const cfgRes = await callApi('GET_PUBLIC_CONFIG', {}, 1);
         if (cfgRes && cfgRes.ok) {
           applyBranding(cfgRes.data);
+          latestServerDate = cfgRes.serverDate;
         }
 
         const existingToken = getSavedToken();
@@ -2960,10 +4031,11 @@
             routeAfterAuth(sesRes.serverDate);
             return;
           }
+          clearSavedToken();
         }
         showLoginView();
       } catch (err) {
-        showLoginView('Gagal memuat konfigurasi awal: ' + err.message);
+        showLoginView('Tidak dapat memuat konfigurasi awal: ' + err.message);
       } finally {
         setLoading(false);
       }
