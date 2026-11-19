@@ -7,7 +7,9 @@
   <style>
     :root {
       --primary: #0f766e;
-      --bg: #f8fafc;
+      --primary-dark: #115e59;
+      --primary-soft: #ccfbf1;
+      --bg: #f1f5f9;
       --card: #ffffff;
       --text: #0f172a;
       --muted: #64748b;
@@ -18,116 +20,534 @@
       --warn-text: #92400e;
       --err-bg: #fee2e2;
       --err-text: #991b1b;
+      --radius: 14px;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: var(--bg);
       color: var(--text);
       line-height: 1.5;
-      padding: 16px;
+      min-height: 100vh;
     }
-    .container {
-      max-width: 560px;
-      margin: 24px auto;
+
+    .hidden { display: none !important; }
+
+    /* Loading Overlay */
+    .loader-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      gap: 12px;
+      font-weight: 600;
+      color: var(--primary);
     }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 4px solid var(--primary-soft);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Alerts */
+    .alert {
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      border: 1px solid transparent;
+    }
+    .alert-err { background: var(--err-bg); color: var(--err-text); border-color: #fecaca; }
+    .alert-ok { background: var(--ok-bg); color: var(--ok-text); border-color: #bbf7d0; }
+    .alert-warn { background: var(--warn-bg); color: var(--warn-text); border-color: #fde68a; }
+
+    /* Auth Container (Mobile-First) */
+    .auth-wrapper {
+      max-width: 440px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+    .school-brand {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .school-logo {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: var(--primary);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      object-fit: contain;
+    }
+    .school-brand h1 {
+      font-size: 21px;
+      color: var(--primary);
+      font-weight: 800;
+    }
+    .school-brand p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .welcome-note {
+      font-size: 13px;
+      color: var(--text);
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      border-radius: 12px;
+      margin-top: 10px;
+    }
+
     .card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
     }
-    .badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-      background: #ccfbf1;
-      color: #0f766e;
-      margin-bottom: 12px;
-    }
-    h1 { font-size: 22px; margin-bottom: 4px; color: var(--primary); }
-    .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
-    .status-box {
-      padding: 14px;
-      border-radius: 12px;
-      font-size: 14px;
-      margin-bottom: 16px;
-      background: #f1f5f9;
-      border: 1px solid var(--border);
-    }
-    .status-ok { background: var(--ok-bg); color: var(--ok-text); border-color: #bbf7d0; }
-    .status-warn { background: var(--warn-bg); color: var(--warn-text); border-color: #fde68a; }
-    .status-err { background: var(--err-bg); color: var(--err-text); border-color: #fecaca; }
-    .meta-grid {
+
+    /* Role Switch Tabs on Login */
+    .role-tabs {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 12px;
+      gap: 6px;
+      background: var(--bg);
+      padding: 5px;
+      border-radius: 12px;
+      margin-bottom: 18px;
     }
-    .meta-item {
-      background: #f8fafc;
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
+    .role-tab {
+      min-height: 44px;
+      border: none;
+      background: transparent;
+      border-radius: 9px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
     }
-    .meta-label { font-size: 11px; color: var(--muted); text-transform: uppercase; }
-    .meta-val { font-size: 14px; font-weight: 600; margin-top: 2px; }
-    button {
+    .role-tab.active {
+      background: var(--card);
+      color: var(--primary);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    }
+
+    /* Form Controls */
+    .form-group { margin-bottom: 15px; }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    input[type="text"],
+    input[type="password"],
+    input[type="tel"],
+    select {
       width: 100%;
       min-height: 48px;
-      background: var(--primary);
-      color: #fff;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 11px;
+      font-size: 16px;
+      background: #fff;
+      color: var(--text);
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .toggle-secret {
+      position: absolute;
+      right: 10px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px;
+      cursor: pointer;
+    }
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .btn {
+      width: 100%;
+      min-height: 48px;
       border: none;
       border-radius: 12px;
       font-size: 15px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* App Shell Layout */
+    .topbar {
+      background: var(--primary);
+      color: #fff;
+      padding: 14px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar-inner {
+      max-width: 1040px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .topbar-title h2 { font-size: 16px; font-weight: 700; }
+    .topbar-title p { font-size: 12px; opacity: 0.9; }
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-sm {
+      min-height: 38px;
+      padding: 6px 12px;
+      border-radius: 9px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+      cursor: pointer;
+      width: auto;
+    }
+
+    .shell-container {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 16px 16px 88px;
+    }
+
+    .user-banner {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .role-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--primary-soft);
+      color: var(--primary);
+      text-transform: uppercase;
+    }
+
+    /* Navigation Tabs per Role */
+    .nav-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 16px;
+    }
+    .nav-btn {
+      min-height: 42px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .nav-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .admin-preview-bar {
+      background: #fefce8;
+      border: 1px solid #fde047;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .admin-preview-bar select {
+      min-height: 40px;
+      width: auto;
+      min-width: 180px;
+      font-size: 14px;
+    }
+
+    .grid-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
       margin-top: 12px;
     }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .info-tile {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .info-tile h4 { font-size: 14px; color: var(--primary); margin-bottom: 4px; }
+    .info-tile p { font-size: 13px; color: var(--muted); }
+
+    /* Modal Change PIN */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 500;
+    }
+    .modal-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border-radius: 16px;
+      padding: 22px;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
+
+  <!-- Indikator Memuat -->
+  <div id="loadingOverlay" class="loader-overlay hidden">
+    <div class="spinner"></div>
+    <div id="loadingText">Memuat...</div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 1: HALAMAN LOGIN                                                 -->
+  <!-- ===================================================================== -->
+  <div id="viewLogin" class="auth-wrapper hidden">
+    <div class="school-brand">
+      <div id="logoContainer" class="school-logo">7K</div>
+      <h1 id="cfgAppName">Jurnal 7KAIH SMP</h1>
+      <p id="cfgSchoolName">Memuat data sekolah...</p>
+      <div id="cfgWelcome" class="welcome-note hidden"></div>
+    </div>
+
     <div class="card">
-      <span class="badge" id="modeBadge">Fondasi Sistem • Tahap 1</span>
-      <h1 id="appTitle">Jurnal 7KAIH SMP</h1>
-      <p class="subtitle" id="schoolTitle">Memuat identitas sekolah...</p>
-
-      <div id="statusBox" class="status-box">
-        Memeriksa koneksi server dan kesiapan database...
+      <div class="role-tabs">
+        <button type="button" id="tabLoginSiswa" class="role-tab active" onclick="switchLoginTab('SISWA')">
+          Siswa (NISN)
+        </button>
+        <button type="button" id="tabLoginStaf" class="role-tab" onclick="switchLoginTab('STAF')">
+          Guru / Admin
+        </button>
       </div>
 
-      <div class="meta-grid">
-        <div class="meta-item">
-          <div class="meta-label">Tanggal Server (WIB)</div>
-          <div class="meta-val" id="serverDate">-</div>
+      <div id="loginAlert" class="alert alert-err hidden"></div>
+
+      <form id="loginForm" onsubmit="submitLogin(event)">
+        <div class="form-group">
+          <label id="lblIdentifier" for="inpIdentifier">NISN Siswa</label>
+          <input type="tel" id="inpIdentifier" inputmode="numeric" autocomplete="username" placeholder="Masukkan 10 digit NISN" required>
         </div>
-        <div class="meta-item">
-          <div class="meta-label">Zona Waktu</div>
-          <div class="meta-val" id="serverTz">-</div>
+
+        <div class="form-group">
+          <label id="lblSecret" for="inpSecret">PIN Siswa</label>
+          <div class="input-wrap">
+            <input type="password" id="inpSecret" inputmode="numeric" autocomplete="current-password" placeholder="Masukkan PIN 6 digit" required>
+            <button type="button" class="toggle-secret" onclick="toggleSecretVisibility('inpSecret', this)">Lihat</button>
+          </div>
+          <div class="hint" id="secretHint">Gunakan PIN awal dari wali kelas jika baru pertama kali masuk.</div>
         </div>
+
+        <button type="submit" id="btnLoginSubmit" class="btn btn-primary">Masuk Aplikasi</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 2: WAJIB GANTI PIN / KATA SANDI (SAAT LOGIN PERTAMA)             -->
+  <!-- ===================================================================== -->
+  <div id="viewForcePin" class="auth-wrapper hidden">
+    <div class="school-brand">
+      <h1>Keamanan Akun</h1>
+      <p id="forcePinUserLabel">Halo, Pengguna</p>
+    </div>
+
+    <div class="card">
+      <div class="alert alert-warn">
+        Demi keamanan data Anda, ganti PIN atau kata sandi awal sebelum melanjutkan.
       </div>
 
-      <button id="btnRecheck" onclick="checkFoundation()">Periksa Ulang Koneksi</button>
+      <div id="forcePinAlert" class="alert alert-err hidden"></div>
+
+      <form onsubmit="submitChangePin(event, true)">
+        <div class="form-group">
+          <label for="forceOldSecret">PIN / Kata Sandi Lama</label>
+          <input type="password" id="forceOldSecret" required>
+        </div>
+        <div class="form-group">
+          <label for="forceNewSecret" id="lblForceNewSecret">PIN Baru (6 Digit Angka)</label>
+          <input type="password" id="forceNewSecret" required>
+          <div class="hint" id="forceNewHint">Jangan gunakan angka berurutan seperti 123456.</div>
+        </div>
+        <div class="form-group">
+          <label for="forceConfirmSecret">Ulangi PIN / Kata Sandi Baru</label>
+          <input type="password" id="forceConfirmSecret" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Simpan & Lanjutkan</button>
+        <button type="button" class="btn btn-secondary" style="margin-top:10px;" onclick="logoutUser()">Batal & Keluar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 3: KERANGKA APLIKASI UTAMA PER PERAN                             -->
+  <!-- ===================================================================== -->
+  <div id="viewAppShell" class="hidden">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="topbar-title">
+          <h2 id="topAppName">Jurnal 7KAIH SMP</h2>
+          <p id="topSchoolName">SMP Negeri</p>
+        </div>
+        <div class="topbar-actions">
+          <button type="button" class="btn-sm" onclick="openChangePinModal()">Ganti PIN/Sandi</button>
+          <button type="button" class="btn-sm" onclick="logoutUser()">Keluar</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell-container">
+      <!-- Profil Pengguna Aktif -->
+      <section class="user-banner">
+        <div>
+          <span class="role-pill" id="shellRoleBadge">PERAN</span>
+          <h3 id="shellUserName" style="font-size:17px; margin-top:4px;">Nama Pengguna</h3>
+          <p id="shellUserMeta" style="font-size:13px; color:var(--muted);">Keterangan</p>
+        </div>
+        <div style="text-align:right; font-size:12px; color:var(--muted);">
+          <div id="shellAcademicYear">Tahun Ajaran: -</div>
+          <div id="shellServerDate">Tanggal Server: -</div>
+        </div>
+      </section>
+
+      <!-- Bar "Lihat sebagai Wali Kelas" khusus Admin Utama -->
+      <section id="adminPreviewBar" class="admin-preview-bar hidden">
+        <strong style="font-size:13px;">Mode Admin Utama:</strong>
+        <label for="selPreviewClass" style="margin:0; font-size:13px;">Lihat sebagai wali kelas:</label>
+        <select id="selPreviewClass" onchange="handleAdminPreviewClassChange()">
+          <option value="">-- Tampilan Admin Utama --</option>
+        </select>
+      </section>
+
+      <!-- Navigasi Menu Sesuai Peran -->
+      <nav id="roleNavStrip" class="nav-strip"></nav>
+
+      <!-- Area Konten Modul -->
+      <section id="roleWorkspace" class="card"></section>
+    </main>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL GANTI PIN / SANDI SUKARELA                                      -->
+  <!-- ===================================================================== -->
+  <div id="modalChangePin" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h3 style="font-size:18px; margin-bottom:12px;">Ganti PIN / Kata Sandi</h3>
+      <div id="modalPinAlert" class="alert alert-err hidden"></div>
+      <form onsubmit="submitChangePin(event, false)">
+        <div class="form-group">
+          <label for="modOldSecret">PIN / Kata Sandi Lama</label>
+          <input type="password" id="modOldSecret" required>
+        </div>
+        <div class="form-group">
+          <label for="modNewSecret">PIN / Kata Sandi Baru</label>
+          <input type="password" id="modNewSecret" required>
+        </div>
+        <div class="form-group">
+          <label for="modConfirmSecret">Ulangi PIN / Kata Sandi Baru</label>
+          <input type="password" id="modConfirmSecret" required>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <button type="button" class="btn btn-secondary" onclick="closeChangePinModal()">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+      </form>
     </div>
   </div>
 
   <script>
     /**
      * KONFIGURASI BACKEND API:
-     * - Biarkan kosong ('') jika file HTML ini dibuka langsung dari Google Apps Script.
-     * - Isi dengan URL Web App Apps Script (berakhiran /exec) jika file ini di-host di GitHub Pages / Custom Domain.
+     * - Biarkan kosong ('') jika dibuka langsung dari Google Apps Script.
+     * - Isi dengan URL Web App Apps Script (/exec) jika di-host di GitHub Pages / Custom Domain.
      */
     const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbx6Ga95-A1doT5p9jhrYzqOMHGk1ILgOCmKOWG2b9a7mPefsUvWe25ETTlz92gXoEwB3g/exec';
 
-    /**
-     * Penghubung API universal: otomatis memilih google.script.run atau fetch() ke GAS_API_URL.
-     */
-    function callApi(payload) {
+    const STORAGE_TOKEN_KEY = '7KAIH_AUTH_TOKEN';
+    let currentLoginTab = 'SISWA';
+    let currentUser = null;
+    let publicConfig = null;
+    let activeNavKey = '';
+    let previewClassId = '';
+
+    // ========================================================================
+    // 1. KOMUNIKASI API DENGAN RETRY BERTAHAP
+    // ========================================================================
+    function callApiRaw(payload) {
       return new Promise(function(resolve, reject) {
         const isInsideGas = (typeof google !== 'undefined' && google.script && google.script.run);
         if (isInsideGas && !GAS_API_URL) {
@@ -137,74 +557,472 @@
             .apiRouter(payload);
           return;
         }
-
         if (!GAS_API_URL) {
-          reject(new Error('GAS_API_URL belum diisi untuk mode hosting eksternal (GitHub Pages).'));
+          reject(new Error('GAS_API_URL belum dikonfigurasi.'));
           return;
         }
-
         fetch(GAS_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload)
         })
-          .then(function(resp) {
-            if (!resp.ok) throw new Error('HTTP ' + resp.status);
-            return resp.json();
+          .then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
           })
           .then(resolve)
           .catch(reject);
       });
     }
 
-    async function checkFoundation() {
-      const box = document.getElementById('statusBox');
-      const btn = document.getElementById('btnRecheck');
-      btn.disabled = true;
-      box.className = 'status-box';
-      box.textContent = 'Menghubungi server Google Apps Script...';
+    async function callApi(action, data, retries) {
+      const maxRetries = (typeof retries === 'number') ? retries : 2;
+      const token = getSavedToken();
+      const payload = { action: action, token: token, data: data || {} };
 
-      try {
-        const [pingRes, cfgRes] = await Promise.all([
-          callApi({ action: 'PING' }),
-          callApi({ action: 'GET_PUBLIC_CONFIG' })
-        ]);
-
-        if (cfgRes && cfgRes.ok && cfgRes.data) {
-          const cfg = cfgRes.data;
-          document.getElementById('appTitle').textContent = cfg.nama_aplikasi || 'Jurnal 7KAIH SMP';
-          document.getElementById('schoolTitle').textContent = cfg.nama_sekolah || '';
-          document.title = (cfg.nama_aplikasi || 'Jurnal 7KAIH') + ' - ' + (cfg.nama_sekolah || '');
-          if (cfg.warna_tema) {
-            document.documentElement.style.setProperty('--primary', cfg.warna_tema);
+      let lastErr = null;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const res = await callApiRaw(payload);
+          if (res && (res.code === 'SESSION_EXPIRED' || res.code === 'UNAUTHORIZED')) {
+            clearSavedToken();
+            showLoginView('Sesi Anda telah berakhir. Silakan masuk kembali.');
+          }
+          return res;
+        } catch (err) {
+          lastErr = err;
+          if (attempt < maxRetries) {
+            await new Promise(function(r) { setTimeout(r, 600 * (attempt + 1)); });
           }
         }
+      }
+      throw lastErr || new Error('Gagal terhubung ke server.');
+    }
 
-        if (!pingRes || !pingRes.ok) {
-          box.className = 'status-box status-err';
-          box.textContent = (pingRes && pingRes.message) ? pingRes.message : 'Gagal terhubung ke server.';
-          return;
-        }
-
-        document.getElementById('serverDate').textContent = pingRes.serverTime || '-';
-        document.getElementById('serverTz').textContent = pingRes.data.timezone || '-';
-
-        if (pingRes.data.status === 'SIAP') {
-          box.className = 'status-box status-ok';
-          box.textContent = 'Database siap (' + pingRes.data.totalSheetsRequired + ' tabel terverifikasi). Koneksi API berjalan normal.';
-        } else {
-          box.className = 'status-box status-warn';
-          box.textContent = 'Database belum lengkap. Sheet belum ada: ' + pingRes.data.missingSheets.join(', ');
-        }
-      } catch (err) {
-        box.className = 'status-box status-err';
-        box.textContent = 'Kesalahan jaringan/server: ' + (err && err.message ? err.message : err);
-      } finally {
-        btn.disabled = false;
+    // ========================================================================
+    // 2. PENYIMPANAN TOKEN AMAN (TRY/CATCH)
+    // ========================================================================
+    function getSavedToken() {
+      try {
+        return sessionStorage.getItem(STORAGE_TOKEN_KEY) || '';
+      } catch (e) {
+        return window.__memToken || '';
       }
     }
 
-    window.addEventListener('DOMContentLoaded', checkFoundation);
+    function saveToken(token) {
+      window.__memToken = token;
+      try {
+        sessionStorage.setItem(STORAGE_TOKEN_KEY, token);
+      } catch (e) {
+        // Fallback ke memori jika storage diblokir browser
+      }
+    }
+
+    function clearSavedToken() {
+      window.__memToken = '';
+      try {
+        sessionStorage.removeItem(STORAGE_TOKEN_KEY);
+      } catch (e) {}
+    }
+
+    // ========================================================================
+    // 3. UTILITAS TAMPILAN
+    // ========================================================================
+    function setLoading(show, text) {
+      const el = document.getElementById('loadingOverlay');
+      document.getElementById('loadingText').textContent = text || 'Memuat...';
+      if (show) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    }
+
+    function showAlert(id, msg, type) {
+      const el = document.getElementById(id);
+      if (!msg) {
+        el.classList.add('hidden');
+        return;
+      }
+      el.className = 'alert ' + (type === 'ok' ? 'alert-ok' : (type === 'warn' ? 'alert-warn' : 'alert-err'));
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function toggleSecretVisibility(inputId, btn) {
+      const inp = document.getElementById(inputId);
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        btn.textContent = 'Sembunyi';
+      } else {
+        inp.type = 'password';
+        btn.textContent = 'Lihat';
+      }
+    }
+
+    function applyBranding(cfg) {
+      if (!cfg) return;
+      publicConfig = cfg;
+      if (cfg.warna_tema) {
+        document.documentElement.style.setProperty('--primary', cfg.warna_tema);
+      }
+      const appName = cfg.nama_aplikasi || 'Jurnal 7KAIH SMP';
+      const schoolName = cfg.nama_sekolah || '';
+      document.title = appName + (schoolName ? ' - ' + schoolName : '');
+      document.getElementById('cfgAppName').textContent = appName;
+      document.getElementById('cfgSchoolName').textContent = schoolName;
+      document.getElementById('topAppName').textContent = appName;
+      document.getElementById('topSchoolName').textContent = schoolName;
+
+      const welcomeEl = document.getElementById('cfgWelcome');
+      if (cfg.teks_sambutan) {
+        welcomeEl.textContent = cfg.teks_sambutan;
+        welcomeEl.classList.remove('hidden');
+      }
+      if (cfg.logo_url) {
+        const logoBox = document.getElementById('logoContainer');
+        logoBox.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = cfg.logo_url;
+        img.alt = 'Logo Sekolah';
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.borderRadius = '16px';
+        img.style.objectFit = 'contain';
+        logoBox.appendChild(img);
+      }
+    }
+
+    // ========================================================================
+    // 4. ALUR OTENTIKASI (LOGIN, GANTI PIN, LOGOUT)
+    // ========================================================================
+    function switchLoginTab(tab) {
+      currentLoginTab = tab;
+      showAlert('loginAlert', '');
+      document.getElementById('inpIdentifier').value = '';
+      document.getElementById('inpSecret').value = '';
+
+      const tabSiswa = document.getElementById('tabLoginSiswa');
+      const tabStaf = document.getElementById('tabLoginStaf');
+      const lblId = document.getElementById('lblIdentifier');
+      const inpId = document.getElementById('inpIdentifier');
+      const lblSec = document.getElementById('lblSecret');
+      const inpSec = document.getElementById('inpSecret');
+      const hint = document.getElementById('secretHint');
+
+      if (tab === 'SISWA') {
+        tabSiswa.classList.add('active');
+        tabStaf.classList.remove('active');
+        lblId.textContent = 'NISN Siswa';
+        inpId.type = 'tel';
+        inpId.setAttribute('inputmode', 'numeric');
+        inpId.placeholder = 'Masukkan NISN';
+        lblSec.textContent = 'PIN Siswa';
+        inpSec.setAttribute('inputmode', 'numeric');
+        inpSec.placeholder = 'Masukkan PIN 6 digit';
+        hint.textContent = 'Gunakan PIN awal dari wali kelas jika baru pertama kali masuk.';
+      } else {
+        tabStaf.classList.add('active');
+        tabSiswa.classList.remove('active');
+        lblId.textContent = 'Nama Pengguna (Username)';
+        inpId.type = 'text';
+        inpId.setAttribute('inputmode', 'text');
+        inpId.placeholder = 'Contoh: admin1 atau nip/username';
+        lblSec.textContent = 'Kata Sandi';
+        inpSec.setAttribute('inputmode', 'text');
+        inpSec.placeholder = 'Masukkan kata sandi';
+        hint.textContent = 'Khusus Admin Utama, Wali Kelas, Kepala Sekolah, dan Guru BK.';
+      }
+    }
+
+    async function submitLogin(e) {
+      e.preventDefault();
+      showAlert('loginAlert', '');
+      const identifier = document.getElementById('inpIdentifier').value.trim();
+      const secret = document.getElementById('inpSecret').value.trim();
+
+      setLoading(true, 'Memeriksa akun...');
+      try {
+        const res = await callApi('LOGIN', {
+          loginType: currentLoginTab,
+          identifier: identifier,
+          secret: secret
+        }, 0);
+
+        if (!res || !res.ok) {
+          showAlert('loginAlert', (res && res.message) ? res.message : 'Gagal masuk.');
+          return;
+        }
+
+        saveToken(res.data.token);
+        currentUser = res.data.user;
+        routeAfterAuth(res.serverDate);
+      } catch (err) {
+        showAlert('loginAlert', 'Gangguan jaringan: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function routeAfterAuth(serverDate) {
+      document.getElementById('viewLogin').classList.add('hidden');
+      document.getElementById('viewForcePin').classList.add('hidden');
+      document.getElementById('viewAppShell').classList.add('hidden');
+
+      if (!currentUser) {
+        showLoginView();
+        return;
+      }
+
+      if (currentUser.wajibGantiPin) {
+        document.getElementById('forcePinUserLabel').textContent =
+          currentUser.nama + ' (' + currentUser.identifier + ')';
+        const isSiswa = currentUser.peran === 'SISWA';
+        document.getElementById('lblForceNewSecret').textContent =
+          isSiswa ? 'PIN Baru (6 Digit Angka)' : 'Kata Sandi Baru (Minimal 6 Karakter)';
+        document.getElementById('forceNewHint').textContent =
+          isSiswa ? 'Gunakan 6 angka yang mudah diingat (hindari 123456).' : 'Gunakan kombinasi huruf dan angka minimal 6 karakter.';
+        document.getElementById('viewForcePin').classList.remove('hidden');
+        return;
+      }
+
+      renderRoleShell(serverDate);
+    }
+
+    async function submitChangePin(e, isForced) {
+      e.preventDefault();
+      const alertId = isForced ? 'forcePinAlert' : 'modalPinAlert';
+      showAlert(alertId, '');
+
+      const oldSecret = document.getElementById(isForced ? 'forceOldSecret' : 'modOldSecret').value.trim();
+      const newSecret = document.getElementById(isForced ? 'forceNewSecret' : 'modNewSecret').value.trim();
+      const confirmSecret = document.getElementById(isForced ? 'forceConfirmSecret' : 'modConfirmSecret').value.trim();
+
+      setLoading(true, 'Menyimpan PIN/kata sandi baru...');
+      try {
+        const res = await callApi('CHANGE_PIN', {
+          oldSecret: oldSecret,
+          newSecret: newSecret,
+          confirmSecret: confirmSecret
+        }, 0);
+
+        if (!res || !res.ok) {
+          showAlert(alertId, (res && res.message) ? res.message : 'Gagal mengganti PIN/sandi.');
+          return;
+        }
+
+        currentUser = res.data.user;
+        if (isForced) {
+          routeAfterAuth(res.serverDate);
+        } else {
+          closeChangePinModal();
+          alert(res.message);
+        }
+      } catch (err) {
+        showAlert(alertId, 'Gagal terhubung ke server: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function logoutUser() {
+      setLoading(true, 'Keluar...');
+      try {
+        await callApi('LOGOUT', {}, 0);
+      } catch (e) {
+        // Tetap bersihkan sesi lokal walau jaringan terputus
+      } finally {
+        clearSavedToken();
+        currentUser = null;
+        previewClassId = '';
+        setLoading(false);
+        showLoginView('Anda telah keluar dari aplikasi.');
+      }
+    }
+
+    function showLoginView(infoMsg) {
+      document.getElementById('viewForcePin').classList.add('hidden');
+      document.getElementById('viewAppShell').classList.add('hidden');
+      document.getElementById('viewLogin').classList.remove('hidden');
+      if (infoMsg) {
+        showAlert('loginAlert', infoMsg, 'warn');
+      } else {
+        showAlert('loginAlert', '');
+      }
+    }
+
+    function openChangePinModal() {
+      document.getElementById('modOldSecret').value = '';
+      document.getElementById('modNewSecret').value = '';
+      document.getElementById('modConfirmSecret').value = '';
+      showAlert('modalPinAlert', '');
+      document.getElementById('modalChangePin').classList.remove('hidden');
+    }
+
+    function closeChangePinModal() {
+      document.getElementById('modalChangePin').classList.add('hidden');
+    }
+
+    // ========================================================================
+    // 5. KERANGKA TAMPILAN PER PERAN
+    // ========================================================================
+    const ROLE_MENUS = {
+      SISWA: [
+        { key: 'isi_hari_ini', label: 'Isi Hari Ini', desc: 'Catat pelaksanaan 7 kebiasaan hari ini beserta jam bangun dan jam tidur.' },
+        { key: 'kalender', label: 'Kalender Bulan', desc: 'Lembar pemantauan bulanan tanggal 1–31 beserta paraf validasi guru.' },
+        { key: 'ringkasan', label: 'Ringkasan & Stiker', desc: 'Capaian Sudah/Belum Terbiasa, rata-rata tidur, dan stiker apresiasi.' },
+        { key: 'refleksi', label: 'Refleksi Bulanan', desc: 'Kesimpulan dan tindak lanjut bulanan bersama orang tua/wali.' },
+        { key: 'panduan', label: 'Panduan 7KAIH', desc: 'Definisi resmi 7 Kebiasaan Anak Indonesia Hebat jenjang SMP.' }
+      ],
+      WALAS: [
+        { key: 'pantau_harian', label: 'Pemantauan Hari Ini', desc: 'Daftar siswa yang belum mengisi dan siswa yang membutuhkan perhatian.' },
+        { key: 'validasi_paraf', label: 'Validasi Paraf', desc: 'Pemberian paraf digital satuan maupun massal per rentang tanggal.' },
+        { key: 'rekap_kelas', label: 'Rekap & Catatan', desc: 'Rekap bulanan kelas (Lampiran 3) dan kolom catatan wali kelas.' },
+        { key: 'kelola_siswa', label: 'Data Siswa', desc: 'Tambah siswa, impor massal dari Excel/CSV, edit, dan reset PIN.' },
+        { key: 'ekspor_walas', label: 'Unduh Excel (.xlsx)', desc: 'Unduh Rekap Bulanan Lampiran 3 dan data harian kelas.' }
+      ],
+      ADMIN: [
+        { key: 'dashboard_sekolah', label: 'Dashboard Sekolah', desc: 'Statistik pengisian seluruh kelas dan capaian 7 kebiasaan.' },
+        { key: 'pengaturan_sistem', label: 'Pengaturan (8 Modul)', desc: 'Tahun ajaran, form 7 kebiasaan, kriteria, aturan, identitas, dan ekspor.' },
+        { key: 'kelas_naik', label: 'Kelas & Naik Kelas', desc: 'Kelola rombel, jadwal buka-tutup kelas, dan wizard Naik Kelas.' },
+        { key: 'akun_keamanan', label: 'Akun & Keamanan', desc: 'Kelola akun Admin, Wali Kelas, Pembaca, log aktivitas, dan arsip.' },
+        { key: 'pengumuman', label: 'Pengumuman', desc: 'Kelola pengumuman singkat di beranda siswa.' }
+      ],
+      PEMBACA: [
+        { key: 'dashboard_pembaca', label: 'Dashboard Sekolah', desc: 'Ringkasan pelaksanaan 7KAIH seluruh tingkat kelas (mode baca).' },
+        { key: 'rekap_pembaca', label: 'Rekap Per Kelas', desc: 'Tinjau rekap bulanan tiap kelas tanpa mengubah data.' }
+      ]
+    };
+
+    function renderRoleShell(serverDate) {
+      document.getElementById('viewAppShell').classList.remove('hidden');
+
+      const roleLabels = {
+        SISWA: 'Siswa',
+        WALAS: 'Wali Kelas',
+        ADMIN: 'Admin Utama',
+        PEMBACA: 'Pembaca (Kepsek / BK)'
+      };
+
+      document.getElementById('shellRoleBadge').textContent = roleLabels[currentUser.peran] || currentUser.peran;
+      document.getElementById('shellUserName').textContent = currentUser.nama;
+      document.getElementById('shellAcademicYear').textContent =
+        'TA ' + (currentUser.nama_tahun || '-') + ' (' + (currentUser.semester || '-') + ')';
+      document.getElementById('shellServerDate').textContent = 'Tanggal Server: ' + (serverDate || '-');
+
+      if (currentUser.peran === 'SISWA') {
+        document.getElementById('shellUserMeta').textContent =
+          'NISN: ' + currentUser.identifier + ' • Kelas ' + currentUser.nama_kelas + ' • Wali Kelas: ' + currentUser.nama_walas;
+      } else if (currentUser.peran === 'WALAS') {
+        const kelasNames = (currentUser.managedClasses || []).map(function(c) { return c.nama_kelas; }).join(', ');
+        document.getElementById('shellUserMeta').textContent =
+          'Username: ' + currentUser.identifier + ' • Kelas Binaan: ' + (kelasNames || 'Belum ditugaskan');
+      } else {
+        document.getElementById('shellUserMeta').textContent =
+          'Username: ' + currentUser.identifier + ' • NIP: ' + (currentUser.nip || '-');
+      }
+
+      // Tampilkan selector "Lihat sebagai wali kelas" khusus Admin Utama
+      const previewBar = document.getElementById('adminPreviewBar');
+      if (currentUser.peran === 'ADMIN') {
+        previewBar.classList.remove('hidden');
+        const sel = document.getElementById('selPreviewClass');
+        sel.innerHTML = '<option value="">-- Tampilan Admin Utama --</option>';
+        (currentUser.managedClasses || []).forEach(function(k) {
+          const opt = document.createElement('option');
+          opt.value = k.id_kelas;
+          opt.textContent = 'Kelas ' + k.nama_kelas;
+          sel.appendChild(opt);
+        });
+      } else {
+        previewBar.classList.add('hidden');
+      }
+
+      const effectiveRole = (currentUser.peran === 'ADMIN' && previewClassId) ? 'WALAS' : currentUser.peran;
+      const menus = ROLE_MENUS[effectiveRole] || [];
+      activeNavKey = menus.length > 0 ? menus[0].key : '';
+      renderRoleNavigation(effectiveRole);
+    }
+
+    function handleAdminPreviewClassChange() {
+      previewClassId = document.getElementById('selPreviewClass').value;
+      const effectiveRole = previewClassId ? 'WALAS' : 'ADMIN';
+      const menus = ROLE_MENUS[effectiveRole] || [];
+      activeNavKey = menus.length > 0 ? menus[0].key : '';
+      renderRoleNavigation(effectiveRole);
+    }
+
+    function renderRoleNavigation(effectiveRole) {
+      const menus = ROLE_MENUS[effectiveRole] || [];
+      const navEl = document.getElementById('roleNavStrip');
+      navEl.innerHTML = '';
+
+      menus.forEach(function(m) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'nav-btn' + (m.key === activeNavKey ? ' active' : '');
+        btn.textContent = m.label;
+        btn.onclick = function() {
+          activeNavKey = m.key;
+          renderRoleNavigation(effectiveRole);
+        };
+        navEl.appendChild(btn);
+      });
+
+      const activeMenu = menus.find(function(m) { return m.key === activeNavKey; }) || menus[0];
+      const workspace = document.getElementById('roleWorkspace');
+      workspace.innerHTML = '';
+
+      if (activeMenu) {
+        const title = document.createElement('h3');
+        title.style.fontSize = '18px';
+        title.style.marginBottom = '6px';
+        title.textContent = activeMenu.label;
+
+        const desc = document.createElement('p');
+        desc.style.fontSize = '14px';
+        desc.style.color = 'var(--muted)';
+        desc.textContent = activeMenu.desc;
+
+        const badgeBox = document.createElement('div');
+        badgeBox.className = 'alert alert-ok';
+        badgeBox.style.marginTop = '16px';
+        badgeBox.style.marginBottom = '0';
+        badgeBox.textContent = 'Otentikasi dan sesi aktif terverifikasi di server. Modul fungsional layar ini siap dibangun pada tahap berikutnya.';
+
+        workspace.appendChild(title);
+        workspace.appendChild(desc);
+        workspace.appendChild(badgeBox);
+      }
+    }
+
+    // ========================================================================
+    // 6. INISIALISASI HALAMAN SAAT PERTAMA DIBUKA
+    // ========================================================================
+    async function initApp() {
+      setLoading(true, 'Menyiapkan aplikasi...');
+      try {
+        const cfgRes = await callApi('GET_PUBLIC_CONFIG', {}, 1);
+        if (cfgRes && cfgRes.ok) {
+          applyBranding(cfgRes.data);
+        }
+
+        const existingToken = getSavedToken();
+        if (existingToken) {
+          const sesRes = await callApi('GET_SESSION_INFO', {}, 1);
+          if (sesRes && sesRes.ok && sesRes.data && sesRes.data.user) {
+            currentUser = sesRes.data.user;
+            routeAfterAuth(sesRes.serverDate);
+            return;
+          }
+        }
+        showLoginView();
+      } catch (err) {
+        showLoginView('Gagal memuat konfigurasi awal: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
 </html>
