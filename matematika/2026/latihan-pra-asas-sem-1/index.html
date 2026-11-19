@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Latihan Soal Pra-ASAS Matematika Kelas VIII (2026/2027)</title>
+  <!-- Tailwind CSS untuk tata letak responsif ponsel & desktop -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- KaTeX dari cdnjs untuk merender rumus matematika dengan cepat -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+  <!-- SheetJS untuk unduh file Excel (.xlsx) multi-sheet langsung dari halaman Admin -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Font ramah baca -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #f4f7fb;
+      color: #0f172a;
+    }
+    .katex { font-size: 1.05em; }
+    .touch-btn {
+      min-height: 48px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- ==================== NOTIFIKASI TOAST ==================== -->
+  <div id="toast-box" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full px-4 sm:px-0 pointer-events-none"></div>
+
+  <!-- ==================== DIALOG KONFIRMASI ==================== -->
+  <div id="confirm-dialog" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6">
+      <h3 id="dialog-title" class="text-lg font-extrabold text-slate-900">Konfirmasi</h3>
+      <p id="dialog-desc" class="text-sm text-slate-600 mt-2 leading-relaxed"></p>
+      <div class="mt-6 flex justify-end gap-3">
+        <button id="dialog-cancel" type="button" class="touch-btn px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm">Batal</button>
+        <button id="dialog-ok" type="button" class="touch-btn px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm">Ya, Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL KOREKSI MANUAL ISIAN & URAIAN (ADMIN) ==================== -->
+  <div id="grading-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-3xl w-full max-h-[90vh] flex flex-col">
+      <div class="p-5 border-b border-slate-200 flex items-center justify-between gap-3">
+        <div>
+          <h3 id="grading-student-title" class="text-lg font-extrabold text-slate-900">Koreksi Jawaban Isian & Uraian</h3>
+          <p id="grading-student-meta" class="text-xs text-slate-500 mt-0.5">Identitas Peserta</p>
+        </div>
+        <button type="button" onclick="closeGradingModal()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm">✕ Tutup</button>
+      </div>
+
+      <div id="grading-items-list" class="p-5 overflow-y-auto space-y-4 flex-1"></div>
+
+      <div class="p-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex items-center justify-between gap-3">
+        <span class="text-xs text-slate-500">Nilai total siswa otomatis dihitung ulang setelah disimpan.</span>
+        <div class="flex gap-2.5">
+          <button type="button" onclick="closeGradingModal()" class="touch-btn px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-700 font-bold text-sm">Batal</button>
+          <button type="button" id="btn-save-grading" onclick="saveManualGrading()" class="touch-btn px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm">Simpan Koreksi</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== HEADER NAVIGASI ==================== -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="goHome()">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-extrabold text-xl shrink-0">∑</div>
+        <div>
+          <h1 class="font-extrabold text-slate-900 text-sm sm:text-base leading-tight">Latihan Pra-ASAS Matematika VIII</h1>
+          <p class="text-xs text-slate-500">Tahun Ajaran 2026/2027</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span id="server-mode-badge" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+          Mode Pratinjau Lokal
+        </span>
+        <button type="button" onclick="openAdminGate()" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold">
+          Menu Guru / Admin
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== KONTEN UTAMA ==================== -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-6">
+
+    <!-- =================================================================== -->
+    <!-- 1. HALAMAN AWAL SISWA (IDENTITAS, TOKEN SESI & PETUNJUK UMUM)       -->
+    <!-- =================================================================== -->
+    <section id="view-login" class="max-w-4xl mx-auto">
+      <div id="exam-closed-banner" class="hidden mb-6 p-5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900">
+        <h2 class="font-extrabold text-base">Latihan Soal Sedang Ditutup</h2>
+        <p class="text-sm mt-1">Bapak/Ibu Guru belum membuka sesi latihan soal ini atau waktu sesi telah berakhir. Silakan hubungi guru mata pelajaran Matematika.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Kartu Petunjuk Umum -->
+        <div class="lg:col-span-5 bg-blue-900 text-white rounded-2xl p-6 shadow-sm">
+          <span class="inline-block px-3 py-1 rounded-full bg-blue-800 text-blue-100 text-xs font-bold mb-3">PETUNJUK UMUM</span>
+          <h2 class="text-xl font-extrabold leading-snug">Latihan Soal Pra-ASAS Matematika Kelas VIII</h2>
+          <p id="info-subtitle-count" class="text-blue-200 text-xs mt-1 mb-5">Tahun Ajaran 2026/2027 • 28 Butir Soal</p>
+
+          <ol class="space-y-3 text-sm text-blue-50 list-decimal list-inside">
+            <li>Isilah terlebih dahulu identitas kalian!</li>
+            <li>Berdoalah sebelum mengerjakan soal!</li>
+            <li>Bacalah soal-soal dengan teliti sebelum menjawab!</li>
+            <li>Dahulukan menjawab soal-soal yang kalian anggap mudah!</li>
+            <li>Gunakan tombol <strong>Ragu-Ragu</strong> bila ingin memeriksa ulang soal tertentu sebelum dikumpulkan!</li>
+          </ol>
+
+          <div class="mt-6 pt-4 border-t border-blue-800 grid grid-cols-2 gap-3 text-xs">
+            <div class="bg-blue-950/60 p-3 rounded-xl">
+              <div class="text-blue-300">Cakupan Materi</div>
+              <div class="font-bold text-white mt-0.5">Pangkat & Akar • Pythagoras • PLSV</div>
+            </div>
+            <div class="bg-blue-950/60 p-3 rounded-xl">
+              <div class="text-blue-300">Batas Waktu</div>
+              <div id="info-duration-text" class="font-bold text-white mt-0.5">90 Menit</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulir Identitas Siswa -->
+        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-sm">
+          <h2 class="text-xl font-extrabold text-slate-900">Isi Identitas Peserta</h2>
+          <p class="text-sm text-slate-500 mt-1">Semua kolom wajib diisi sebelum tombol <strong>Mulai Mengerjakan</strong> aktif.</p>
+
+          <form id="login-form" onsubmit="handleStartExam(event)" class="mt-5 space-y-4">
+            <div>
+              <label for="f-nama" class="block text-sm font-bold text-slate-700 mb-1.5">Nama Lengkap <span class="text-rose-600">*</span></label>
+              <input
+                type="text"
+                id="f-nama"
+                autocomplete="off"
+                placeholder="Contoh: Ahmad Budi Santoso"
+                oninput="onNamaInput(this)"
+                onblur="onNamaBlur(this)"
+                class="touch-btn w-full px-4 py-3 rounded-xl border-2 border-slate-300 text-slate-900 font-semibold text-base focus:outline-none focus:border-blue-600"
+              />
+              <p class="text-xs text-slate-500 mt-1">Huruf awal setiap kata otomatis menjadi huruf kapital dan spasi ganda dirapikan.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="f-absen" class="block text-sm font-bold text-slate-700 mb-1.5">Nomor Absen <span class="text-rose-600">*</span></label>
+                <select
+                  id="f-absen"
+                  onchange="validateStartButton()"
+                  class="touch-btn w-full px-4 py-3 rounded-xl border-2 border-slate-300 text-slate-900 font-semibold text-base bg-white focus:outline-none focus:border-blue-600"
+                >
+                  <option value="">-- Pilih Absen (1–36) --</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="f-kelas" class="block text-sm font-bold text-slate-700 mb-1.5">Kelas <span class="text-rose-600">*</span></label>
+                <select
+                  id="f-kelas"
+                  onchange="validateStartButton()"
+                  class="touch-btn w-full px-4 py-3 rounded-xl border-2 border-slate-300 text-slate-900 font-semibold text-base bg-white focus:outline-none focus:border-blue-600"
+                >
+                  <option value="">-- Pilih Kelas --</option>
+                  <option value="VIII A">VIII A</option>
+                  <option value="VIII B">VIII B</option>
+                  <option value="VIII C">VIII C</option>
+                  <option value="VIII D">VIII D</option>
+                  <option value="VIII E">VIII E</option>
+                  <option value="VIII F">VIII F</option>
+                  <option value="VIII G">VIII G</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Kolom Token Sesi (Muncul otomatis jika diaktifkan oleh Guru) -->
+            <div id="token-field-wrap" class="hidden">
+              <label for="f-token" class="block text-sm font-bold text-slate-700 mb-1.5">Token Sesi Latihan (Dari Guru) <span class="text-rose-600">*</span></label>
+              <input
+                type="text"
+                id="f-token"
+                autocomplete="off"
+                placeholder="Masukkan token sesi..."
+                oninput="this.value = this.value.toUpperCase(); validateStartButton();"
+                class="touch-btn w-full px-4 py-3 rounded-xl border-2 border-amber-300 bg-amber-50/40 text-slate-900 font-extrabold tracking-widest uppercase text-base focus:outline-none focus:border-blue-600"
+              />
+            </div>
+
+            <div id="resume-notice" class="hidden p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium">
+              Ditemukan jawaban tersimpan di perangkat ini. Menekan tombol Mulai akan melanjutkan pekerjaan terakhir Anda.
+            </div>
+
+            <div class="pt-2">
+              <button
+                type="submit"
+                id="btn-start-exam"
+                disabled
+                class="touch-btn w-full py-3.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-extrabold text-base shadow-sm"
+              >
+                Mulai Mengerjakan
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- 2. HALAMAN PENGERJAAN SOAL SISWA                                    -->
+    <!-- =================================================================== -->
+    <section id="view-exam" class="hidden space-y-5">
+      <!-- Info Siswa & Sisa Waktu -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div id="hud-nama" class="font-extrabold text-slate-900 text-base">Nama Siswa</div>
+          <div id="hud-meta" class="text-xs text-slate-500">Kelas VIII A • No. Absen 1</div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <div class="px-3.5 py-2 rounded-xl bg-slate-100 text-slate-800 text-xs sm:text-sm font-bold">
+            Terjawab: <span id="hud-answered" class="text-blue-600">0</span>/<span id="hud-total-q">28</span>
+          </div>
+          <div id="hud-timer-box" class="px-3.5 py-2 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 text-xs sm:text-sm font-extrabold">
+            Sisa Waktu: <span id="hud-timer">90:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Banner Gagal Kirim -->
+      <div id="submit-error-banner" class="hidden p-4 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div class="font-extrabold text-sm">Pengiriman Jawaban Gagal (Koneksi Terputus / Server Sibuk)</div>
+          <p id="submit-error-detail" class="text-xs mt-0.5">Tenang, seluruh jawaban Anda tetap tersimpan aman di perangkat ini. Silakan tekan tombol Coba Lagi.</p>
+        </div>
+        <button type="button" onclick="submitAnswersToServer()" class="touch-btn px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm shrink-0">
+          Coba Lagi Kirim
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <!-- Area Soal Utama -->
+        <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-5 sm:p-7 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-5 border-b border-slate-100">
+            <div class="flex flex-wrap items-center gap-2">
+              <span id="q-badge-no" class="px-3.5 py-1.5 rounded-xl bg-blue-600 text-white font-extrabold text-sm">Soal 1</span>
+              <span id="q-badge-type" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Pilihan Ganda</span>
+              <span id="q-badge-topic" class="px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 font-semibold text-xs">Materi</span>
+            </div>
+            <span class="text-xs text-slate-400">Otomatis tersimpan</span>
+          </div>
+
+          <!-- Teks & Gambar Soal -->
+          <div id="q-prompt" class="text-slate-900 text-base leading-relaxed space-y-4"></div>
+
+          <!-- Pilihan Jawaban / Bilah Simbol / Kolom Input -->
+          <div id="q-options" class="mt-6"></div>
+
+          <!-- Tombol Navigasi Bawah + Tanda Ragu-Ragu -->
+          <div class="mt-8 pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+            <button type="button" id="btn-prev" onclick="moveQuestion(-1)" class="touch-btn px-4 sm:px-5 py-3 rounded-xl border-2 border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-50 disabled:opacity-40">
+              ← Sebelumnya
+            </button>
+
+            <button type="button" id="btn-doubt" onclick="toggleDoubtCurrent()" class="touch-btn px-4 sm:px-5 py-3 rounded-xl border-2 border-amber-400 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-sm">
+              Tandai Ragu-Ragu
+            </button>
+
+            <button type="button" id="btn-next" onclick="moveQuestion(1)" class="touch-btn px-5 sm:px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm">
+              Selanjutnya →
+            </button>
+
+            <button type="button" id="btn-finish" onclick="askConfirmSubmit()" class="hidden touch-btn px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm">
+              Kumpulkan Jawaban
+            </button>
+          </div>
+        </div>
+
+        <!-- Navigasi Nomor Soal -->
+        <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+          <h3 class="font-extrabold text-slate-900 text-sm mb-3">Daftar Nomor Soal</h3>
+          <div id="q-nav-grid" class="grid grid-cols-7 sm:grid-cols-7 lg:grid-cols-5 gap-2"></div>
+
+          <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-3 text-xs text-slate-600">
+            <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-emerald-600 inline-block"></span> Dijawab</div>
+            <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-amber-400 inline-block"></span> Ragu-ragu</div>
+            <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-slate-100 border border-slate-300 inline-block"></span> Belum</div>
+          </div>
+
+          <button type="button" onclick="askConfirmSubmit()" class="touch-btn mt-5 w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm">
+            Selesai & Kumpulkan
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- 3. HALAMAN HASIL SISWA & ANALISIS PENGUASAAN PER MATERI             -->
+    <!-- =================================================================== -->
+    <section id="view-result" class="hidden max-w-3xl mx-auto space-y-6">
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm text-center">
+        <div class="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto font-extrabold text-3xl">✓</div>
+        <h2 class="text-2xl font-extrabold text-slate-900 mt-4">Jawaban Berhasil Dikumpulkan!</h2>
+        <p id="res-identity" class="text-sm text-slate-600 mt-1">Nama Siswa • Kelas VIII A • Absen 1</p>
+
+        <div class="mt-6 inline-block px-10 py-5 rounded-2xl bg-blue-600 text-white">
+          <div class="text-xs font-bold uppercase tracking-wider text-blue-100">Nilai Latihan Anda</div>
+          <div id="res-score" class="text-5xl font-extrabold mt-1">0</div>
+          <div class="text-xs text-blue-100 mt-1">Skor Maksimal: 100</div>
+        </div>
+
+        <p id="res-encouragement" class="mt-5 text-base font-semibold text-slate-800 max-w-lg mx-auto leading-relaxed"></p>
+
+        <!-- Penguasaan per Topik Materi -->
+        <div id="res-topic-box" class="mt-6 text-left bg-slate-50 rounded-2xl border border-slate-200 p-5">
+          <h3 class="text-sm font-extrabold text-slate-900 mb-3">Penguasaan per Topik Materi</h3>
+          <div id="res-topic-list" class="space-y-3"></div>
+        </div>
+
+        <div class="mt-6">
+          <button type="button" onclick="restartForNextStudent()" class="touch-btn px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm">
+            Kembali ke Halaman Awal
+          </button>
+        </div>
+      </div>
+
+      <!-- Pembahasan (Tampil HANYA jika Admin mengaktifkannya) -->
+      <div id="res-explanation-box" class="hidden bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <h3 class="text-lg font-extrabold text-slate-900 mb-4">Kunci Jawaban & Pembahasan</h3>
+        <div id="res-explanation-list" class="space-y-4"></div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- 4. HALAMAN LOGIN ADMIN                                              -->
+    <!-- =================================================================== -->
+    <section id="view-admin-login" class="hidden max-w-md mx-auto">
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-sm">
+        <h2 class="text-xl font-extrabold text-slate-900">Masuk Halaman Guru / Admin</h2>
+        <p class="text-sm text-slate-500 mt-1">Masukkan kata sandi admin yang telah Anda atur.</p>
+
+        <form onsubmit="handleAdminLogin(event)" class="mt-5 space-y-4">
+          <div>
+            <label for="admin-pass" class="block text-sm font-bold text-slate-700 mb-1.5">Kata Sandi Admin</label>
+            <input type="password" id="admin-pass" required placeholder="Masukkan kata sandi..." class="touch-btn w-full px-4 py-3 rounded-xl border-2 border-slate-300 focus:outline-none focus:border-blue-600" />
+            <!-- p class="text-xs text-slate-400 mt-1.5">Pada Mode Pratinjau Lokal (sebelum Apps Script dipasang), gunakan sandi uji: <strong>admin2026</strong></p -->
+          </div>
+          <div class="flex gap-3">
+            <button type="button" onclick="goHome()" class="touch-btn flex-1 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold text-sm">Batal</button>
+            <button type="submit" id="btn-admin-submit" class="touch-btn flex-1 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm">Masuk</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- 5. DASHBOARD ADMIN & ANALISIS BUTIR ANATES                          -->
+    <!-- =================================================================== -->
+    <section id="view-admin" class="hidden space-y-6">
+      <!-- Header & Unduh Spreadsheet -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-extrabold text-slate-900">Dashboard Hasil & Analisis Soal (ANATES)</h2>
+          <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Rekap nilai siswa kelas VIII A–G, koreksi manual uraian, dan analisis psikometri.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <select id="admin-class-filter" onchange="renderAdminTables()" class="touch-btn px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold bg-white">
+            <option value="ALL">Semua Kelas (VIII A–G)</option>
+            <option value="VIII A">Kelas VIII A</option>
+            <option value="VIII B">Kelas VIII B</option>
+            <option value="VIII C">Kelas VIII C</option>
+            <option value="VIII D">Kelas VIII D</option>
+            <option value="VIII E">Kelas VIII E</option>
+            <option value="VIII F">Kelas VIII F</option>
+            <option value="VIII G">Kelas VIII G</option>
+          </select>
+
+          <button type="button" id="btn-load-sample" onclick="loadTenSampleStudents()" class="touch-btn px-3.5 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs sm:text-sm">
+            Muat 10 Data Uji
+          </button>
+
+          <button type="button" id="btn-clear-sample" onclick="clearSampleStudents()" class="touch-btn px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs sm:text-sm">
+            Hapus Data Uji
+          </button>
+
+          <button type="button" onclick="downloadExcelWorkbook()" class="touch-btn px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm">
+            Unduh Spreadsheet (.xlsx)
+          </button>
+        </div>
+      </div>
+
+      <!-- Kartu Ringkasan Statistik -->
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200">
+          <div class="text-xs text-slate-500 font-semibold">Jumlah Peserta</div>
+          <div id="stat-count" class="text-2xl font-extrabold text-slate-900 mt-1">0</div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200">
+          <div class="text-xs text-slate-500 font-semibold">Nilai Rata-rata</div>
+          <div id="stat-mean" class="text-2xl font-extrabold text-blue-600 mt-1">0.00</div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200">
+          <div class="text-xs text-slate-500 font-semibold">Nilai Tertinggi</div>
+          <div id="stat-max" class="text-2xl font-extrabold text-emerald-600 mt-1">0</div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200">
+          <div class="text-xs text-slate-500 font-semibold">Nilai Terendah</div>
+          <div id="stat-min" class="text-2xl font-extrabold text-rose-600 mt-1">0</div>
+        </div>
+        <div class="col-span-2 lg:col-span-1 bg-white p-4 rounded-2xl border border-slate-200">
+          <div class="text-xs text-slate-500 font-semibold">Reliabilitas (KR-20)</div>
+          <div id="stat-kr20" class="text-2xl font-extrabold text-indigo-600 mt-1">0.00</div>
+        </div>
+      </div>
+
+      <!-- Pengaturan Ujian Lengkap -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <h3 class="font-extrabold text-slate-900 text-base">Pengaturan Sesi & Penilaian</h3>
+          <button type="button" id="btn-save-settings" onclick="saveAdminSettings()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-bold text-xs sm:text-sm">
+            Simpan Pengaturan
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-sm">
+          <label class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <span class="font-semibold text-slate-800">Status Latihan Dibuka</span>
+            <input type="checkbox" id="cfg-isOpen" checked class="w-5 h-5 accent-blue-600" />
+          </label>
+
+          <div class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <span class="font-semibold text-slate-800">Batas Waktu (Menit)</span>
+            <input type="number" id="cfg-duration" value="90" min="5" max="240" class="w-20 px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold text-center bg-white" />
+          </div>
+
+          <label class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <span class="font-semibold text-slate-800">Wajib Token Sesi</span>
+            <input type="checkbox" id="cfg-requireToken" class="w-5 h-5 accent-blue-600" />
+          </label>
+
+          <div class="flex items-center justify-between gap-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <span class="font-semibold text-slate-800 shrink-0">Token Sesi</span>
+            <input type="text" id="cfg-sessionToken" placeholder="Contoh: MTK8A" oninput="this.value = this.value.toUpperCase(); document.getElementById('cfg-requireToken').checked = this.value.trim() !== '';" class="w-28 px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold text-center uppercase bg-white text-xs" />
+          </div>
+
+          <label class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <span class="font-semibold text-slate-800">Skor Parsial PGK</span>
+            <input type="checkbox" id="cfg-pgkPartial" checked class="w-5 h-5 accent-blue-600" />
+          </label>
+
+          <label class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <span class="font-semibold text-slate-800">Tampilkan Pembahasan</span>
+            <input type="checkbox" id="cfg-showExplanation" class="w-5 h-5 accent-blue-600" />
+          </label>
+
+          <label class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <span class="font-semibold text-slate-800">1x Pengerjaan per Identitas</span>
+            <input type="checkbox" id="cfg-oneAttempt" checked class="w-5 h-5 accent-blue-600" />
+          </label>
+
+          <label class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <span class="font-semibold text-slate-800">Acak Urutan Soal</span>
+            <input type="checkbox" id="cfg-shuffleQ" class="w-5 h-5 accent-blue-600" />
+          </label>
+
+          <label class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <span class="font-semibold text-slate-800">Acak Opsi PG/PGK (A–D)</span>
+            <input type="checkbox" id="cfg-shuffleOpt" class="w-5 h-5 accent-blue-600" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Tab Navigasi Admin -->
+      <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
+        <button type="button" onclick="switchAdminTab('siswa')" id="tab-btn-siswa" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm">1. Hasil & Koreksi Siswa</button>
+        <button type="button" onclick="switchAdminTab('anates')" id="tab-btn-anates" class="px-4 py-2 rounded-xl bg-white text-slate-700 border border-slate-200 font-bold text-sm">2. Analisis Butir (ANATES)</button>
+        <button type="button" onclick="switchAdminTab('materi')" id="tab-btn-materi" class="px-4 py-2 rounded-xl bg-white text-slate-700 border border-slate-200 font-bold text-sm">3. Penguasaan per Materi</button>
+        <button type="button" onclick="switchAdminTab('kelas')" id="tab-btn-kelas" class="px-4 py-2 rounded-xl bg-white text-slate-700 border border-slate-200 font-bold text-sm">4. Rekap per Kelas</button>
+        <button type="button" onclick="switchAdminTab('soal')" id="tab-btn-soal" class="px-4 py-2 rounded-xl bg-white text-slate-700 border border-slate-200 font-bold text-sm">5. Bank Soal (Google Sheets)</button>
+      </div>
+
+      <!-- TAB 1: DAFTAR HASIL SISWA + KOREKSI URAIAN + HAPUS/IZINKAN ULANG -->
+      <div id="admin-tab-siswa" class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-600">
+                <th class="p-3.5">No</th>
+                <th class="p-3.5">Nama Lengkap</th>
+                <th class="p-3.5">Absen</th>
+                <th class="p-3.5">Kelas</th>
+                <th class="p-3.5">Pindah Layar</th>
+                <th class="p-3.5">Nilai (0–100)</th>
+                <th class="p-3.5">Waktu Kirim</th>
+                <th class="p-3.5 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-hasil-siswa" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 2: ANALISIS BUTIR ALA ANATES -->
+      <div id="admin-tab-anates" class="hidden space-y-4">
+        <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-xs text-blue-950 space-y-1">
+          <div class="font-extrabold">Acuan Kategori Psikometri (ANATES):</div>
+          <div>• <strong>Tingkat Kesukaran ($P$):</strong> $P > 0{,}70$ = Mudah | $0{,}30 \le P \le 0{,}70$ = Sedang | $P < 0{,}30$ = Sukar</div>
+          <div>• <strong>Daya Pembeda ($D$, 27% Atas vs 27% Bawah):</strong> $D \ge 0{,}40$ = Sangat Baik | $0{,}30\text{–}0{,}39$ = Baik | $0{,}20\text{–}0{,}29$ = Cukup | $D < 0{,}20$ = Jelek</div>
+          <div>• <strong>Efektivitas Pengecoh:</strong> Opsi pengecoh dianggap <em>Berfungsi</em> bila dipilih minimal $5\%$ peserta.</div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-600">
+                  <th class="p-3">No</th>
+                  <th class="p-3">Tipe</th>
+                  <th class="p-3">Topik Materi</th>
+                  <th class="p-3">Tk. Kesukaran ($P$)</th>
+                  <th class="p-3">Daya Pembeda ($D$)</th>
+                  <th class="p-3">Korelasi ($r_{pbis}$)</th>
+                  <th class="p-3">Sebaran Opsi & Pengecoh</th>
+                  <th class="p-3">Rekomendasi</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-anates" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: PENGUASAAN PER TOPIK MATERI -->
+      <div id="admin-tab-materi" class="hidden bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        <div class="p-4 border-b border-slate-100 text-xs text-slate-600">
+          Pemetaan ketuntasan siswa berdasarkan 3 topik utama pada kisi-kisi Pra-ASAS Matematika Kelas VIII.
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-600">
+                <th class="p-3.5">Topik / Materi</th>
+                <th class="p-3.5">Nomor Butir</th>
+                <th class="p-3.5">Bobot Maksimal</th>
+                <th class="p-3.5">Rata-rata Penguasaan (%)</th>
+                <th class="p-3.5">Status Ketuntasan</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-rekap-materi" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 4: REKAP PER KELAS -->
+      <div id="admin-tab-kelas" class="hidden bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-600">
+                <th class="p-3.5">Kelas</th>
+                <th class="p-3.5">Jumlah Peserta</th>
+                <th class="p-3.5">Rata-rata Nilai</th>
+                <th class="p-3.5">Nilai Tertinggi</th>
+                <th class="p-3.5">Nilai Terendah</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-rekap-kelas" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 5: MANAJEMEN BANK SOAL DI GOOGLE SHEETS -->
+      <div id="admin-tab-soal" class="hidden space-y-4">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 class="font-extrabold text-slate-900 text-base">Manajemen Bank Soal via Google Sheets</h3>
+            <p class="text-xs text-slate-500 mt-1">Klik <strong>Inisialisasi Sheet 'Bank Soal'</strong> untuk menyalin 28 soal ini ke tab <code>Bank Soal</code> di Google Sheets Anda. Setelah itu, Anda dapat mengubah teks soal, opsi, kunci, maupun bobot langsung di spreadsheet tanpa mengedit kode.</p>
+          </div>
+          <div class="flex flex-wrap gap-2 shrink-0">
+            <button type="button" onclick="initBankSoalSheet()" class="touch-btn px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm">
+              Inisialisasi Sheet 'Bank Soal'
+            </button>
+            <button type="button" onclick="loadAdminData()" class="touch-btn px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm">
+              Muat Ulang dari Sheets
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-600">
+                  <th class="p-3">No</th>
+                  <th class="p-3">Tipe</th>
+                  <th class="p-3">Topik</th>
+                  <th class="p-3">Bobot</th>
+                  <th class="p-3">Ringkasan Pertanyaan</th>
+                  <th class="p-3">Kunci (Admin)</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-bank-soal" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="py-5 text-center text-xs text-slate-400 border-t border-slate-200 bg-white mt-10">
+    Latihan Soal Pra-ASAS Matematika Kelas VIII • Tahun Ajaran 2026/2027
+  </footer>
+
+  <!-- File JavaScript Terpisah (Tanpa Kunci Jawaban di Sisi Browser) -->
+  <script src="app.js"></script>
+</body>
+</html>
