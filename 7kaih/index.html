@@ -314,7 +314,7 @@
     .admin-preview-bar select { min-height: 40px; width: auto; min-width: 180px; font-size: 14px; }
 
     /* ===================================================================== */
-    /* STUDENT & SHARED COMPONENTS                                           */
+    /* SHARED CARDS, TABLES & VISUAL BARS                                    */
     /* ===================================================================== */
     .habit-card {
       border: 1.5px solid var(--border);
@@ -498,7 +498,23 @@
       border-color: var(--primary);
     }
 
-    /* Paraf Toggle Button inside table */
+    .export-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      margin-top: 10px;
+    }
+    .export-card {
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
     .paraf-chip {
       display: inline-flex;
       align-items: center;
@@ -667,7 +683,7 @@
         </select>
       </section>
 
-      <!-- Pemilih Kelas aktif untuk Wali Kelas (jika mengampu >= 1 kelas) -->
+      <!-- Pemilih Kelas aktif untuk Wali Kelas -->
       <section id="walasClassBar" class="card hidden" style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
         <div>
           <strong style="font-size:14px;">Kelas Binaan Aktif:</strong>
@@ -711,7 +727,7 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- MODAL DINAMIS WALI KELAS (TAMBAH/EDIT SISWA, IMPOR, CATATAN)          -->
+  <!-- MODAL DINAMIS (WALI KELAS & PEMBACA)                                  -->
   <!-- ===================================================================== -->
   <div id="modalWalasDynamic" class="modal-backdrop hidden">
     <div id="modalWalasBox" class="modal-card"></div>
@@ -748,6 +764,14 @@
     let walasValCache = null;
     let walasRecapCache = null;
     let walasStudentsCache = [];
+
+    // State khusus Dashboard Sekolah & Pembaca (Tahap 6)
+    let schoolDashTingkat = 'ALL';
+    let schoolDashDate = '';
+    let schoolDashCache = null;
+    let readerClassesCache = [];
+    let readerSelectedClassId = '';
+    let readerClassRecapCache = null;
 
     // ========================================================================
     // 1. KOMUNIKASI API DENGAN RETRY BERTAHAP
@@ -805,7 +829,7 @@
     }
 
     // ========================================================================
-    // 2. PENYIMPANAN TOKEN & DRAF LOKAL AMAN
+    // 2. PENYIMPANAN TOKEN, DRAF LOKAL & UNDUH FILE BASE64
     // ========================================================================
     function getSavedToken() {
       try { return sessionStorage.getItem(STORAGE_TOKEN_KEY) || ''; }
@@ -831,6 +855,44 @@
     }
     function clearLocalDraft(key) {
       try { localStorage.removeItem(key); } catch (e) {}
+    }
+
+    function downloadBase64File(base64Data, fileName, mimeType) {
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], {
+        type: mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName || 'Laporan_7KAIH.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function() {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 500);
+    }
+
+    async function triggerExcelExport(payload, loadingLabel) {
+      setLoading(true, loadingLabel || 'Menyiapkan file Excel (.xlsx)...');
+      try {
+        const res = await callApi('EXPORT_EXCEL', payload, 1);
+        if (!res || !res.ok) {
+          alert((res && res.message) ? res.message : 'Gagal membuat file Excel.');
+          return;
+        }
+        downloadBase64File(res.data.base64, res.data.fileName, res.data.mimeType);
+      } catch (err) {
+        alert('Gagal mengunduh Excel: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
     }
 
     // ========================================================================
@@ -987,6 +1049,7 @@
         if (!selectedReportYear) selectedReportYear = parseInt(parts[0], 10);
         if (!selectedReportMonth) selectedReportMonth = parseInt(parts[1], 10);
         if (!walasMonitorDate) walasMonitorDate = latestServerDate;
+        if (!schoolDashDate) schoolDashDate = latestServerDate;
         if (!walasValEndDate) walasValEndDate = latestServerDate;
         if (!walasValStartDate) {
           const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
@@ -1065,6 +1128,8 @@
         studentMonthlyState = null;
         walasValCache = null;
         walasRecapCache = null;
+        schoolDashCache = null;
+        readerClassRecapCache = null;
         previewClassId = '';
         walasActiveClassId = '';
         setLoading(false);
@@ -1108,18 +1173,18 @@
         { key: 'validasi_paraf', label: 'Validasi Paraf' },
         { key: 'rekap_kelas', label: 'Rekap & Catatan' },
         { key: 'kelola_siswa', label: 'Data Siswa' },
-        { key: 'ekspor_walas', label: 'Unduh Excel (.xlsx)', desc: 'Fitur ekspor file Excel Lampiran 3 dan data harian kelas akan diaktifkan pada Tahap 6.' }
+        { key: 'ekspor_walas', label: 'Unduh Excel (.xlsx)' }
       ],
       ADMIN: [
-        { key: 'dashboard_sekolah', label: 'Dashboard Sekolah', desc: 'Statistik pengisian seluruh kelas dan capaian 7 kebiasaan (Tahap 6).' },
+        { key: 'dashboard_sekolah', label: 'Dashboard Sekolah' },
         { key: 'pengaturan_sistem', label: 'Pengaturan (8 Modul)', desc: 'Tahun ajaran, form 7 kebiasaan, kriteria, aturan, identitas, dan ekspor (Tahap 5).' },
         { key: 'kelas_naik', label: 'Kelas & Naik Kelas', desc: 'Kelola rombel, jadwal buka-tutup kelas, dan wizard Naik Kelas (Tahap 5).' },
         { key: 'akun_keamanan', label: 'Akun & Keamanan', desc: 'Kelola akun Admin, Wali Kelas, Pembaca, log aktivitas, dan arsip (Tahap 5).' },
         { key: 'pengumuman', label: 'Pengumuman', desc: 'Kelola pengumuman singkat di beranda siswa (Tahap 5).' }
       ],
       PEMBACA: [
-        { key: 'dashboard_pembaca', label: 'Dashboard Sekolah', desc: 'Ringkasan pelaksanaan 7KAIH seluruh tingkat kelas (Tahap 6).' },
-        { key: 'rekap_pembaca', label: 'Rekap Per Kelas', desc: 'Tinjau rekap bulanan tiap kelas tanpa mengubah data (Tahap 6).' }
+        { key: 'dashboard_pembaca', label: 'Dashboard Sekolah' },
+        { key: 'rekap_pembaca', label: 'Rekap Per Kelas' }
       ]
     };
 
@@ -1238,6 +1303,16 @@
 
       if (effectiveRole === 'WALAS') {
         loadWalasView(activeNavKey);
+        return;
+      }
+
+      if (effectiveRole === 'PEMBACA') {
+        loadReaderView(activeNavKey);
+        return;
+      }
+
+      if (effectiveRole === 'ADMIN' && activeNavKey === 'dashboard_sekolah') {
+        renderSchoolDashboardView(document.getElementById('roleWorkspace'), false);
         return;
       }
 
@@ -1575,8 +1650,15 @@
       if (newYear) selectedReportYear = parseInt(newYear, 10);
       studentMonthlyState = null;
       walasRecapCache = null;
+      schoolDashCache = null;
+      readerClassRecapCache = null;
+
       if (currentUser && currentUser.peran === 'SISWA') {
         await loadStudentView(activeNavKey);
+      } else if (currentUser && currentUser.peran === 'PEMBACA') {
+        await loadReaderView(activeNavKey);
+      } else if (currentUser && currentUser.peran === 'ADMIN' && !previewClassId) {
+        await renderSchoolDashboardView(document.getElementById('roleWorkspace'), true);
       } else {
         await loadWalasView(activeNavKey);
       }
@@ -1831,7 +1913,7 @@
     }
 
     // ========================================================================
-    // 7. MODUL WALI KELAS (TAHAP 4)
+    // 7. MODUL WALI KELAS (TAHAP 4 & EKSPOR EXCEL TAHAP 6)
     // ========================================================================
     async function loadWalasView(tabKey) {
       const workspace = document.getElementById('roleWorkspace');
@@ -1849,18 +1931,54 @@
         await renderWalasRecapView(workspace);
       } else if (tabKey === 'kelola_siswa') {
         await renderWalasStudentsView(workspace);
-      } else {
-        const menuObj = (ROLE_MENUS.WALAS || []).find(function(m) { return m.key === tabKey; });
-        workspace.innerHTML = '<div class="card"><h3 style="font-size:18px; margin-bottom:6px;">' +
-          escapeHtml(menuObj ? menuObj.label : 'Ekspor Excel') + '</h3>' +
-          '<p style="font-size:14px; color:var(--muted);">' +
-          escapeHtml(menuObj ? menuObj.desc : '') + '</p></div>';
+      } else if (tabKey === 'ekspor_walas') {
+        renderWalasExportView(workspace);
       }
     }
 
-    // ------------------------------------------------------------------------
-    // 7A. PEMANTAUAN HARI INI & SISWA PERLU PERHATIAN
-    // ------------------------------------------------------------------------
+    function renderWalasExportView(container) {
+      let html = '<div class="card">';
+      html += '<div class="month-toolbar">' +
+              '<div><h3 style="font-size:18px;">Unduh Laporan Kelas Format Excel (.xlsx)</h3>' +
+              '<p style="font-size:12px; color:var(--muted);">Pilih bulan dan tahun laporan yang ingin diunduh untuk arsip kelas maupun pelaporan sekolah.</p></div>' +
+              buildMonthSelectorHtml('changeReportPeriod') +
+              '</div>';
+
+      html += '<div class="export-grid">';
+
+      html += '<div class="export-card">' +
+              '<div>' +
+              '<span class="badge-terbiasa badge-sudah" style="margin-bottom:8px;">Format Resmi Kemendikdasmen</span>' +
+              '<h4 style="font-size:16px; margin-bottom:6px;">Rekap Bulanan Kelas (Lampiran 3)</h4>' +
+              '<p style="font-size:13px; color:var(--muted);">Berisi 2 lembar kerja (sheet):<br>' +
+              '1. <strong>Lampiran 3 - Rekap Bulanan</strong>: Rekap jumlah hari terlaksana, kategori <em>Sudah/Belum Terbiasa</em> tiap kebiasaan, status refleksi orang tua, catatan wali kelas, dan kolom tanda tangan Kepala Sekolah & Wali Kelas.<br>' +
+              '2. <strong>Matriks Harian (Tgl 1–31)</strong>: Rekap kehadiran pengisian harian seluruh siswa.</p>' +
+              '</div>' +
+              '<button type="button" class="btn btn-primary" onclick="downloadWalasExcel(\'WALAS_LAMPIRAN3\')">Unduh Lampiran 3 (.xlsx)</button>' +
+              '</div>';
+
+      html += '<div class="export-card">' +
+              '<div>' +
+              '<span class="badge-terbiasa badge-muted" style="margin-bottom:8px;">Arsip Rincian Harian</span>' +
+              '<h4 style="font-size:16px; margin-bottom:6px;">Rincian Harian & Validasi Paraf</h4>' +
+              '<p style="font-size:13px; color:var(--muted);">Berisi catatan lengkap per tanggal dan per siswa selama bulan terpilih: jam bangun, jam tidur, durasi tidur (menit), status tiap kebiasaan beserta tanda paraf guru, serta keterangan diketahui orang tua.</p>' +
+              '</div>' +
+              '<button type="button" class="btn btn-secondary" onclick="downloadWalasExcel(\'WALAS_DAILY_DETAIL\')">Unduh Rincian Harian (.xlsx)</button>' +
+              '</div>';
+
+      html += '</div></div>';
+      container.innerHTML = html;
+    }
+
+    function downloadWalasExcel(exportType) {
+      triggerExcelExport({
+        exportType: exportType,
+        id_kelas: walasActiveClassId,
+        year: selectedReportYear,
+        month: selectedReportMonth
+      }, 'Menyusun file Excel kelas (.xlsx)...');
+    }
+
     async function renderWalasMonitoringView(container) {
       setLoading(true, 'Memuat pemantauan kelas...');
       try {
@@ -1890,7 +2008,6 @@
         html += '<div class="stat-box"><div class="num" style="color:#0369a1;">' + d.summary.attentionCount + ' Siswa</div><div class="lbl">Perlu Sapaan & Pendampingan</div></div>';
         html += '</div></div>';
 
-        // Bagian Siswa Perlu Perhatian (Nada Mendukung)
         html += '<div class="card">';
         html += '<h4 style="font-size:16px; color:#0369a1; margin-bottom:4px;">Siswa yang Perlu Perhatian & Dukungan (' + d.needAttentionStudents.length + ')</h4>';
         html += '<p style="font-size:12px; color:var(--muted); margin-bottom:12px;">Catatan ini bertujuan membantu wali kelas menyapa dan mendampingi siswa secara hangat, bukan untuk menghakimi.</p>';
@@ -1910,7 +2027,6 @@
         }
         html += '</div>';
 
-        // Daftar Belum Mengisi
         html += '<div class="card">';
         html += '<h4 style="font-size:16px; margin-bottom:10px;">Daftar Belum Mengisi pada ' + escapeHtml(d.targetDate) + ' (' + d.unfilledStudents.length + ' Siswa)</h4>';
         if (d.unfilledStudents.length === 0) {
@@ -1929,7 +2045,6 @@
         }
         html += '</div>';
 
-        // Daftar Sudah Mengisi
         html += '<div class="card">';
         html += '<h4 style="font-size:16px; margin-bottom:10px;">Daftar Sudah Mengisi pada ' + escapeHtml(d.targetDate) + ' (' + d.filledStudents.length + ' Siswa)</h4>';
         if (d.filledStudents.length === 0) {
@@ -1966,9 +2081,6 @@
       }
     }
 
-    // ------------------------------------------------------------------------
-    // 7B. VALIDASI PARAF DIGITAL (SATUAN & MASSAL)
-    // ------------------------------------------------------------------------
     async function renderWalasValidationView(container, forceReload) {
       setLoading(true, 'Memuat data validasi paraf...');
       try {
@@ -2008,7 +2120,6 @@
               '<p style="font-size:12px; color:var(--muted);">Klik kotak kebiasaan per siswa untuk memberi/membatalkan paraf, atau gunakan Paraf Massal untuk seluruh rentang tanggal.</p></div>' +
               '</div>';
 
-      // Filter rentang tanggal & tombol paraf massal
       html += '<div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:10px; background:#f8fafc; padding:12px; border-radius:12px; border:1px solid var(--border); margin-bottom:14px;">';
       html += '<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">' +
               '<div><label style="font-size:11px;">Dari Tanggal</label><input type="date" id="inpValStart" value="' + escapeHtml(d.startDate) + '" style="min-height:40px;"></div>' +
@@ -2020,7 +2131,6 @@
               '<button type="button" class="btn btn-primary btn-inline" onclick="runBulkParaf()">&#10003; Paraf Massal (' + escapeHtml(d.startDate) + ' s.d. ' + escapeHtml(d.endDate) + ')</button>' +
               '</div></div>';
 
-      // Pemilih tanggal aktif untuk inspeksi & paraf satuan per siswa x 7 kebiasaan
       html += '<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;">' +
               '<div style="display:flex; align-items:center; gap:8px;">' +
               '<label for="selValInspectDate" style="margin:0;">Tanggal Tampilan Rinci:</label>' +
@@ -2133,9 +2243,6 @@
       }
     }
 
-    // ------------------------------------------------------------------------
-    // 7C. REKAP BULANAN KELAS, REFLEKSI SISWA & CATATAN WALI KELAS
-    // ------------------------------------------------------------------------
     async function renderWalasRecapView(container, forceReload) {
       setLoading(true, 'Menyusun rekap bulanan kelas...');
       try {
@@ -2162,8 +2269,10 @@
                 '<div><h3 style="font-size:18px;">Rekap Bulanan Kelas ' + escapeHtml(r.kelas.nama_kelas) + '</h3>' +
                 '<p style="font-size:12px; color:var(--muted);">L: ' + r.kelas.count_l + ' • P: ' + r.kelas.count_p + ' • Total: ' + r.kelas.total_siswa +
                 ' siswa • Ambang Sudah Terbiasa: minimal <strong>' + r.minDaysRequired + '</strong> dari ' + r.daysInMonth + ' hari.</p></div>' +
+                '<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">' +
                 buildMonthSelectorHtml('changeReportPeriod') +
-                '</div>';
+                '<button type="button" class="btn btn-primary btn-inline" onclick="downloadWalasExcel(\'WALAS_LAMPIRAN3\')">Unduh Excel Lampiran 3</button>' +
+                '</div></div>';
 
         html += '<div class="paper-scroll"><table class="paper-table" style="min-width:1050px;"><thead><tr>';
         html += '<th style="width:40px;">No</th><th class="sticky-col">Nama Siswa</th><th style="width:45px;">L/P</th>';
@@ -2196,7 +2305,7 @@
                     escapeHtml(st.catatan_walas || '-') + '</td>';
 
             html += '<td><button type="button" class="btn btn-secondary btn-xs" ' +
-                    'onclick="openStudentRecapDetailModal(\'' + escapeHtml(st.id_siswa) + '\')">Refleksi & Catatan</button></td></tr>';
+                    'onclick="openStudentRecapDetailModal(\'' + escapeHtml(st.id_siswa) + '\', false)">Refleksi & Catatan</button></td></tr>';
           });
         }
 
@@ -2209,9 +2318,10 @@
       }
     }
 
-    function openStudentRecapDetailModal(idSiswa) {
-      if (!walasRecapCache) return;
-      const st = walasRecapCache.students.find(function(x) { return x.id_siswa === idSiswa; });
+    function openStudentRecapDetailModal(idSiswa, isReadOnly) {
+      const sourceCache = isReadOnly ? readerClassRecapCache : walasRecapCache;
+      if (!sourceCache) return;
+      const st = sourceCache.students.find(function(x) { return x.id_siswa === idSiswa; });
       if (!st) return;
 
       const box = document.getElementById('modalWalasBox');
@@ -2223,9 +2333,8 @@
 
       html += '<div id="modalWalasAlert" class="alert alert-err hidden"></div>';
 
-      // Tampilkan refleksi orang tua & siswa per kebiasaan
       html += '<div style="margin-bottom:14px;"><strong style="font-size:14px;">Refleksi Siswa & Orang Tua/Wali:</strong></div>';
-      walasRecapCache.habits.forEach(function(h) {
+      sourceCache.habits.forEach(function(h) {
         const refItem = (st.refleksi && st.refleksi[h.id_kebiasaan]) || { kesimpulan: '', tindak_lanjut: '' };
         const hs = st.habitStats[h.id_kebiasaan] || { count_v: 0, kategori: 'Belum Terbiasa', is_terbiasa: false };
         html += '<div class="habit-card" style="padding:10px 12px; margin-bottom:8px;">' +
@@ -2238,16 +2347,23 @@
                 '</div>';
       });
 
-      // Form catatan wali kelas
-      html += '<form onsubmit="submitWalasStudentNote(event, \'' + escapeHtml(st.id_siswa) + '\')">' +
-              '<div class="form-group" style="margin-top:14px;">' +
-              '<label for="inpCatatanWalas">Catatan Wali Kelas untuk ' + escapeHtml(st.nama) + '</label>' +
-              '<textarea id="inpCatatanWalas" placeholder="Tuliskan apresiasi atau catatan pembinaan untuk siswa...">' +
-              escapeHtml(st.catatan_walas || '') + '</textarea></div>' +
-              '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">' +
-              '<button type="button" class="btn btn-secondary" onclick="closeWalasModal()">Tutup</button>' +
-              '<button type="submit" class="btn btn-primary">Simpan Catatan</button>' +
-              '</div></form>';
+      if (isReadOnly) {
+        html += '<div class="alert alert-info" style="margin-top:12px;">' +
+                '<strong>Catatan Wali Kelas:</strong><br>' +
+                escapeHtml(st.catatan_walas || 'Belum ada catatan dari wali kelas.') +
+                '</div>';
+        html += '<button type="button" class="btn btn-secondary" onclick="closeWalasModal()">Tutup</button>';
+      } else {
+        html += '<form onsubmit="submitWalasStudentNote(event, \'' + escapeHtml(st.id_siswa) + '\')">' +
+                '<div class="form-group" style="margin-top:14px;">' +
+                '<label for="inpCatatanWalas">Catatan Wali Kelas untuk ' + escapeHtml(st.nama) + '</label>' +
+                '<textarea id="inpCatatanWalas" placeholder="Tuliskan apresiasi atau catatan pembinaan untuk siswa...">' +
+                escapeHtml(st.catatan_walas || '') + '</textarea></div>' +
+                '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">' +
+                '<button type="button" class="btn btn-secondary" onclick="closeWalasModal()">Tutup</button>' +
+                '<button type="submit" class="btn btn-primary">Simpan Catatan</button>' +
+                '</div></form>';
+      }
 
       box.innerHTML = html;
       document.getElementById('modalWalasDynamic').classList.remove('hidden');
@@ -2281,9 +2397,6 @@
       }
     }
 
-    // ------------------------------------------------------------------------
-    // 7D. KELOLA DATA SISWA (TAMBAH, IMPOR MASSAL, EDIT, NONAKTIF, RESET PIN)
-    // ------------------------------------------------------------------------
     async function renderWalasStudentsView(container) {
       setLoading(true, 'Memuat data siswa...');
       try {
@@ -2481,7 +2594,6 @@
         const c0 = (cols[0] || '').trim();
         const c1 = (cols[1] || '').trim();
         const c2 = (cols[2] || '').trim();
-        // Lewati baris header jika baris pertama bertuliskan 'NISN'
         if (idx === 0 && c0.toUpperCase() === 'NISN') return;
         parsedRows.push({ nisn: c0, nama: c1, jk: c2 });
       });
@@ -2563,7 +2675,274 @@
     }
 
     // ========================================================================
-    // 8. INISIALISASI HALAMAN SAAT PERTAMA DIBUKA
+    // 8. DASHBOARD SEKOLAH & MODUL PEMBACA (TAHAP 6)
+    // ========================================================================
+    async function loadReaderView(tabKey) {
+      const workspace = document.getElementById('roleWorkspace');
+      if (tabKey === 'dashboard_pembaca') {
+        await renderSchoolDashboardView(workspace, false);
+      } else if (tabKey === 'rekap_pembaca') {
+        await renderReaderClassRecapView(workspace, false);
+      }
+    }
+
+    async function renderSchoolDashboardView(container, forceReload) {
+      setLoading(true, 'Menyusun statistik sekolah...');
+      try {
+        if (forceReload || !schoolDashCache ||
+            schoolDashCache.filters.year !== selectedReportYear ||
+            schoolDashCache.filters.month !== selectedReportMonth ||
+            schoolDashCache.filters.tingkat !== schoolDashTingkat ||
+            schoolDashCache.filters.targetDate !== schoolDashDate) {
+          const res = await callApi('GET_SCHOOL_DASHBOARD', {
+            year: selectedReportYear,
+            month: selectedReportMonth,
+            tingkat: schoolDashTingkat,
+            targetDate: schoolDashDate
+          });
+          if (!res || !res.ok) {
+            container.innerHTML = '<div class="card"><div class="alert alert-err">' +
+              escapeHtml((res && res.message) ? res.message : 'Gagal memuat dashboard sekolah.') + '</div></div>';
+            return;
+          }
+          schoolDashCache = res.data;
+        }
+
+        const d = schoolDashCache;
+        let html = '<div class="card">';
+        html += '<div class="month-toolbar">' +
+                '<div><h3 style="font-size:18px;">Dashboard Pelaksanaan 7KAIH Tingkat Sekolah</h3>' +
+                '<p style="font-size:12px; color:var(--muted);">Pantau kepatuhan pengisian harian dan capaian pembiasaan seluruh kelas.</p></div>' +
+                '<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">' +
+                '<select style="width:auto; min-height:40px;" onchange="onChangeSchoolDashTingkat(this.value)">' +
+                '<option value="ALL"' + (d.filters.tingkat === 'ALL' ? ' selected' : '') + '>Semua Tingkat (7, 8, 9)</option>' +
+                '<option value="7"' + (d.filters.tingkat === '7' ? ' selected' : '') + '>Kelas 7</option>' +
+                '<option value="8"' + (d.filters.tingkat === '8' ? ' selected' : '') + '>Kelas 8</option>' +
+                '<option value="9"' + (d.filters.tingkat === '9' ? ' selected' : '') + '>Kelas 9</option>' +
+                '</select>' +
+                '<input type="date" value="' + escapeHtml(d.filters.targetDate) + '" max="' + escapeHtml(d.filters.todayStr) + '" style="width:auto; min-height:40px;" onchange="onChangeSchoolDashDate(this.value)">' +
+                buildMonthSelectorHtml('changeReportPeriod') +
+                '<button type="button" class="btn btn-primary btn-inline" onclick="downloadSchoolRecapExcel()">Unduh Rekap Sekolah (.xlsx)</button>' +
+                '</div></div>';
+
+        html += '<div class="summary-grid">';
+        html += '<div class="stat-box"><div class="num">' + d.summary.filledToday + ' / ' + d.summary.totalStudents + ' (' + d.summary.todayPct + '%)</div><div class="lbl">Mengisi pada ' + escapeHtml(d.filters.targetDate) + '</div></div>';
+        html += '<div class="stat-box"><div class="num">' + d.summary.totalClasses + ' Kelas • ' + d.summary.totalStudents + ' Siswa</div><div class="lbl">Rombel Aktif (L: ' + d.summary.totalL + ' • P: ' + d.summary.totalP + ')</div></div>';
+        html += '<div class="stat-box"><div class="num">' + d.summary.avgFilledDays + ' / ' + d.daysInMonth + ' Hari</div><div class="lbl">Rata-rata Hari Terisi Bulan Ini</div></div>';
+        html += '<div class="stat-box"><div class="num" style="color:#0369a1;">' + d.summary.attentionCount + ' Siswa</div><div class="lbl">Perlu Pendampingan BK / Walas</div></div>';
+        html += '</div></div>';
+
+        // Grafik Batang Capaian 7 Kebiasaan Tingkat Sekolah
+        html += '<div class="card">';
+        html += '<h4 style="font-size:16px; margin-bottom:4px;">Capaian Predikat "Sudah Terbiasa" per Kebiasaan</h4>';
+        html += '<p style="font-size:12px; color:var(--muted); margin-bottom:12px;">Target minimal <strong>' + d.minDaysRequired + ' hari</strong> dari ' + d.daysInMonth + ' hari pada bulan terpilih.</p>';
+
+        d.schoolHabitsSummary.forEach(function(hs) {
+          html += '<div style="margin-bottom:10px;">' +
+                  '<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px;">' +
+                  '<strong>' + hs.urutan + '. ' + escapeHtml(hs.nama) + '</strong>' +
+                  '<span><strong>' + hs.percentage + '%</strong> (' + hs.terbiasa_count + ' dari ' + d.summary.totalStudents + ' siswa)</span>' +
+                  '</div>' +
+                  '<div class="progress-bar-bg"><div class="progress-bar-fill" style="width:' + Math.min(100, hs.percentage) + '%;"></div></div>' +
+                  '</div>';
+        });
+        html += '</div>';
+
+        // Tabel Perbandingan Antar Kelas
+        html += '<div class="card">';
+        html += '<h4 style="font-size:16px; margin-bottom:10px;">Perbandingan Pelaksanaan Antar Kelas</h4>';
+        html += '<div class="paper-scroll"><table class="paper-table" style="min-width:1050px;"><thead><tr>' +
+                '<th style="width:40px;">No</th><th class="sticky-col">Kelas</th><th>Wali Kelas</th><th>L/P</th><th>Isi Harian (' + escapeHtml(d.filters.targetDate) + ')</th><th>Rata-rata Hari</th>';
+        d.habits.forEach(function(h) {
+          html += '<th>K' + h.urutan + '</th>';
+        });
+        html += '<th>Rata-rata 7KAIH</th></tr></thead><tbody>';
+
+        if (d.classRecaps.length === 0) {
+          html += '<tr><td colspan="' + (d.habits.length + 7) + '">Belum ada kelas aktif pada filter terpilih.</td></tr>';
+        } else {
+          d.classRecaps.forEach(function(c, idx) {
+            html += '<tr><td>' + (idx + 1) + '</td>' +
+                    '<td class="sticky-col">Kelas ' + escapeHtml(c.nama_kelas) + '</td>' +
+                    '<td style="text-align:left;">' + escapeHtml(c.nama_walas) + '</td>' +
+                    '<td>' + c.count_l + '/' + c.count_p + '</td>' +
+                    '<td><strong>' + c.filled_today + '/' + c.total_siswa + '</strong> (' + c.today_pct + '%)</td>' +
+                    '<td>' + c.avg_filled_days + ' hr</td>';
+            d.habits.forEach(function(h) {
+              const pct = c.habit_terbiasa_pct[h.id_kebiasaan] || 0;
+              html += '<td>' + pct + '%</td>';
+            });
+            html += '<td><span class="badge-terbiasa ' + (c.avg_habits_pct >= 67 ? 'badge-sudah' : 'badge-belum') + '">' +
+                    c.avg_habits_pct + '%</span></td></tr>';
+          });
+        }
+        html += '</tbody></table></div></div>';
+
+        // Ringkasan Siswa Perlu Perhatian Lintas Kelas (Suportif)
+        html += '<div class="card">';
+        html += '<h4 style="font-size:16px; color:#0369a1; margin-bottom:4px;">Koordinasi Pendampingan Siswa (Wali Kelas & Guru BK)</h4>';
+        html += '<p style="font-size:12px; color:var(--muted); margin-bottom:12px;">Daftar berikut membantu Guru BK dan Wali Kelas menyapa siswa yang belum sempat mengisi jurnal atau memiliki waktu istirahat kurang.</p>';
+        if (d.attentionStudents.length === 0) {
+          html += '<div class="alert alert-ok" style="margin-bottom:0;">Seluruh siswa pada tingkat terpilih aktif mengisi jurnal dan memiliki pola istirahat baik.</div>';
+        } else {
+          html += '<div class="paper-scroll"><table class="paper-table"><thead><tr>' +
+                  '<th style="width:40px;">No</th><th style="text-align:left;">Nama Siswa</th><th>Kelas</th><th style="text-align:left;">Wali Kelas</th><th style="text-align:left;">Catatan Pendampingan</th>' +
+                  '</tr></thead><tbody>';
+          d.attentionStudents.forEach(function(st, idx) {
+            html += '<tr><td>' + (idx + 1) + '</td>' +
+                    '<td style="text-align:left; font-weight:600;">' + escapeHtml(st.nama) + ' <span style="font-weight:400; color:var(--muted);">(' + escapeHtml(st.nisn) + ')</span></td>' +
+                    '<td>' + escapeHtml(st.nama_kelas) + '</td>' +
+                    '<td style="text-align:left;">' + escapeHtml(st.nama_walas) + '</td>' +
+                    '<td style="text-align:left;">' + escapeHtml(st.notes.join('; ')) + '</td></tr>';
+          });
+          html += '</tbody></table></div>';
+        }
+        html += '</div>';
+
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function onChangeSchoolDashTingkat(val) {
+      schoolDashTingkat = val;
+      renderSchoolDashboardView(document.getElementById('roleWorkspace'), true);
+    }
+
+    function onChangeSchoolDashDate(val) {
+      if (val) {
+        schoolDashDate = val;
+        renderSchoolDashboardView(document.getElementById('roleWorkspace'), true);
+      }
+    }
+
+    function downloadSchoolRecapExcel() {
+      triggerExcelExport({
+        exportType: 'SCHOOL_RECAP',
+        tingkat: schoolDashTingkat,
+        targetDate: schoolDashDate,
+        year: selectedReportYear,
+        month: selectedReportMonth
+      }, 'Menyusun file Excel rekap sekolah (.xlsx)...');
+    }
+
+    async function renderReaderClassRecapView(container, forceReload) {
+      setLoading(true, 'Memuat data kelas...');
+      try {
+        if (readerClassesCache.length === 0) {
+          const clsRes = await callApi('GET_READER_CLASSES', {});
+          if (!clsRes || !clsRes.ok) {
+            container.innerHTML = '<div class="card"><div class="alert alert-err">' +
+              escapeHtml((clsRes && clsRes.message) ? clsRes.message : 'Gagal memuat daftar kelas.') + '</div></div>';
+            return;
+          }
+          readerClassesCache = clsRes.data.classes || [];
+          if (readerClassesCache.length > 0 && !readerSelectedClassId) {
+            readerSelectedClassId = readerClassesCache[0].id_kelas;
+          }
+        }
+
+        if (readerClassesCache.length === 0) {
+          container.innerHTML = '<div class="card"><div class="alert alert-warn">Belum ada kelas aktif yang terdaftar di sistem.</div></div>';
+          return;
+        }
+
+        if (forceReload || !readerClassRecapCache ||
+            readerClassRecapCache.kelas.id_kelas !== readerSelectedClassId ||
+            readerClassRecapCache.year !== selectedReportYear ||
+            readerClassRecapCache.month !== selectedReportMonth) {
+          const recRes = await callApi('GET_READER_CLASS_RECAP', {
+            id_kelas: readerSelectedClassId,
+            year: selectedReportYear,
+            month: selectedReportMonth
+          });
+          if (!recRes || !recRes.ok) {
+            container.innerHTML = '<div class="card"><div class="alert alert-err">' +
+              escapeHtml((recRes && recRes.message) ? recRes.message : 'Gagal memuat rekap kelas.') + '</div></div>';
+            return;
+          }
+          readerClassRecapCache = recRes.data;
+        }
+
+        const r = readerClassRecapCache;
+        let html = '<div class="card">';
+        html += '<div class="month-toolbar">' +
+                '<div><h3 style="font-size:18px;">Rekap Bulanan Kelas ' + escapeHtml(r.kelas.nama_kelas) + ' (Mode Pembaca)</h3>' +
+                '<p style="font-size:12px; color:var(--muted);">Wali Kelas: <strong>' + escapeHtml(r.kelas.nama_walas) + '</strong> • L: ' + r.kelas.count_l + ' • P: ' + r.kelas.count_p + ' • Total: ' + r.kelas.total_siswa + ' siswa.</p></div>' +
+                '<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">' +
+                '<select style="width:auto; min-height:40px;" onchange="onChangeReaderClass(this.value)">';
+        readerClassesCache.forEach(function(c) {
+          html += '<option value="' + escapeHtml(c.id_kelas) + '"' + (c.id_kelas === readerSelectedClassId ? ' selected' : '') + '>' +
+                  'Kelas ' + escapeHtml(c.nama_kelas) + ' (' + escapeHtml(c.nama_walas) + ')</option>';
+        });
+        html += '</select>' +
+                buildMonthSelectorHtml('changeReportPeriod') +
+                '<button type="button" class="btn btn-primary btn-inline" onclick="downloadReaderClassExcel()">Unduh Lampiran 3 (.xlsx)</button>' +
+                '</div></div>';
+
+        html += '<div class="paper-scroll"><table class="paper-table" style="min-width:1020px;"><thead><tr>';
+        html += '<th style="width:40px;">No</th><th class="sticky-col">Nama Siswa</th><th style="width:45px;">L/P</th>';
+        r.habits.forEach(function(h) {
+          html += '<th>' + h.urutan + '. ' + escapeHtml(h.nama) + '</th>';
+        });
+        html += '<th>Refleksi</th><th>Catatan Wali Kelas</th><th>Detail</th></tr></thead><tbody>';
+
+        if (r.students.length === 0) {
+          html += '<tr><td colspan="' + (r.habits.length + 6) + '">Belum ada siswa aktif di kelas ini.</td></tr>';
+        } else {
+          r.students.forEach(function(st) {
+            html += '<tr><td>' + st.no + '</td>' +
+                    '<td class="sticky-col">' + escapeHtml(st.nama) +
+                    '<div style="font-size:11px; font-weight:400; color:var(--muted);">' + escapeHtml(st.nisn) + '</div></td>' +
+                    '<td>' + escapeHtml(st.jk) + '</td>';
+
+            r.habits.forEach(function(h) {
+              const hs = st.habitStats[h.id_kebiasaan] || { count_v: 0, percentage: 0, is_terbiasa: false };
+              html += '<td><strong>' + hs.count_v + '</strong> <span style="font-size:11px; color:var(--muted);">(' + hs.percentage + '%)</span><br>' +
+                      '<span class="badge-terbiasa ' + (hs.is_terbiasa ? 'badge-sudah' : 'badge-belum') + '">' +
+                      (hs.is_terbiasa ? 'Sudah' : 'Belum') + '</span></td>';
+            });
+
+            html += '<td>' + (st.has_reflection
+              ? '<span class="badge-terbiasa badge-sudah">Sudah Diisi</span>'
+              : '<span class="badge-terbiasa badge-muted">Belum</span>') + '</td>';
+
+            html += '<td style="text-align:left; max-width:190px; font-size:12px;">' +
+                    escapeHtml(st.catatan_walas || '-') + '</td>';
+
+            html += '<td><button type="button" class="btn btn-secondary btn-xs" ' +
+                    'onclick="openStudentRecapDetailModal(\'' + escapeHtml(st.id_siswa) + '\', true)">Lihat Refleksi</button></td></tr>';
+          });
+        }
+
+        html += '</tbody></table></div></div>';
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function onChangeReaderClass(cid) {
+      readerSelectedClassId = cid;
+      renderReaderClassRecapView(document.getElementById('roleWorkspace'), true);
+    }
+
+    function downloadReaderClassExcel() {
+      triggerExcelExport({
+        exportType: 'WALAS_LAMPIRAN3',
+        id_kelas: readerSelectedClassId,
+        year: selectedReportYear,
+        month: selectedReportMonth
+      }, 'Menyusun file Excel Lampiran 3 (.xlsx)...');
+    }
+
+    // ========================================================================
+    // 9. INISIALISASI HALAMAN SAAT PERTAMA DIBUKA
     // ========================================================================
     async function initApp() {
       setLoading(true, 'Menyiapkan aplikasi...');
