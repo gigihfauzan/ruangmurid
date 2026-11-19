@@ -63,14 +63,15 @@
       padding: 12px 14px;
       border-radius: 10px;
       font-size: 14px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       border: 1px solid transparent;
     }
     .alert-err { background: var(--err-bg); color: var(--err-text); border-color: #fecaca; }
     .alert-ok { background: var(--ok-bg); color: var(--ok-text); border-color: #bbf7d0; }
     .alert-warn { background: var(--warn-bg); color: var(--warn-text); border-color: #fde68a; }
+    .alert-info { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
 
-    /* Auth Container (Mobile-First) */
+    /* Auth Container */
     .auth-wrapper {
       max-width: 440px;
       margin: 0 auto;
@@ -94,15 +95,8 @@
       margin-bottom: 10px;
       object-fit: contain;
     }
-    .school-brand h1 {
-      font-size: 21px;
-      color: var(--primary);
-      font-weight: 800;
-    }
-    .school-brand p {
-      font-size: 14px;
-      color: var(--muted);
-    }
+    .school-brand h1 { font-size: 21px; color: var(--primary); font-weight: 800; }
+    .school-brand p { font-size: 14px; color: var(--muted); }
     .welcome-note {
       font-size: 13px;
       color: var(--text);
@@ -117,11 +111,11 @@
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 20px;
+      padding: 18px;
       box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+      margin-bottom: 14px;
     }
 
-    /* Role Switch Tabs on Login */
     .role-tabs {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -140,7 +134,6 @@
       font-weight: 600;
       color: var(--muted);
       cursor: pointer;
-      transition: all 0.15s ease;
     }
     .role-tab.active {
       background: var(--card);
@@ -149,7 +142,7 @@
     }
 
     /* Form Controls */
-    .form-group { margin-bottom: 15px; }
+    .form-group { margin-bottom: 14px; }
     label {
       display: block;
       font-size: 13px;
@@ -165,6 +158,9 @@
     input[type="text"],
     input[type="password"],
     input[type="tel"],
+    input[type="time"],
+    input[type="number"],
+    textarea,
     select {
       width: 100%;
       min-height: 48px;
@@ -172,10 +168,12 @@
       border: 1.5px solid var(--border);
       border-radius: 11px;
       font-size: 16px;
+      font-family: inherit;
       background: #fff;
       color: var(--text);
     }
-    input:focus, select:focus {
+    textarea { min-height: 76px; resize: vertical; }
+    input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: var(--primary);
     }
@@ -190,11 +188,7 @@
       padding: 8px;
       cursor: pointer;
     }
-    .hint {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 4px;
-    }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
     .btn {
       width: 100%;
@@ -208,17 +202,11 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
+      padding: 10px 16px;
     }
-    .btn-primary {
-      background: var(--primary);
-      color: #fff;
-    }
+    .btn-primary { background: var(--primary); color: #fff; }
     .btn-primary:hover { background: var(--primary-dark); }
-    .btn-secondary {
-      background: var(--bg);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
+    .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
     /* App Shell Layout */
@@ -240,11 +228,7 @@
     }
     .topbar-title h2 { font-size: 16px; font-weight: 700; }
     .topbar-title p { font-size: 12px; opacity: 0.9; }
-    .topbar-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; }
     .btn-sm {
       min-height: 38px;
       padding: 6px 12px;
@@ -269,7 +253,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 14px 16px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
@@ -287,16 +271,15 @@
       text-transform: uppercase;
     }
 
-    /* Navigation Tabs per Role */
     .nav-strip {
       display: flex;
       gap: 8px;
       overflow-x: auto;
       padding-bottom: 6px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
     .nav-btn {
-      min-height: 42px;
+      min-height: 44px;
       padding: 8px 14px;
       border-radius: 10px;
       border: 1px solid var(--border);
@@ -318,33 +301,224 @@
       border: 1px solid #fde047;
       border-radius: 12px;
       padding: 12px 14px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       gap: 10px;
     }
-    .admin-preview-bar select {
-      min-height: 40px;
-      width: auto;
-      min-width: 180px;
-      font-size: 14px;
+    .admin-preview-bar select { min-height: 40px; width: auto; min-width: 180px; font-size: 14px; }
+
+    /* ===================================================================== */
+    /* STUDENT UI COMPONENTS (MOBILE-FIRST, TOUCH TARGET >= 48PX)            */
+    /* ===================================================================== */
+    .habit-card {
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+      background: #fff;
+      transition: border-color 0.15s ease;
+    }
+    .habit-card.state-v { border-color: #16a34a; background: #f0fdf4; }
+    .habit-card.state-x { border-color: #dc2626; background: #fef2f2; }
+
+    .habit-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .habit-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 800;
+      margin-right: 6px;
+    }
+    .habit-title { font-size: 16px; font-weight: 700; color: var(--text); }
+    .habit-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+    .vx-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .vx-btn {
+      min-height: 50px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      background: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: var(--text);
+    }
+    .vx-btn.active-v {
+      background: #16a34a;
+      border-color: #15803d;
+      color: #fff;
+    }
+    .vx-btn.active-x {
+      background: #dc2626;
+      border-color: #b91c1c;
+      color: #fff;
     }
 
-    .grid-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 12px;
+    .extra-fields {
       margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border);
     }
-    .info-tile {
+
+    .parent-ack-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #fffbeb;
+      border: 1.5px solid #fcd34d;
+      border-radius: 12px;
+      padding: 14px;
+      margin: 16px 0;
+      cursor: pointer;
+    }
+    .parent-ack-box input[type="checkbox"] {
+      width: 24px;
+      height: 24px;
+      accent-color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    /* Kalender Kertas 1..31 */
+    .month-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .month-picker {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .month-picker select { min-height: 42px; font-size: 14px; width: auto; }
+
+    .paper-scroll {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+    }
+    .paper-table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 980px;
+      font-size: 12px;
+    }
+    .paper-table th, .paper-table td {
+      border: 1px solid #cbd5e1;
+      padding: 6px 4px;
+      text-align: center;
+    }
+    .paper-table th {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 700;
+    }
+    .paper-table td.habit-col, .paper-table th.habit-col {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      text-align: left;
+      padding: 8px 10px;
+      min-width: 175px;
+      font-weight: 700;
+    }
+    .paper-table td.habit-col {
+      background: #f8fafc;
+      color: var(--text);
+    }
+    .cell-v { background: #dcfce7; color: #166534; font-weight: 800; }
+    .cell-x { background: #fee2e2; color: #991b1b; font-weight: 800; }
+    .cell-paraf {
+      display: block;
+      font-size: 9px;
+      color: #0369a1;
+      margin-top: 1px;
+    }
+
+    /* Ringkasan & Stiker */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .stat-box {
       background: #f8fafc;
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 14px;
+      padding: 12px 14px;
     }
-    .info-tile h4 { font-size: 14px; color: var(--primary); margin-bottom: 4px; }
-    .info-tile p { font-size: 13px; color: var(--muted); }
+    .stat-box .num { font-size: 22px; font-weight: 800; color: var(--primary); }
+    .stat-box .lbl { font-size: 12px; color: var(--muted); }
+
+    .badge-terbiasa {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .badge-sudah { background: var(--ok-bg); color: var(--ok-text); }
+    .badge-belum { background: var(--warn-bg); color: var(--warn-text); }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 999px;
+    }
+
+    .sticker-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .sticker-card {
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: #f8fafc;
+      opacity: 0.55;
+    }
+    .sticker-card.unlocked {
+      opacity: 1;
+      background: linear-gradient(135deg, #f0fdfa, #ecfdf5);
+      border-color: var(--primary);
+    }
 
     /* Modal Change PIN */
     .modal-backdrop {
@@ -471,7 +645,6 @@
     </header>
 
     <main class="shell-container">
-      <!-- Profil Pengguna Aktif -->
       <section class="user-banner">
         <div>
           <span class="role-pill" id="shellRoleBadge">PERAN</span>
@@ -484,7 +657,6 @@
         </div>
       </section>
 
-      <!-- Bar "Lihat sebagai Wali Kelas" khusus Admin Utama -->
       <section id="adminPreviewBar" class="admin-preview-bar hidden">
         <strong style="font-size:13px;">Mode Admin Utama:</strong>
         <label for="selPreviewClass" style="margin:0; font-size:13px;">Lihat sebagai wali kelas:</label>
@@ -493,11 +665,9 @@
         </select>
       </section>
 
-      <!-- Navigasi Menu Sesuai Peran -->
       <nav id="roleNavStrip" class="nav-strip"></nav>
 
-      <!-- Area Konten Modul -->
-      <section id="roleWorkspace" class="card"></section>
+      <section id="roleWorkspace"></section>
     </main>
   </div>
 
@@ -543,6 +713,13 @@
     let publicConfig = null;
     let activeNavKey = '';
     let previewClassId = '';
+    let latestServerDate = '';
+
+    // State khusus Modul Siswa
+    let studentHomeState = null;
+    let studentMonthlyState = null;
+    let selectedReportYear = null;
+    let selectedReportMonth = null;
 
     // ========================================================================
     // 1. KOMUNIKASI API DENGAN RETRY BERTAHAP
@@ -592,7 +769,7 @@
         } catch (err) {
           lastErr = err;
           if (attempt < maxRetries) {
-            await new Promise(function(r) { setTimeout(r, 600 * (attempt + 1)); });
+            await new Promise(function(r) { setTimeout(r, 700 * (attempt + 1)); });
           }
         }
       }
@@ -600,35 +777,47 @@
     }
 
     // ========================================================================
-    // 2. PENYIMPANAN TOKEN AMAN (TRY/CATCH)
+    // 2. PENYIMPANAN TOKEN & DRAF LOKAL AMAN (TRY/CATCH)
     // ========================================================================
     function getSavedToken() {
-      try {
-        return sessionStorage.getItem(STORAGE_TOKEN_KEY) || '';
-      } catch (e) {
-        return window.__memToken || '';
-      }
+      try { return sessionStorage.getItem(STORAGE_TOKEN_KEY) || ''; }
+      catch (e) { return window.__memToken || ''; }
     }
-
     function saveToken(token) {
       window.__memToken = token;
-      try {
-        sessionStorage.setItem(STORAGE_TOKEN_KEY, token);
-      } catch (e) {
-        // Fallback ke memori jika storage diblokir browser
-      }
+      try { sessionStorage.setItem(STORAGE_TOKEN_KEY, token); } catch (e) {}
     }
-
     function clearSavedToken() {
       window.__memToken = '';
+      try { sessionStorage.removeItem(STORAGE_TOKEN_KEY); } catch (e) {}
+    }
+
+    function saveLocalDraft(key, obj) {
+      try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {}
+    }
+    function loadLocalDraft(key) {
       try {
-        sessionStorage.removeItem(STORAGE_TOKEN_KEY);
-      } catch (e) {}
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) { return null; }
+    }
+    function clearLocalDraft(key) {
+      try { localStorage.removeItem(key); } catch (e) {}
     }
 
     // ========================================================================
-    // 3. UTILITAS TAMPILAN
+    // 3. UTILITAS TAMPILAN & ESCAPE XSS
     // ========================================================================
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     function setLoading(show, text) {
       const el = document.getElementById('loadingOverlay');
       document.getElementById('loadingText').textContent = text || 'Memuat...';
@@ -638,11 +827,12 @@
 
     function showAlert(id, msg, type) {
       const el = document.getElementById(id);
+      if (!el) return;
       if (!msg) {
         el.classList.add('hidden');
         return;
       }
-      el.className = 'alert ' + (type === 'ok' ? 'alert-ok' : (type === 'warn' ? 'alert-warn' : 'alert-err'));
+      el.className = 'alert ' + (type === 'ok' ? 'alert-ok' : (type === 'warn' ? 'alert-warn' : (type === 'info' ? 'alert-info' : 'alert-err')));
       el.textContent = msg;
       el.classList.remove('hidden');
     }
@@ -763,6 +953,13 @@
     }
 
     function routeAfterAuth(serverDate) {
+      latestServerDate = serverDate || latestServerDate;
+      if (latestServerDate) {
+        const parts = latestServerDate.split('-');
+        if (!selectedReportYear) selectedReportYear = parseInt(parts[0], 10);
+        if (!selectedReportMonth) selectedReportMonth = parseInt(parts[1], 10);
+      }
+
       document.getElementById('viewLogin').classList.add('hidden');
       document.getElementById('viewForcePin').classList.add('hidden');
       document.getElementById('viewAppShell').classList.add('hidden');
@@ -825,13 +1022,12 @@
 
     async function logoutUser() {
       setLoading(true, 'Keluar...');
-      try {
-        await callApi('LOGOUT', {}, 0);
-      } catch (e) {
-        // Tetap bersihkan sesi lokal walau jaringan terputus
-      } finally {
+      try { await callApi('LOGOUT', {}, 0); } catch (e) {}
+      finally {
         clearSavedToken();
         currentUser = null;
+        studentHomeState = null;
+        studentMonthlyState = null;
         previewClassId = '';
         setLoading(false);
         showLoginView('Anda telah keluar dari aplikasi.');
@@ -842,11 +1038,8 @@
       document.getElementById('viewForcePin').classList.add('hidden');
       document.getElementById('viewAppShell').classList.add('hidden');
       document.getElementById('viewLogin').classList.remove('hidden');
-      if (infoMsg) {
-        showAlert('loginAlert', infoMsg, 'warn');
-      } else {
-        showAlert('loginAlert', '');
-      }
+      if (infoMsg) showAlert('loginAlert', infoMsg, 'warn');
+      else showAlert('loginAlert', '');
     }
 
     function openChangePinModal() {
@@ -866,29 +1059,29 @@
     // ========================================================================
     const ROLE_MENUS = {
       SISWA: [
-        { key: 'isi_hari_ini', label: 'Isi Hari Ini', desc: 'Catat pelaksanaan 7 kebiasaan hari ini beserta jam bangun dan jam tidur.' },
-        { key: 'kalender', label: 'Kalender Bulan', desc: 'Lembar pemantauan bulanan tanggal 1–31 beserta paraf validasi guru.' },
-        { key: 'ringkasan', label: 'Ringkasan & Stiker', desc: 'Capaian Sudah/Belum Terbiasa, rata-rata tidur, dan stiker apresiasi.' },
-        { key: 'refleksi', label: 'Refleksi Bulanan', desc: 'Kesimpulan dan tindak lanjut bulanan bersama orang tua/wali.' },
-        { key: 'panduan', label: 'Panduan 7KAIH', desc: 'Definisi resmi 7 Kebiasaan Anak Indonesia Hebat jenjang SMP.' }
+        { key: 'isi_hari_ini', label: 'Isi Hari Ini' },
+        { key: 'kalender', label: 'Kalender Bulan' },
+        { key: 'ringkasan', label: 'Ringkasan & Stiker' },
+        { key: 'refleksi', label: 'Refleksi Bulanan' },
+        { key: 'panduan', label: 'Panduan 7KAIH' }
       ],
       WALAS: [
-        { key: 'pantau_harian', label: 'Pemantauan Hari Ini', desc: 'Daftar siswa yang belum mengisi dan siswa yang membutuhkan perhatian.' },
-        { key: 'validasi_paraf', label: 'Validasi Paraf', desc: 'Pemberian paraf digital satuan maupun massal per rentang tanggal.' },
-        { key: 'rekap_kelas', label: 'Rekap & Catatan', desc: 'Rekap bulanan kelas (Lampiran 3) dan kolom catatan wali kelas.' },
-        { key: 'kelola_siswa', label: 'Data Siswa', desc: 'Tambah siswa, impor massal dari Excel/CSV, edit, dan reset PIN.' },
-        { key: 'ekspor_walas', label: 'Unduh Excel (.xlsx)', desc: 'Unduh Rekap Bulanan Lampiran 3 dan data harian kelas.' }
+        { key: 'pantau_harian', label: 'Pemantauan Hari Ini', desc: 'Daftar siswa yang belum mengisi dan siswa yang membutuhkan perhatian (Tahap 4).' },
+        { key: 'validasi_paraf', label: 'Validasi Paraf', desc: 'Pemberian paraf digital satuan maupun massal per rentang tanggal (Tahap 4).' },
+        { key: 'rekap_kelas', label: 'Rekap & Catatan', desc: 'Rekap bulanan kelas (Lampiran 3) dan kolom catatan wali kelas (Tahap 4).' },
+        { key: 'kelola_siswa', label: 'Data Siswa', desc: 'Tambah siswa, impor massal dari Excel/CSV, edit, dan reset PIN (Tahap 4).' },
+        { key: 'ekspor_walas', label: 'Unduh Excel (.xlsx)', desc: 'Unduh Rekap Bulanan Lampiran 3 dan data harian kelas (Tahap 6).' }
       ],
       ADMIN: [
-        { key: 'dashboard_sekolah', label: 'Dashboard Sekolah', desc: 'Statistik pengisian seluruh kelas dan capaian 7 kebiasaan.' },
-        { key: 'pengaturan_sistem', label: 'Pengaturan (8 Modul)', desc: 'Tahun ajaran, form 7 kebiasaan, kriteria, aturan, identitas, dan ekspor.' },
-        { key: 'kelas_naik', label: 'Kelas & Naik Kelas', desc: 'Kelola rombel, jadwal buka-tutup kelas, dan wizard Naik Kelas.' },
-        { key: 'akun_keamanan', label: 'Akun & Keamanan', desc: 'Kelola akun Admin, Wali Kelas, Pembaca, log aktivitas, dan arsip.' },
-        { key: 'pengumuman', label: 'Pengumuman', desc: 'Kelola pengumuman singkat di beranda siswa.' }
+        { key: 'dashboard_sekolah', label: 'Dashboard Sekolah', desc: 'Statistik pengisian seluruh kelas dan capaian 7 kebiasaan (Tahap 6).' },
+        { key: 'pengaturan_sistem', label: 'Pengaturan (8 Modul)', desc: 'Tahun ajaran, form 7 kebiasaan, kriteria, aturan, identitas, dan ekspor (Tahap 5).' },
+        { key: 'kelas_naik', label: 'Kelas & Naik Kelas', desc: 'Kelola rombel, jadwal buka-tutup kelas, dan wizard Naik Kelas (Tahap 5).' },
+        { key: 'akun_keamanan', label: 'Akun & Keamanan', desc: 'Kelola akun Admin, Wali Kelas, Pembaca, log aktivitas, dan arsip (Tahap 5).' },
+        { key: 'pengumuman', label: 'Pengumuman', desc: 'Kelola pengumuman singkat di beranda siswa (Tahap 5).' }
       ],
       PEMBACA: [
-        { key: 'dashboard_pembaca', label: 'Dashboard Sekolah', desc: 'Ringkasan pelaksanaan 7KAIH seluruh tingkat kelas (mode baca).' },
-        { key: 'rekap_pembaca', label: 'Rekap Per Kelas', desc: 'Tinjau rekap bulanan tiap kelas tanpa mengubah data.' }
+        { key: 'dashboard_pembaca', label: 'Dashboard Sekolah', desc: 'Ringkasan pelaksanaan 7KAIH seluruh tingkat kelas (Tahap 6).' },
+        { key: 'rekap_pembaca', label: 'Rekap Per Kelas', desc: 'Tinjau rekap bulanan tiap kelas tanpa mengubah data (Tahap 6).' }
       ]
     };
 
@@ -906,7 +1099,7 @@
       document.getElementById('shellUserName').textContent = currentUser.nama;
       document.getElementById('shellAcademicYear').textContent =
         'TA ' + (currentUser.nama_tahun || '-') + ' (' + (currentUser.semester || '-') + ')';
-      document.getElementById('shellServerDate').textContent = 'Tanggal Server: ' + (serverDate || '-');
+      document.getElementById('shellServerDate').textContent = 'Tanggal Server: ' + (serverDate || latestServerDate || '-');
 
       if (currentUser.peran === 'SISWA') {
         document.getElementById('shellUserMeta').textContent =
@@ -920,7 +1113,6 @@
           'Username: ' + currentUser.identifier + ' • NIP: ' + (currentUser.nip || '-');
       }
 
-      // Tampilkan selector "Lihat sebagai wali kelas" khusus Admin Utama
       const previewBar = document.getElementById('adminPreviewBar');
       if (currentUser.peran === 'ADMIN') {
         previewBar.classList.remove('hidden');
@@ -967,35 +1159,638 @@
         navEl.appendChild(btn);
       });
 
+      if (effectiveRole === 'SISWA') {
+        loadStudentView(activeNavKey);
+        return;
+      }
+
       const activeMenu = menus.find(function(m) { return m.key === activeNavKey; }) || menus[0];
       const workspace = document.getElementById('roleWorkspace');
-      workspace.innerHTML = '';
+      workspace.innerHTML =
+        '<div class="card">' +
+          '<h3 style="font-size:18px; margin-bottom:6px;">' + escapeHtml(activeMenu.label) + '</h3>' +
+          '<p style="font-size:14px; color:var(--muted);">' + escapeHtml(activeMenu.desc || '') + '</p>' +
+        '</div>';
+    }
 
-      if (activeMenu) {
-        const title = document.createElement('h3');
-        title.style.fontSize = '18px';
-        title.style.marginBottom = '6px';
-        title.textContent = activeMenu.label;
+    // ========================================================================
+    // 6. MODUL SISWA (TAHAP 3)
+    // ========================================================================
+    async function loadStudentView(tabKey) {
+      const workspace = document.getElementById('roleWorkspace');
+      if (tabKey === 'isi_hari_ini') {
+        await renderStudentDailyFormView(workspace);
+      } else if (tabKey === 'kalender') {
+        await renderStudentCalendarView(workspace);
+      } else if (tabKey === 'ringkasan') {
+        await renderStudentSummaryView(workspace);
+      } else if (tabKey === 'refleksi') {
+        await renderStudentReflectionView(workspace);
+      } else if (tabKey === 'panduan') {
+        await renderStudentGuideView(workspace);
+      }
+    }
 
-        const desc = document.createElement('p');
-        desc.style.fontSize = '14px';
-        desc.style.color = 'var(--muted)';
-        desc.textContent = activeMenu.desc;
+    // ------------------------------------------------------------------------
+    // 6A. TAB "ISI HARI INI"
+    // ------------------------------------------------------------------------
+    async function renderStudentDailyFormView(container, targetDate) {
+      setLoading(true, 'Memuat catatan harian...');
+      try {
+        const res = await callApi('GET_STUDENT_HOME', { targetDate: targetDate || '' });
+        if (!res || !res.ok) {
+          container.innerHTML = '<div class="card"><div class="alert alert-err">' +
+            escapeHtml((res && res.message) ? res.message : 'Gagal memuat form harian.') + '</div></div>';
+          return;
+        }
+        studentHomeState = res.data;
+        paintStudentDailyForm(container);
+      } catch (err) {
+        container.innerHTML = '<div class="card"><div class="alert alert-err">Gagal terhubung: ' + escapeHtml(err.message) + '</div></div>';
+      } finally {
+        setLoading(false);
+      }
+    }
 
-        const badgeBox = document.createElement('div');
-        badgeBox.className = 'alert alert-ok';
-        badgeBox.style.marginTop = '16px';
-        badgeBox.style.marginBottom = '0';
-        badgeBox.textContent = 'Otentikasi dan sesi aktif terverifikasi di server. Modul fungsional layar ini siap dibangun pada tahap berikutnya.';
+    function paintStudentDailyForm(container) {
+      const st = studentHomeState;
+      const draftKey = '7KAIH_DRAFT_' + currentUser.id + '_' + st.selectedDate;
+      const localDraft = loadLocalDraft(draftKey);
+      const sourceData = st.existingEntry || localDraft || {
+        status_kebiasaan: {},
+        jam_bangun: '',
+        jam_tidur: '',
+        jawaban_tambahan: {},
+        diketahui_ortu: false
+      };
 
-        workspace.appendChild(title);
-        workspace.appendChild(desc);
-        workspace.appendChild(badgeBox);
+      let html = '';
+
+      // Pengumuman Sekolah untuk Siswa
+      if (st.announcements && st.announcements.length > 0) {
+        st.announcements.forEach(function(ann) {
+          html += '<div class="alert alert-info">' +
+            '<strong>' + escapeHtml(ann.judul) + '</strong><br>' +
+            '<span>' + escapeHtml(ann.isi) + '</span>' +
+          '</div>';
+        });
+      }
+
+      html += '<div class="card">';
+      html += '<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px;">';
+      html += '<div><h3 style="font-size:18px;">Catat Kebiasaan Harian</h3>' +
+              '<p style="font-size:12px; color:var(--muted);">Isi setiap hari termasuk Sabtu dan Minggu.</p></div>';
+
+      // Pemilih tanggal (Hari ini s/d N hari mundur)
+      html += '<div style="min-width:210px;">' +
+              '<select id="selJournalDate" onchange="onChangeJournalDate(this.value)">';
+      st.dateOptions.forEach(function(opt) {
+        html += '<option value="' + escapeHtml(opt.date) + '"' + (opt.date === st.selectedDate ? ' selected' : '') + '>' +
+                escapeHtml(opt.label) + '</option>';
+      });
+      html += '</select></div></div>';
+
+      if (st.existingEntry) {
+        html += '<div class="alert alert-ok">Catatan tanggal <strong>' + escapeHtml(st.selectedDate) +
+                '</strong> sudah tersimpan (terakhir diubah: ' + escapeHtml(st.existingEntry.diubah || '-') + '). Anda masih bisa memperbaruinya hari ini.</div>';
+      } else if (localDraft) {
+        html += '<div class="alert alert-warn">Draf pengisian yang belum terkirim dipulihkan dari perangkat Anda.</div>';
+      }
+
+      if (!st.scheduleStatus.isOpen) {
+        html += '<div class="alert alert-err">' + escapeHtml(st.scheduleStatus.message) + '</div>';
+      }
+      if (!st.calendarRule.allowed) {
+        html += '<div class="alert alert-warn">' + escapeHtml(st.calendarRule.reason) + '</div>';
+      }
+
+      html += '<div id="dailyFormAlert" class="alert alert-err hidden"></div>';
+      html += '<form id="dailyJournalForm" onsubmit="submitDailyJournal(event)">';
+
+      // Render 7 Kebiasaan secara dinamis sesuai versi form
+      st.form.habits.forEach(function(h) {
+        const curVal = (sourceData.status_kebiasaan && sourceData.status_kebiasaan[h.id_kebiasaan]) || '';
+        const cardStateClass = curVal === 'v' ? 'state-v' : (curVal === 'x' ? 'state-x' : '');
+
+        html += '<div class="habit-card ' + cardStateClass + '" id="card_' + escapeHtml(h.id_kebiasaan) + '">';
+        html += '<div class="habit-header"><div>' +
+                '<div class="habit-title"><span class="habit-num">' + h.urutan + '</span>' + escapeHtml(h.nama) + '</div>' +
+                '<div class="habit-sub">' + escapeHtml(h.panduan_singkat) + '</div>' +
+                '</div></div>';
+
+        // Jika mode Bangun Pagi otomatis dari jam bangun, tampilkan info
+        const isAutoBangun = (h.kode === 'BANGUN_PAGI' && st.rules.mode_bangun_pagi === 'OTOMATIS_JAM');
+        if (isAutoBangun) {
+          html += '<div class="hint" style="margin-bottom:8px; color:var(--primary); font-weight:600;">' +
+                  'Status otomatis tercatat "Sudah" jika jam bangun antara ' +
+                  escapeHtml(st.rules.bangun_pagi_mulai) + ' – ' + escapeHtml(st.rules.bangun_pagi_selesai) + ' WIB.</div>';
+        }
+
+        html += '<input type="hidden" id="val_' + escapeHtml(h.id_kebiasaan) + '" value="' + escapeHtml(curVal) + '">';
+        html += '<div class="vx-group">';
+        html += '<button type="button" class="vx-btn ' + (curVal === 'v' ? 'active-v' : '') + '" ' +
+                'id="btnV_' + escapeHtml(h.id_kebiasaan) + '" ' +
+                'onclick="setHabitStatus(\'' + escapeHtml(h.id_kebiasaan) + '\', \'v\')">&#10003; Sudah (v)</button>';
+        html += '<button type="button" class="vx-btn ' + (curVal === 'x' ? 'active-x' : '') + '" ' +
+                'id="btnX_' + escapeHtml(h.id_kebiasaan) + '" ' +
+                'onclick="setHabitStatus(\'' + escapeHtml(h.id_kebiasaan) + '\', \'x\')">&#10007; Belum (x)</button>';
+        html += '</div>';
+
+        // Field tambahan (jam bangun, jam tidur, atau isian aktif lainnya)
+        if (h.fields && h.fields.length > 0) {
+          html += '<div class="extra-fields">';
+          h.fields.forEach(function(f) {
+            let fVal = '';
+            if (f.kode_field === 'jam_bangun') fVal = sourceData.jam_bangun || '';
+            else if (f.kode_field === 'jam_tidur') fVal = sourceData.jam_tidur || '';
+            else fVal = (sourceData.jawaban_tambahan && sourceData.jawaban_tambahan[f.kode_field]) || '';
+
+            html += '<div class="form-group" style="margin-bottom:8px;">';
+            html += '<label for="fld_' + escapeHtml(f.kode_field) + '">' + escapeHtml(f.label) +
+                    (f.wajib ? ' <span style="color:#dc2626;">*</span>' : '') + '</label>';
+
+            if (f.tipe === 'JAM') {
+              html += '<input type="time" id="fld_' + escapeHtml(f.kode_field) + '" value="' + escapeHtml(fVal) + '" ' +
+                      'onchange="onDailyInputChanged()">';
+            } else if (f.tipe === 'ANGKA') {
+              html += '<input type="number" id="fld_' + escapeHtml(f.kode_field) + '" value="' + escapeHtml(fVal) + '" ' +
+                      'placeholder="' + escapeHtml(f.petunjuk) + '" oninput="onDailyInputChanged()">';
+            } else if (f.tipe === 'PILIHAN') {
+              html += '<select id="fld_' + escapeHtml(f.kode_field) + '" onchange="onDailyInputChanged()">' +
+                      '<option value="">-- Pilih --</option>';
+              (f.opsi || []).forEach(function(op) {
+                html += '<option value="' + escapeHtml(op) + '"' + (op === fVal ? ' selected' : '') + '>' + escapeHtml(op) + '</option>';
+              });
+              html += '</select>';
+            } else if (f.tipe === 'TEKS_PANJANG') {
+              html += '<textarea id="fld_' + escapeHtml(f.kode_field) + '" placeholder="' + escapeHtml(f.petunjuk) + '" ' +
+                      'oninput="onDailyInputChanged()">' + escapeHtml(fVal) + '</textarea>';
+            } else {
+              html += '<input type="text" id="fld_' + escapeHtml(f.kode_field) + '" value="' + escapeHtml(fVal) + '" ' +
+                      'placeholder="' + escapeHtml(f.petunjuk) + '" oninput="onDailyInputChanged()">';
+            }
+
+            if (f.petunjuk) {
+              html += '<div class="hint">' + escapeHtml(f.petunjuk) + '</div>';
+            }
+            html += '</div>';
+          });
+
+          // Indikator informasi durasi tidur pada kartu Tidur Cepat
+          if (h.kode === 'TIDUR_CEPAT') {
+            html += '<div id="sleepDurationInfo" class="hint" style="font-weight:600; color:var(--primary);"></div>';
+          }
+          html += '</div>';
+        }
+
+        html += '</div>';
+      });
+
+      // Penanda Diketahui Orang Tua / Wali
+      html += '<label class="parent-ack-box" for="chkDiketahuiOrtu">' +
+              '<input type="checkbox" id="chkDiketahuiOrtu"' + (sourceData.diketahui_ortu ? ' checked' : '') + ' onchange="onDailyInputChanged()">' +
+              '<div><strong>Diketahui Orang Tua / Wali</strong>' +
+              '<div class="hint" style="margin-top:2px;">Saya mengisi catatan kebiasaan hari ini dengan jujur dan sepengetahuan orang tua/wali.</div></div>' +
+              '</label>';
+
+      const canSubmit = st.scheduleStatus.isOpen && st.calendarRule.allowed;
+      html += '<button type="submit" id="btnSaveJournal" class="btn btn-primary"' + (canSubmit ? '' : ' disabled') + '>' +
+              'Simpan Catatan Hari Ini</button>';
+      html += '</form></div>';
+
+      container.innerHTML = html;
+      updateSleepDurationPreview();
+    }
+
+    function setHabitStatus(habitId, val) {
+      const hiddenInp = document.getElementById('val_' + habitId);
+      const card = document.getElementById('card_' + habitId);
+      const btnV = document.getElementById('btnV_' + habitId);
+      const btnX = document.getElementById('btnX_' + habitId);
+      if (!hiddenInp) return;
+
+      hiddenInp.value = val;
+      card.classList.remove('state-v', 'state-x');
+      btnV.classList.remove('active-v');
+      btnX.classList.remove('active-x');
+
+      if (val === 'v') {
+        card.classList.add('state-v');
+        btnV.classList.add('active-v');
+      } else if (val === 'x') {
+        card.classList.add('state-x');
+        btnX.classList.add('active-x');
+      }
+      onDailyInputChanged();
+    }
+
+    function collectDailyFormValues() {
+      const st = studentHomeState;
+      const statusMap = {};
+      const extraMap = {};
+      let jamBangun = '';
+      let jamTidur = '';
+
+      st.form.habits.forEach(function(h) {
+        const inp = document.getElementById('val_' + h.id_kebiasaan);
+        statusMap[h.id_kebiasaan] = inp ? inp.value : '';
+
+        (h.fields || []).forEach(function(f) {
+          const fEl = document.getElementById('fld_' + f.kode_field);
+          const v = fEl ? fEl.value.trim() : '';
+          if (f.kode_field === 'jam_bangun') jamBangun = v;
+          else if (f.kode_field === 'jam_tidur') jamTidur = v;
+          else extraMap[f.kode_field] = v;
+        });
+      });
+
+      const chkOrtu = document.getElementById('chkDiketahuiOrtu');
+      return {
+        tanggal: st.selectedDate,
+        status_kebiasaan: statusMap,
+        jam_bangun: jamBangun,
+        jam_tidur: jamTidur,
+        jawaban_tambahan: extraMap,
+        diketahui_ortu: chkOrtu ? chkOrtu.checked : false
+      };
+    }
+
+    function onDailyInputChanged() {
+      if (!studentHomeState) return;
+      const payload = collectDailyFormValues();
+      const draftKey = '7KAIH_DRAFT_' + currentUser.id + '_' + studentHomeState.selectedDate;
+      saveLocalDraft(draftKey, payload);
+      updateSleepDurationPreview();
+    }
+
+    function updateSleepDurationPreview() {
+      const infoEl = document.getElementById('sleepDurationInfo');
+      if (!infoEl || !studentHomeState) return;
+      const jbEl = document.getElementById('fld_jam_bangun');
+      const jtEl = document.getElementById('fld_jam_tidur');
+      const jb = jbEl ? jbEl.value : '';
+      const jt = jtEl ? jtEl.value : '';
+
+      if (!jb || !jt) {
+        infoEl.textContent = 'Kebutuhan tidur usia SMP: ' +
+          studentHomeState.rules.tidur_ideal_min_jam + '–' +
+          studentHomeState.rules.tidur_ideal_maks_jam + ' jam per hari.';
+        return;
+      }
+
+      const sParts = jt.split(':');
+      const wParts = jb.split(':');
+      let diff = (parseInt(wParts[0], 10) * 60 + parseInt(wParts[1], 10)) -
+                 (parseInt(sParts[0], 10) * 60 + parseInt(sParts[1], 10));
+      if (diff <= 0) diff += 1440;
+      const hrs = Math.floor(diff / 60);
+      const mins = diff % 60;
+      infoEl.textContent = 'Indikator durasi tidur: ' + hrs + ' jam ' + mins + ' menit (kebutuhan usia SMP: ' +
+        studentHomeState.rules.tidur_ideal_min_jam + '–' + studentHomeState.rules.tidur_ideal_maks_jam + ' jam).';
+    }
+
+    function onChangeJournalDate(newDate) {
+      const workspace = document.getElementById('roleWorkspace');
+      renderStudentDailyFormView(workspace, newDate);
+    }
+
+    async function submitDailyJournal(e) {
+      e.preventDefault();
+      showAlert('dailyFormAlert', '');
+      const payload = collectDailyFormValues();
+
+      setLoading(true, 'Menyimpan catatan harian...');
+      try {
+        const res = await callApi('SAVE_DAILY_JOURNAL', payload, 2);
+        if (!res || !res.ok) {
+          showAlert('dailyFormAlert', (res && res.message) ? res.message : 'Gagal menyimpan catatan.');
+          return;
+        }
+        const draftKey = '7KAIH_DRAFT_' + currentUser.id + '_' + payload.tanggal;
+        clearLocalDraft(draftKey);
+        alert(res.message);
+        await renderStudentDailyFormView(document.getElementById('roleWorkspace'), payload.tanggal);
+      } catch (err) {
+        showAlert('dailyFormAlert', 'Koneksi terganggu. Draf Anda tersimpan aman di perangkat ini—silakan tekan Simpan lagi saat sinyal stabil.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // 6B. HELPER MUAT LAPORAN BULANAN (DIPAKAI TAB KALENDER, RINGKASAN, REFLEKSI)
+    // ------------------------------------------------------------------------
+    async function ensureMonthlyReportLoaded(forceReload) {
+      if (!forceReload && studentMonthlyState &&
+          studentMonthlyState.year === selectedReportYear &&
+          studentMonthlyState.month === selectedReportMonth) {
+        return studentMonthlyState;
+      }
+      const res = await callApi('GET_STUDENT_MONTHLY_REPORT', {
+        year: selectedReportYear,
+        month: selectedReportMonth
+      });
+      if (!res || !res.ok) {
+        throw new Error((res && res.message) ? res.message : 'Gagal memuat data bulanan.');
+      }
+      studentMonthlyState = res.data;
+      return studentMonthlyState;
+    }
+
+    function buildMonthSelectorHtml(onChangeFnName) {
+      const monthNames = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      let html = '<div class="month-picker">';
+      html += '<select onchange="' + onChangeFnName + '(this.value, null)">';
+      for (let m = 1; m <= 12; m++) {
+        html += '<option value="' + m + '"' + (m === selectedReportMonth ? ' selected' : '') + '>' + monthNames[m - 1] + '</option>';
+      }
+      html += '</select>';
+
+      const curYear = parseInt((latestServerDate || '2026-01-01').split('-')[0], 10);
+      html += '<select onchange="' + onChangeFnName + '(null, this.value)">';
+      for (let y = curYear - 1; y <= curYear + 1; y++) {
+        html += '<option value="' + y + '"' + (y === selectedReportYear ? ' selected' : '') + '>' + y + '</option>';
+      }
+      html += '</select></div>';
+      return html;
+    }
+
+    async function changeReportPeriod(newMonth, newYear) {
+      if (newMonth) selectedReportMonth = parseInt(newMonth, 10);
+      if (newYear) selectedReportYear = parseInt(newYear, 10);
+      studentMonthlyState = null;
+      await loadStudentView(activeNavKey);
+    }
+
+    // ------------------------------------------------------------------------
+    // 6C. TAB "KALENDER BULAN" (MATRIKS 1..31 MENIRU LEMBAR KERTAS RESMI)
+    // ------------------------------------------------------------------------
+    async function renderStudentCalendarView(container) {
+      setLoading(true, 'Memuat kalender bulanan...');
+      try {
+        const rep = await ensureMonthlyReportLoaded(false);
+        let html = '<div class="card">';
+        html += '<div class="month-toolbar">' +
+                '<div><h3 style="font-size:18px;">Lembar Catatan Harian (Tanggal 1–' + rep.daysInMonth + ')</h3>' +
+                '<p style="font-size:12px; color:var(--muted);">Geser tabel ke kanan untuk melihat seluruh tanggal dan tanda paraf guru.</p></div>' +
+                buildMonthSelectorHtml('changeReportPeriod') +
+                '</div>';
+
+        html += '<div class="paper-scroll"><table class="paper-table"><thead><tr>';
+        html += '<th class="habit-col">Tujuh Kebiasaan</th>';
+        for (let d = 1; d <= rep.daysInMonth; d++) {
+          html += '<th>' + d + '</th>';
+        }
+        html += '<th>Jml (v)</th><th>Paraf</th></tr></thead><tbody>';
+
+        rep.habits.forEach(function(h) {
+          const sum = rep.summaries.find(function(s) { return s.id_kebiasaan === h.id_kebiasaan; }) || { count_v: 0, count_paraf: 0 };
+          html += '<tr><td class="habit-col">' + h.urutan + '. ' + escapeHtml(h.nama) + '</td>';
+          rep.dailyMatrix.forEach(function(dayItem) {
+            const st = dayItem.status_kebiasaan[h.id_kebiasaan] || '';
+            const hasParaf = dayItem.validasi_guru && dayItem.validasi_guru[h.id_kebiasaan];
+            const cls = st === 'v' ? 'cell-v' : (st === 'x' ? 'cell-x' : '');
+            const symbol = st === 'v' ? '&#10003;' : (st === 'x' ? '&#10007;' : '-');
+            html += '<td class="' + cls + '">' + symbol +
+                    (hasParaf ? '<span class="cell-paraf" title="Sudah diparaf guru">Paraf</span>' : '') +
+                    '</td>';
+          });
+          html += '<td><strong>' + sum.count_v + '</strong></td>';
+          html += '<td><strong>' + sum.count_paraf + '</strong></td></tr>';
+        });
+
+        // Baris Jam Bangun & Jam Tidur
+        html += '<tr><td class="habit-col">Jam Bangun</td>';
+        rep.dailyMatrix.forEach(function(dayItem) {
+          html += '<td style="font-size:10px;">' + escapeHtml(dayItem.jam_bangun || '-') + '</td>';
+        });
+        html += '<td colspan="2">-</td></tr>';
+
+        html += '<tr><td class="habit-col">Jam Tidur</td>';
+        rep.dailyMatrix.forEach(function(dayItem) {
+          html += '<td style="font-size:10px;">' + escapeHtml(dayItem.jam_tidur || '-') + '</td>';
+        });
+        html += '<td colspan="2">-</td></tr>';
+
+        // Baris Diketahui Orang Tua
+        html += '<tr><td class="habit-col">Diketahui Ortu</td>';
+        rep.dailyMatrix.forEach(function(dayItem) {
+          html += '<td>' + (dayItem.diketahui_ortu ? '&#10003;' : '-') + '</td>';
+        });
+        html += '<td colspan="2">-</td></tr>';
+
+        html += '</tbody></table></div></div>';
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // 6D. TAB "RINGKASAN & STIKER"
+    // ------------------------------------------------------------------------
+    async function renderStudentSummaryView(container) {
+      setLoading(true, 'Menghitung capaian bulanan...');
+      try {
+        const rep = await ensureMonthlyReportLoaded(false);
+        const avgSleepText = rep.stats.avgSleepMinutes !== null
+          ? (Math.floor(rep.stats.avgSleepMinutes / 60) + ' jam ' + (rep.stats.avgSleepMinutes % 60) + ' mnt')
+          : 'Belum ada data';
+
+        let html = '<div class="card">';
+        html += '<div class="month-toolbar">' +
+                '<div><h3 style="font-size:18px;">Ringkasan Capaian Bulanan</h3>' +
+                '<p style="font-size:12px; color:var(--muted);">Target "Sudah Terbiasa": minimal <strong>' + rep.minDaysRequired + ' hari</strong> dari ' + rep.daysInMonth + ' hari.</p></div>' +
+                buildMonthSelectorHtml('changeReportPeriod') +
+                '</div>';
+
+        html += '<div class="summary-grid">';
+        html += '<div class="stat-box"><div class="num">' + rep.stats.filledDaysCount + ' / ' + rep.daysInMonth + '</div><div class="lbl">Hari Mengisi Jurnal</div></div>';
+        html += '<div class="stat-box"><div class="num">' + rep.stats.longestStreak + ' Hari</div><div class="lbl">Rangkaian 7/7 Berturut-turut</div></div>';
+        html += '<div class="stat-box"><div class="num">' + escapeHtml(avgSleepText) + '</div><div class="lbl">Rata-rata Durasi Tidur (Ideal ' + rep.stats.sleepIdealMin + '–' + rep.stats.sleepIdealMaks + ' jam)</div></div>';
+        html += '</div>';
+
+        // Daftar 7 Kebiasaan & Kategori Sudah/Belum Terbiasa
+        rep.summaries.forEach(function(s) {
+          html += '<div class="habit-card" style="margin-bottom:10px;">' +
+                  '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">' +
+                  '<strong>' + s.urutan + '. ' + escapeHtml(s.nama) + '</strong>' +
+                  '<span class="badge-terbiasa ' + (s.is_terbiasa ? 'badge-sudah' : 'badge-belum') + '">' +
+                  escapeHtml(s.kategori) + (s.extra_label ? ' (' + escapeHtml(s.extra_label) + ')' : '') +
+                  '</span></div>' +
+                  '<div style="font-size:13px; color:var(--muted); margin-top:4px;">Terlaksana <strong>' + s.count_v + '</strong> dari ' + s.days_in_month + ' hari (' + s.percentage + '%) • Paraf guru: ' + s.count_paraf + '</div>' +
+                  '<div class="progress-bar-bg"><div class="progress-bar-fill" style="width:' + Math.min(100, s.percentage) + '%;"></div></div>' +
+                  '</div>';
+        });
+        html += '</div>';
+
+        // Stiker Apresiasi Digital
+        html += '<div class="card">';
+        html += '<h3 style="font-size:17px; margin-bottom:4px;">Stiker Apresiasi Kebiasaan</h3>';
+        html += '<p style="font-size:12px; color:var(--muted); margin-bottom:10px;">Terus bangun kebiasaan baik setiap hari untuk mengumpulkan seluruh stiker bulan ini!</p>';
+        html += '<div class="sticker-grid">';
+        rep.stickers.forEach(function(stk) {
+          html += '<div class="sticker-card ' + (stk.unlocked ? 'unlocked' : '') + '">' +
+                  '<div style="font-size:12px; font-weight:800; color:' + (stk.unlocked ? 'var(--primary)' : 'var(--muted)') + ';">' +
+                  (stk.unlocked ? '&#9733; TERCAPAI' : 'BELUM TERCAPAI') + '</div>' +
+                  '<div style="font-size:15px; font-weight:700; margin:4px 0;">' + escapeHtml(stk.title) + '</div>' +
+                  '<div style="font-size:12px; color:var(--muted);">' + escapeHtml(stk.desc) + '</div>' +
+                  '</div>';
+        });
+        html += '</div></div>';
+
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // 6E. TAB "REFLEKSI BULANAN" (BERSAMA ORANG TUA / WALI)
+    // ------------------------------------------------------------------------
+    async function renderStudentReflectionView(container) {
+      setLoading(true, 'Memuat lembar refleksi...');
+      try {
+        const rep = await ensureMonthlyReportLoaded(false);
+        const refData = (rep.reflection && rep.reflection.refleksi) ? rep.reflection.refleksi : {};
+
+        let html = '<div class="card">';
+        html += '<div class="month-toolbar">' +
+                '<div><h3 style="font-size:18px;">Refleksi Bulanan Orang Tua / Wali</h3>' +
+                '<p style="font-size:12px; color:var(--muted);">Diisi setiap akhir bulan bersama orang tua/wali. Jika anak konsisten, tuliskan apresiasi.</p></div>' +
+                buildMonthSelectorHtml('changeReportPeriod') +
+                '</div>';
+
+        if (rep.reflection && rep.reflection.catatan_walas) {
+          html += '<div class="alert alert-info"><strong>Catatan Wali Kelas:</strong><br>' +
+                  escapeHtml(rep.reflection.catatan_walas) + '</div>';
+        }
+
+        html += '<div id="reflectionAlert" class="alert alert-err hidden"></div>';
+        html += '<form onsubmit="submitMonthlyReflection(event)">';
+
+        rep.habits.forEach(function(h) {
+          const sum = rep.summaries.find(function(s) { return s.id_kebiasaan === h.id_kebiasaan; });
+          const item = refData[h.id_kebiasaan] || { kesimpulan: '', tindak_lanjut: '' };
+
+          html += '<div class="habit-card">';
+          html += '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;">' +
+                  '<strong>' + h.urutan + '. ' + escapeHtml(h.nama) + '</strong>' +
+                  (sum ? '<span class="badge-terbiasa ' + (sum.is_terbiasa ? 'badge-sudah' : 'badge-belum') + '">' +
+                  escapeHtml(sum.kategori) + ' (' + sum.count_v + '/' + sum.days_in_month + ' hari)</span>' : '') +
+                  '</div>';
+
+          html += '<div class="form-group" style="margin-bottom:8px;">' +
+                  '<label>Kesimpulan / Refleksi Orang Tua & Siswa</label>' +
+                  '<textarea id="refKes_' + escapeHtml(h.id_kebiasaan) + '" placeholder="Contoh: Sudah konsisten bangun pukul 05.00, pertahankan!">' +
+                  escapeHtml(item.kesimpulan || '') + '</textarea></div>';
+
+          html += '<div class="form-group" style="margin-bottom:0;">' +
+                  '<label>Tindak Lanjut Bulan Berikutnya</label>' +
+                  '<textarea id="refTin_' + escapeHtml(h.id_kebiasaan) + '" placeholder="Contoh: Menyiapkan perlengkapan sekolah sejak malam hari.">' +
+                  escapeHtml(item.tindak_lanjut || '') + '</textarea></div>';
+          html += '</div>';
+        });
+
+        html += '<button type="submit" class="btn btn-primary">Simpan Refleksi Bulanan</button>';
+        html += '</form></div>';
+
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function submitMonthlyReflection(e) {
+      e.preventDefault();
+      showAlert('reflectionAlert', '');
+      if (!studentMonthlyState) return;
+
+      const refleksiObj = {};
+      studentMonthlyState.habits.forEach(function(h) {
+        const kesEl = document.getElementById('refKes_' + h.id_kebiasaan);
+        const tinEl = document.getElementById('refTin_' + h.id_kebiasaan);
+        refleksiObj[h.id_kebiasaan] = {
+          kesimpulan: kesEl ? kesEl.value.trim() : '',
+          tindak_lanjut: tinEl ? tinEl.value.trim() : ''
+        };
+      });
+
+      setLoading(true, 'Menyimpan refleksi bulanan...');
+      try {
+        const res = await callApi('SAVE_MONTHLY_REFLECTION', {
+          year: selectedReportYear,
+          month: selectedReportMonth,
+          refleksi: refleksiObj
+        }, 2);
+
+        if (!res || !res.ok) {
+          showAlert('reflectionAlert', (res && res.message) ? res.message : 'Gagal menyimpan refleksi.');
+          return;
+        }
+        studentMonthlyState = null;
+        alert(res.message);
+        await renderStudentReflectionView(document.getElementById('roleWorkspace'));
+      } catch (err) {
+        showAlert('reflectionAlert', 'Gagal terhubung ke server: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // 6F. TAB "PANDUAN 7KAIH"
+    // ------------------------------------------------------------------------
+    async function renderStudentGuideView(container) {
+      setLoading(true, 'Memuat panduan 7KAIH...');
+      try {
+        const res = await callApi('GET_HABIT_DEFINITIONS', {});
+        if (!res || !res.ok) {
+          container.innerHTML = '<div class="card"><div class="alert alert-err">' +
+            escapeHtml((res && res.message) ? res.message : 'Gagal memuat panduan.') + '</div></div>';
+          return;
+        }
+
+        const d = res.data;
+        let html = '<div class="card">';
+        html += '<h3 style="font-size:18px; margin-bottom:4px;">Panduan Gerakan Tujuh Kebiasaan Anak Indonesia Hebat</h3>';
+        html += '<p style="font-size:13px; color:var(--muted); margin-bottom:14px;">Berdasarkan Panduan Resmi Kemendikdasmen Jenjang SMP (Maret 2025).</p>';
+
+        html += '<div class="alert alert-info">' +
+                '<strong>Kriteria Sekolah:</strong><br>' +
+                '• Bangun Pagi: pukul ' + escapeHtml(d.kriteria.bangun_pagi_mulai) + ' – ' + escapeHtml(d.kriteria.bangun_pagi_selesai) + ' WIB.<br>' +
+                '• Kebutuhan Tidur Remaja (12–18 tahun): ' + escapeHtml(d.kriteria.tidur_ideal_min_jam) + '–' + escapeHtml(d.kriteria.tidur_ideal_maks_jam) + ' jam per hari.<br>' +
+                '• Kategori "Sudah Terbiasa": dilakukan minimal ' + escapeHtml(d.kriteria.ambang_pembilang) + '/' + escapeHtml(d.kriteria.ambang_penyebut) + ' dari jumlah hari dalam bulan tersebut.' +
+                '</div>';
+
+        d.habits.forEach(function(h) {
+          html += '<div class="habit-card">' +
+                  '<div class="habit-title"><span class="habit-num">' + h.urutan + '</span>' + escapeHtml(h.nama) + '</div>' +
+                  '<p style="font-size:14px; margin-top:6px;">' + escapeHtml(h.deskripsi) + '</p>' +
+                  '<div class="hint" style="margin-top:6px;"><strong>Contoh praktik:</strong> ' + escapeHtml(h.panduan_singkat) + '</div>' +
+                  '</div>';
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = '<div class="card"><div class="alert alert-err">' + escapeHtml(err.message) + '</div></div>';
+      } finally {
+        setLoading(false);
       }
     }
 
     // ========================================================================
-    // 6. INISIALISASI HALAMAN SAAT PERTAMA DIBUKA
+    // 7. INISIALISASI HALAMAN SAAT PERTAMA DIBUKA
     // ========================================================================
     async function initApp() {
       setLoading(true, 'Menyiapkan aplikasi...');
