@@ -111,8 +111,7 @@ function renderShell(root, profile, settings, actions) {
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     let view;
-    if (item.id === 'hari-ini') view = viewToday(profile, settings);
-    else if (item.id === 'panduan') view = viewGuide();
+    if (isStudent && STUDENT_VIEWS[item.id]) view = STUDENT_VIEWS[item.id](profile, settings);
     else view = viewSoon(item);
     setChildren(content, view);
     window.scrollTo(0, 0);
