@@ -124,8 +124,22 @@
   function renderRekap(data) {
     var html = '<h2><span class="titik titik-hijau"></span>Rekap ' + App.formatBulan(data.bulan) + '</h2>';
     html += '<div class="bulan-nav"><button class="chip" id="rekPrev">&laquo;</button><span>' + App.formatBulan(data.bulan) + '</span><button class="chip" id="rekNext">&raquo;</button></div>';
-    //html += '<p class="muted kecil">Ambang "Sudah Terbiasa": minimal ' + data.ambangHari + ' dari ' + data.totalHari + ' hari.</p>';
     html += '<button id="btnUnduhRekap" class="btn btn-block btn-ghost" style="margin-top:12px">Unduh xlsx (Lampiran 3)</button><p id="unduhHasil" class="muted kecil"></p>';
+    html += '<p class="muted kecil">Ambang "Sudah Terbiasa": minimal ' + data.ambangHari + ' dari ' + data.totalHari + ' hari.</p>';
+    
+    //Header pakai NAMA LENGKAP kebiasaan
+    html += '<div class="kal-scroll"><table class="kal rekap-tbl"><thead><tr><th>No</th><th>Nama</th><th>L/P</th>';
+    data.habits.forEach(function (h) { html += '<th class="th-habit">' + App.escapeHtml(h.nama) + '</th>'; });
+    html += '<th>Catatan Wali</th></tr></thead><tbody>';
+    data.siswa.forEach(function (s, idx) {
+      html += '<tr><td>' + (idx + 1) + '</td><td class="kal-nama">' + App.escapeHtml(s.nama) + '</td><td>' + s.jk + '</td>';
+      s.perHabit.forEach(function (h) { html += '<td class="kal-cell ' + (h.kategori === 'Sudah Terbiasa' ? 'cell-v' : '') + '" title="' + App.escapeAttr(h.kategori) + '">' + h.hariV + '</td>'; });
+      html += '<td><input class="input-catatan" data-id="' + s.id + '" value="' + App.escapeAttr(s.catatanWali || '') + '" placeholder="catatan…"></td></tr>';
+    });
+    //html += '</tbody></table></div><p class="muted kecil">Angka = jumlah hari melakukan. Hijau = Sudah Terbiasa. Catatan tersimpan saat berpindah kolom.</p>';
+    //App.el('konten').innerHTML = html;
+    //App.el('rekPrev').addEventListener('click', function () { App.state.bulanRekap = App.geserBulan(data.bulan, -1); bukaRekap(); });
+    //App.el('rekNext').addEventListener('click', function () { App.state.bulanRekap = App.geserBulan(data.bulan, 1); bukaRekap(); });
     html += '<p class="muted kecil">Angka = jumlah hari melakukan. Hijau = Sudah Terbiasa. Catatan tersimpan saat berpindah kolom.</p>';
     App.el('konten').innerHTML = html;
     App.el('rekPrev').addEventListener('click', function () { App.state.bulanRekap = App.geserBulan(data.bulan, -1); bukaRekap(); });
@@ -138,19 +152,6 @@
         else App.el('unduhHasil').textContent = (r && r.error) || 'Gagal.';
       });
     });
-    //Header pakai NAMA LENGKAP kebiasaan
-    html += '<div class="kal-scroll"><table class="kal rekap-tbl"><thead><tr><th>No</th><th>Nama</th><th>L/P</th>';
-    data.habits.forEach(function (h) { html += '<th class="th-habit">' + App.escapeHtml(h.nama) + '</th>'; });
-    html += '<th>Catatan Wali</th></tr></thead><tbody>';
-    data.siswa.forEach(function (s, idx) {
-      html += '<tr><td>' + (idx + 1) + '</td><td class="kal-nama">' + App.escapeHtml(s.nama) + '</td><td>' + s.jk + '</td>';
-      s.perHabit.forEach(function (h) { html += '<td class="kal-cell ' + (h.kategori === 'Sudah Terbiasa' ? 'cell-v' : '') + '" title="' + App.escapeAttr(h.kategori) + '">' + h.hariV + '</td>'; });
-      html += '<td><input class="input-catatan" data-id="' + s.id + '" value="' + App.escapeAttr(s.catatanWali || '') + '" placeholder="catatan…"></td></tr>';
-    });
-    html += '</tbody></table></div><p class="muted kecil">Angka = jumlah hari melakukan. Hijau = Sudah Terbiasa. Catatan tersimpan saat berpindah kolom.</p>';
-    App.el('konten').innerHTML = html;
-    App.el('rekPrev').addEventListener('click', function () { App.state.bulanRekap = App.geserBulan(data.bulan, -1); bukaRekap(); });
-    App.el('rekNext').addEventListener('click', function () { App.state.bulanRekap = App.geserBulan(data.bulan, 1); bukaRekap(); });
     Array.prototype.forEach.call(App.el('konten').querySelectorAll('.input-catatan'), function (inp) { inp.addEventListener('change', function () { App.api('wali.catatanSet', { idSiswa: inp.getAttribute('data-id'), bulan: data.bulan, catatan: inp.value }, App.state.token).then(function (res) { if (res && res.ok) App.toast('Catatan tersimpan.', 'ok'); else App.toast((res && res.error) || 'Gagal.', 'err'); }); }); });
   }
   function bukaRefleksiSiswa() {
