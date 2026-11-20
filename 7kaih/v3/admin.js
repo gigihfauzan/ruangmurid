@@ -423,7 +423,15 @@
       html += '<p id="bkHasil" class="muted kecil"></p></div>';
       App.el('konten').innerHTML = html;
       App.el('btnBkSimpan').addEventListener('click', function () { App.api('admin.backupAtur', { folderId: App.el('bkFolder').value, retensiHari: App.el('bkRetensi').value }, App.state.token).then(function (r) { if (r && r.ok) { App.toast('Tersimpan.', 'ok'); bukaBackup(); } else App.toast((r && r.error) || 'Gagal.', 'err'); }); });
-      App.el('btnBkSekarang').addEventListener('click', function () { App.setLoading('btnBkSekarang', true); App.api('admin.backupSekarang', {}, App.state.token).then(function (r) { App.setLoading('btnBkSekarang', false); if (r && r.ok) { App.toast('Backup dibuat.', 'ok'); bukaBackup(); } else App.toast((r && r.error) || 'Gagal.', 'err'); }); });
+      //App.el('btnBkSekarang').addEventListener('click', function () { App.setLoading('btnBkSekarang', true); App.api('admin.backupSekarang', {}, App.state.token).then(function (r) { App.setLoading('btnBkSekarang', false); if (r && r.ok) { App.toast('Backup dibuat.', 'ok'); bukaBackup(); } else App.toast((r && r.error) || 'Gagal.', 'err'); }); });
+      App.el('btnBkSekarang').addEventListener('click', function () {
+        App.setLoading('btnBkSekarang', true);
+        App.api('admin.backupSekarang', {}, App.state.token).then(function (r) {
+          App.setLoading('btnBkSekarang', false);
+          if (r && r.ok) { App.toast('Backup dibuat: ' + r.data.namaFile, 'ok'); bukaBackup(); }
+          else App.toast((r && r.error) || 'Gagal.', 'err');
+        });
+      });
       App.el('btnBkAktifkan').addEventListener('click', function () { var aktif = !d.triggerAktif; App.api('admin.backupAtur', { aktifkan: aktif }, App.state.token).then(function (r) { if (r && r.ok) { App.toast(aktif ? 'Backup harian diaktifkan.' : 'Backup harian dimatikan.', 'ok'); bukaBackup(); } else App.toast('Gagal.', 'err'); }); });
     });
   }  
