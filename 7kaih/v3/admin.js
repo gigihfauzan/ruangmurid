@@ -222,12 +222,12 @@
     });
   }
   //Akun staff
-  function bukaAkun() {
+    function bukaAkun() {
     App.el('konten').innerHTML = '<h2>Akun & Keamanan</h2><p class="muted"><span class="spinner"></span> Memuat…</p>';
     Promise.all([App.api('admin.akunList', {}, App.state.token), App.api('admin.kelasList', {}, App.state.token)]).then(function (rs) {
       var ar = rs[0], kr = rs[1];
       if (!ar.ok || !kr.ok) { App.el('konten').innerHTML = '<p class="muted">Gagal.</p>'; return; }
-      var kelas = kr.data.kelas, html = '<h2><span class="titik titik-kuning"></span>Akun Staff</h2>';
+      var akunList = ar.data.akun, kelas = kr.data.kelas, html = '<h2><span class="titik titik-kuning"></span>Akun Staff</h2>';
       html += '<div class="habit-row"><div class="habit-nama">Tambah Akun</div>';
       html += '<select id="akPeran" class="input"><option value="wali">Wali Kelas</option><option value="pembaca">Pembaca</option><option value="admin">Admin Utama</option></select>';
       html += '<input id="akNama" class="input" style="margin-top:8px" placeholder="Nama lengkap">';
@@ -237,9 +237,9 @@
       kelas.forEach(function (k) { html += '<option value="' + k.id + '">' + App.escapeHtml(k.nama) + '</option>'; });
       html += '</select><button id="btnAkTambah" class="btn btn-block" style="margin-top:8px">Tambah</button></div>';
       html += '<div class="habit-nama" style="margin-top:14px">Daftar Akun</div>';
-      ar.data.akun.forEach(function (a) {
+      akunList.forEach(function (a) {
         html += '<div class="siswa-item"><div class="siswa-info"><b>' + App.escapeHtml(a.nama) + '</b> (' + App.escapeHtml(a.username) + ') · ' + App.labelPeran(a.peran) + (a.nip ? ' · NIP ' + App.escapeHtml(a.nip) : '') + (a.nonaktif ? ' <span class="badge badge-belum">Nonaktif</span>' : '') + '</div>';
-        html += '<div class="siswa-aksi"><button class="chip" data-act="reset" data-id="' + a.id + '">Reset PIN</button><button class="chip" data-act="nonaktif" data-id="' + a.id + '">' + (a.nonaktif ? 'Aktifkan' : 'Nonaktifkan') + '</button></div></div>';
+        html += '<div class="siswa-aksi"><button class="chip" data-act="edit" data-id="' + a.id + '">Edit</button><button class="chip" data-act="reset" data-id="' + a.id + '">Reset PIN</button><button class="chip" data-act="nonaktif" data-id="' + a.id + '">' + (a.nonaktif ? 'Aktifkan' : 'Nonaktifkan') + '</button></div></div>';
       });
       App.el('konten').innerHTML = html;
       App.el('btnAkTambah').addEventListener('click', function () {
@@ -248,38 +248,57 @@
       Array.prototype.forEach.call(App.el('konten').querySelectorAll('.siswa-aksi .chip'), function (btn) {
         btn.addEventListener('click', function () {
           var act = btn.getAttribute('data-act'), id = btn.getAttribute('data-id');
-          if (act === 'reset') { if (window.confirm('Reset PIN ke awal?')) App.api('admin.akunResetPin', { idAkun: id }, App.state.token).then(function (r) { if (r && r.ok) App.toast('PIN direset ke: ' + r.data.pin, 'ok'); else App.toast('Gagal.', 'err'); }); }
+          if (act === 'edit') {
+            var a = null; for (var i = 0; i < akunList.length; i++) if (akunList[i].id === id) { a = akunList[i]; break; }
+            if (!a) return;
+            var nama = window.prompt('Nama:', a.nama); if (nama === null) return;
+            var username = window.prompt('Username:', a.username); if (username === null) return;
+            var nip = window.prompt('NIP:', a.nip || ''); if (nip === null) return;
+            App.api('admin.akunEdit', { idAkun: id, nama: nama, username: username, nip: nip }, App.state.token).then(function (r) { if (r && r.ok) { App.toast('Diperbarui.', 'ok'); bukaAkun(); } else App.toast((r && r.error) || 'Gagal.', 'err'); });
+          } else if (act === 'reset') { if (window.confirm('Reset PIN ke awal?')) App.api('admin.akunResetPin', { idAkun: id }, App.state.token).then(function (r) { if (r && r.ok) App.toast('PIN direset ke: ' + r.data.pin, 'ok'); else App.toast('Gagal.', 'err'); }); }
           else if (act === 'nonaktif') App.api('admin.akunNonaktif', { idAkun: id, aktif: false }, App.state.token).then(function () { App.toast('Diperbarui.', 'ok'); bukaAkun(); });
         });
       });
     });
   }
   //Naik kelas
-  function bukaNaik() {
+    function bukaNaik() {
     App.el('konten').innerHTML = '<h2>Naik Kelas</h2><p class="muted"><span class="spinner"></span> Memuat…</p>';
     App.api('admin.naikPreview', {}, App.state.token).then(function (res) {
       if (!res || !res.ok) { App.el('konten').innerHTML = '<p class="muted">Gagal.</p>'; return; }
       var g = res.data.grouped, html = '<h2><span class="titik titik-kuning"></span>Naik Kelas</h2>';
-      html += '<p class="muted kecil">Kelas 7 → 8, kelas 8 → 9, kelas 9 → lulus (diarsipkan). Jalankan sekali di awal tahun ajaran baru.</p>';
-      function tampil(kelompok, judul) {
-        if (!kelompok.length) return;
-        html += '<div class="habit-nama" style="margin-top:10px">' + judul + '</div>';
-        kelompok.forEach(function (k) { html += '<p class="muted kecil">' + App.escapeHtml(k.nama) + ' — ' + k.jumlahSiswa + ' siswa</p>'; });
-      }
-      tampil(g['7'], 'Kelas 7 (naik ke 8)');
-      tampil(g['8'], 'Kelas 8 (naik ke 9)');
-      tampil(g['9'], 'Kelas 9 (lulus)');
-      html += '<button id="btnNaik" class="btn btn-block" style="margin-top:14px">Jalankan Naik Kelas</button>';
-      html += '<p id="naikHasil" class="muted kecil"></p>';
+      html += '<p class="muted kecil">Pilih salah satu cara sesuai kondisi sekolah. <b>Sebaiknya lakukan backup dulu (Tahap 7).</b></p>';
+      function tampil(kelompok, judul) { if (!kelompok.length) return; html += '<div class="habit-nama" style="margin-top:10px">' + judul + '</div>'; kelompok.forEach(function (k) { html += '<p class="muted kecil">' + App.escapeHtml(k.nama) + ' — ' + k.jumlahSiswa + ' siswa</p>'; }); }
+      tampil(g['7'], 'Kelas 7'); tampil(g['8'], 'Kelas 8'); tampil(g['9'], 'Kelas 9');
+      html += '<div class="habit-row" style="margin-top:14px"><div class="habit-nama">1. Luluskan Kelas 9</div>';
+      html += '<p class="muted kecil">Tandai semua siswa kelas 9 sebagai lulus (nonaktif) dan arsipkan kelas 9. Jalankan ini <b>sebelum</b> Atur Ulang bila ada siswa kelas 9.</p>';
+      html += '<button id="btnLulus9" class="btn btn-block btn-ghost">Luluskan Kelas 9</button><p id="lulus9Hasil" class="muted kecil"></p></div>';
+      html += '<div class="habit-row"><div class="habit-nama">2. Naikkan Jenjang Otomatis (7A→8A, 8A→9A)</div>';
+      html += '<p class="muted kecil">Untuk sekolah yang <b>tidak mengacak</b> kelas. Siswa 7→8 dan 8→9 dengan nama kelas sama; kelas 9 diluluskan.</p>';
+      html += '<button id="btnNaikOtomatis" class="btn btn-block btn-ghost">Jalankan Naik Otomatis</button><p id="naikHasil" class="muted kecil"></p></div>';
+      html += '<div class="habit-row"><div class="habit-nama">3. Atur Ulang Kelas via Impor (untuk sekolah yang mengacak)</div>';
+      html += '<p class="muted kecil">Tempel pemetaan <b>NISN, Kelas Baru</b> per baris (koma/tab). Kelas baru dibuat otomatis. Cocok untuk pengacakan kelas.</p>';
+      html += '<textarea id="aturTxt" class="input" rows="5" placeholder="1234567890,8B&#10;1234567891,8A&#10;..."></textarea>';
+      html += '<button id="btnAtur" class="btn btn-block">Pindahkan Sesuai Pemetaan</button><p id="aturHasil" class="muted kecil"></p></div>';
       App.el('konten').innerHTML = html;
-      App.el('btnNaik').addEventListener('click', function () {
-        if (!window.confirm('Yakin jalankan Naik Kelas? Tindakan ini mengubah penempatan siswa. Pastikan sudah ada backup (Tahap 7).')) return;
-        App.setLoading('btnNaik', true);
-        App.api('admin.naikJalankan', {}, App.state.token).then(function (r) {
-          App.setLoading('btnNaik', false);
-          if (r && r.ok) { var s = r.data.ringkasan; App.el('naikHasil').textContent = 'Selesai. Naik 7→8: ' + s.naik7 + ', naik 8→9: ' + s.naik8 + ', lulus: ' + s.lulus9 + (s.kelasBaru.length ? '. Kelas baru: ' + s.kelasBaru.join(', ') : ''); App.toast('Naik kelas selesai.', 'ok'); }
-          else App.el('naikHasil').textContent = (r && r.error) || 'Gagal.';
-        });
+      App.el('btnLulus9').addEventListener('click', function () {
+        if (!window.confirm('Luluskan semua siswa kelas 9?')) return;
+        App.setLoading('btnLulus9', true);
+        App.api('admin.naikLuluskan9', {}, App.state.token).then(function (r) { App.setLoading('btnLulus9', false); if (r && r.ok) { App.el('lulus9Hasil').textContent = 'Selesai. ' + r.data.lulus + ' siswa diluluskan, ' + r.data.kelas + ' kelas diarsipkan.'; App.toast('Selesai.', 'ok'); } else App.el('lulus9Hasil').textContent = (r && r.error) || 'Gagal.'; });
+      });
+      App.el('btnNaikOtomatis').addEventListener('click', function () {
+        if (!window.confirm('Jalankan naik otomatis (7A→8A, dst)?')) return;
+        App.setLoading('btnNaikOtomatis', true);
+        App.api('admin.naikJalankan', {}, App.state.token).then(function (r) { App.setLoading('btnNaikOtomatis', false); if (r && r.ok) { var s = r.data.ringkasan; App.el('naikHasil').textContent = 'Selesai. 7→8: ' + s.naik7 + ', 8→9: ' + s.naik8 + ', lulus: ' + s.lulus9 + (s.kelasBaru.length ? '. Kelas baru: ' + s.kelasBaru.join(', ') : ''); App.toast('Selesai.', 'ok'); } else App.el('naikHasil').textContent = (r && r.error) || 'Gagal.'; });
+      });
+      App.el('btnAtur').addEventListener('click', function () {
+        var txt = App.el('aturTxt').value.trim(), hasil = App.el('aturHasil');
+        if (!txt) { hasil.textContent = 'Tempel pemetaan dulu.'; return; }
+        var lines = txt.split(/\r?\n/), pemetaan = [];
+        lines.forEach(function (line) { line = line.trim(); if (!line) return; var parts = line.split(/[,\t]/).map(function (p) { return p.trim(); }); if (parts.length >= 2) pemetaan.push({ nisn: parts[0], kelas: parts.slice(1).join(' ').trim() }); });
+        if (!pemetaan.length) { hasil.textContent = 'Format tidak terbaca.'; return; }
+        App.setLoading('btnAtur', true);
+        App.api('admin.aturUlangKelas', { pemetaan: pemetaan }, App.state.token).then(function (r) { App.setLoading('btnAtur', false); if (r && r.ok) { var d = r.data; hasil.textContent = 'Berhasil: ' + d.sukses + '. Gagal: ' + d.errors.length + (d.errors.length ? ' — ' + d.errors.join('; ') : ''); if (d.sukses > 0) App.toast(d.sukses + ' siswa dipindah.', 'ok'); } else hasil.textContent = (r && r.error) || 'Gagal.'; });
       });
     });
   }
