@@ -136,11 +136,11 @@
       s.perHabit.forEach(function (h) { html += '<td class="kal-cell ' + (h.kategori === 'Sudah Terbiasa' ? 'cell-v' : '') + '" title="' + App.escapeAttr(h.kategori) + '">' + h.hariV + '</td>'; });
       html += '<td><input class="input-catatan" data-id="' + s.id + '" value="' + App.escapeAttr(s.catatanWali || '') + '" placeholder="catatan…"></td></tr>';
     });
-    //html += '</tbody></table></div><p class="muted kecil">Angka = jumlah hari melakukan. Hijau = Sudah Terbiasa. Catatan tersimpan saat berpindah kolom.</p>';
+    html += '</tbody></table></div><p class="muted kecil">Angka = jumlah hari melakukan. Hijau = Sudah Terbiasa. Catatan tersimpan saat berpindah kolom.</p>';
     //App.el('konten').innerHTML = html;
     //App.el('rekPrev').addEventListener('click', function () { App.state.bulanRekap = App.geserBulan(data.bulan, -1); bukaRekap(); });
     //App.el('rekNext').addEventListener('click', function () { App.state.bulanRekap = App.geserBulan(data.bulan, 1); bukaRekap(); });
-    html += '<p class="muted kecil">Angka = jumlah hari melakukan. Hijau = Sudah Terbiasa. Catatan tersimpan saat berpindah kolom.</p>';
+    //html += '<p class="muted kecil">Angka = jumlah hari melakukan. Hijau = Sudah Terbiasa. Catatan tersimpan saat berpindah kolom.</p>';
     App.el('konten').innerHTML = html;
     App.el('rekPrev').addEventListener('click', function () { App.state.bulanRekap = App.geserBulan(data.bulan, -1); bukaRekap(); });
     App.el('rekNext').addEventListener('click', function () { App.state.bulanRekap = App.geserBulan(data.bulan, 1); bukaRekap(); });
