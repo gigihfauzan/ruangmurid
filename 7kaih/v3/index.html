@@ -15,22 +15,48 @@
       <p id="sambutan">Ayo isi Catatan Harian Tujuh Kebiasaan Anak Indonesia Hebat setiap hari!</p>
     </header>
 
-    <div class="tahap">TAHAP 1 &middot; FONDASI</div>
+    <div class="tahap" id="badgeTahap">TAHAP 2 &middot; OTENTIKASI</div>
 
-    <section class="card">
-      <h2><span class="titik titik-kuning"></span>Status Sistem</h2>
-      <div id="statusSistem" class="kotak-status"><span class="spinner"></span> Memeriksa…</div>
+    <!-- Layar: Login -->
+    <section id="layar-login" class="layar card layar-aktif">
+      <h2><span class="titik titik-kuning"></span>Masuk</h2>
+      <p class="muted">Siswa pakai <b>NISN</b>. Admin, wali kelas, dan pembaca pakai <b>username</b>.</p>
+      <label class="label" for="loginId">NISN / Username</label>
+      <input id="loginId" class="input" type="text" autocomplete="username" placeholder="contoh: 1234567890 atau admin">
+      <label class="label" for="loginPin">PIN</label>
+      <input id="loginPin" class="input" type="password" inputmode="numeric" autocomplete="current-password" placeholder="4-8 digit angka">
+      <button id="btnLogin" class="btn btn-block">Masuk</button>
+      <p id="loginErr" class="pesan-err" role="alert"></p>
+      <p class="muted kecil">Lupa PIN? Hubungi admin atau wali kelas Anda.</p>
     </section>
 
-    <section class="card">
-      <h2><span class="titik titik-hijau"></span>Status Login</h2>
-      <div id="statusLogin" class="kotak-status"><span class="spinner"></span> Memeriksa…</div>
+    <!-- Layar: Ganti PIN -->
+    <section id="layar-ganti" class="layar card">
+      <h2><span class="titik titik-koral"></span>Ganti PIN</h2>
+      <p class="muted">PIN pertama wajib diganti sebelum Anda dapat memakai aplikasi.</p>
+      <label class="label" for="gpLama">PIN Lama</label>
+      <input id="gpLama" class="input" type="password" inputmode="numeric" placeholder="PIN saat ini">
+      <label class="label" for="gpBaru">PIN Baru</label>
+      <input id="gpBaru" class="input" type="password" inputmode="numeric" placeholder="4-8 digit angka">
+      <label class="label" for="gpKonfirm">Ulangi PIN Baru</label>
+      <input id="gpKonfirm" class="input" type="password" inputmode="numeric" placeholder="ketik ulang PIN baru">
+      <button id="btnGanti" class="btn btn-block">Simpan PIN Baru</button>
+      <p id="gpErr" class="pesan-err" role="alert"></p>
     </section>
 
-    <section class="card">
-      <h2><span class="titik titik-koral"></span>Langkah Berikutnya</h2>
-      <p class="muted">Tahap 1 (fondasi: database, utilitas, router) sudah aktif. Form login untuk semua peran akan tersedia di <strong>Tahap 2</strong>. Ketik <strong>&ldquo;lanjut&rdquo;</strong> untuk melanjutkan.</p>
+    <!-- Layar: App -->
+    <section id="layar-app" class="layar">
+      <div class="card info-akun">
+        <h2><span class="titik titik-hijau"></span>Akun Saya</h2>
+        <div class="baris"><span class="k">Nama</span><span class="v" id="akunNama"></span></div>
+        <div class="baris"><span class="k">Peran</span><span class="v" id="akunPeran"></span></div>
+        <button id="btnLogout" class="btn btn-kecil btn-ghost btn-block">Keluar</button>
+      </div>
+      <nav id="nav" class="nav" aria-label="Menu peran"></nav>
+      <div id="konten" class="card"></div>
     </section>
+
+    <div id="toast" class="toast" role="status"></div>
   </main>
 
   <footer>
