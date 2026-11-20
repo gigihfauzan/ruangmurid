@@ -1,6 +1,6 @@
-// app.js — inti: state, API, otentikasi, shell, dispatch menu per peran.
+// app.js — inti: state, API, otentikasi, shell, modal, unduh, dashboard.
 var App = window.App = {};
-App.state = { token: null, peran: null, nama: null, id_kelas: '', harusGantiPin: false, hariIni: '', lihatSebagai: false, tokenAdmin: null };
+App.state = { token: null, peran: null, nama: null, id_kelas: '', harusGantiPin: false, hariIni: '', lihatSebagai: false, tokenAdmin: null, namaKelasLihat: '' };
 
 App.api = function (action, payload, token) {
   if (!APPSCRIPT_URL || APPSCRIPT_URL.indexOf('PASTE_URL') === 0) return Promise.resolve({ ok: false, error: 'APPSCRIPT_URL belum diisi di config.js.' });
@@ -29,6 +29,61 @@ App.formatBulan = function (bulan) { var nb = ['Januari','Februari','Maret','Apr
 App.geserBulan = function (bulan, delta) { var p = bulan.split('-'); var y = Number(p[0]); var m = Number(p[1]) + delta; while (m < 1) { m += 12; y--; } while (m > 12) { m -= 12; y++; } return y + '-' + ('0' + m).slice(-2); };
 App.monthKey = function (ymd) { return String(ymd || '').substring(0, 7); };
 
+//--- Modal form ---
+App.modalForm = function (judul, fields, onSimpan) {
+  var overlay = document.createElement('div'); overlay.className = 'modal-overlay';
+  var html = '<div class="modal-box"><div class="modal-judul">' + App.escapeHtml(judul) + '</div><div class="modal-isi">';
+  fields.forEach(function (f) {
+    if (f.type === 'textarea') html += '<label class="label kecil-label">' + App.escapeHtml(f.label) + '</label><textarea id="mf_' + f.kunci + '" class="input" rows="3">' + App.escapeHtml(f.val || '') + '</textarea>';
+    else if (f.type === 'select') { html += '<label class="label kecil-label">' + App.escapeHtml(f.label) + '</label><select id="mf_' + f.kunci + '" class="input">'; f.opts.forEach(function (o) { html += '<option value="' + App.escapeAttr(o.v) + '"' + (o.v === f.val ? ' selected' : '') + '>' + App.escapeHtml(o.l) + '</option>'; }); html += '</select>'; }
+    else html += '<label class="label kecil-label">' + App.escapeHtml(f.label) + '</label><input id="mf_' + f.kunci + '" class="input" type="' + (f.type || 'text') + '" value="' + App.escapeAttr(f.val || '') + '">';
+  });
+  html += '</div><div class="modal-aksi"><button id="mfBatal" class="btn btn-kecil btn-ghost">Batal</button><button id="mfSimpan" class="btn btn-kecil">Simpan</button></div></div>';
+  overlay.innerHTML = html; document.body.appendChild(overlay);
+  App.el('mfBatal').addEventListener('click', function () { document.body.removeChild(overlay); });
+  App.el('mfSimpan').addEventListener('click', function () {
+    var values = {}; fields.forEach(function (f) { var n = App.el('mf_' + f.kunci); values[f.kunci] = n ? n.value : ''; });
+    var tutup = onSimpan(values);
+    if (tutup !== false) document.body.removeChild(overlay);
+  });
+};
+
+//--- Unduh file base64 ---
+App.unduhFile = function (b64, nama) {
+  try {
+    var chars = atob(b64), bytes = new Uint8Array(chars.length);
+    for (var i = 0; i < chars.length; i++) bytes[i] = chars.charCodeAt(i);
+    var blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a'); a.href = url; a.download = nama;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  } catch (e) { App.toast('Gagal mengunduh: ' + e.message, 'err'); }
+};
+
+//--- Dashboard renderer (shared admin & pembaca) ---
+App.renderDashboard = function (d) {
+  var html = '<h2><span class="titik titik-hijau"></span>Dashboard Sekolah</h2>';
+  html += '<p class="muted kecil">Tanggal: ' + d.tanggal + ' · Bulan: ' + App.formatBulan(d.bulan) + '</p>';
+  html += '<div class="card-mini"><b>Total Siswa:</b> ' + d.totalSiswa + ' · <b>Isi Hari Ini:</b> ' + d.totalIsiHariIni + ' (' + d.persenIsiSekolah + '%)</div>';
+  html += '<div class="habit-nama" style="margin-top:14px">Rata-rata per Kebiasaan (sekolah, hari dilakukan bulan ini)</div>';
+  d.perHabitSekolah.forEach(function (h) {
+    var persen = d.totalHari ? Math.round(h.rata / d.totalHari * 100) : 0;
+    html += '<div class="ring-item"><div class="ring-nama">' + App.escapeHtml(h.nama) + '</div><div class="ring-bar"><div class="ring-fill" style="width:' + persen + '%"></div></div><div class="ring-meta">rata-rata ' + h.rata + ' / ' + d.totalHari + ' hari (' + persen + '%)</div></div>';
+  });
+  html += '<div class="habit-nama" style="margin-top:14px">Per Kelas</div>';
+  html += '<div class="kal-scroll"><table class="kal"><thead><tr><th>Kelas</th><th>Siswa</th><th>Isi Hari Ini</th><th>% Isi</th>';
+  d.habits.forEach(function (h) { html += '<th class="th-habit">' + App.escapeHtml(h.nama) + '</th>'; });
+  html += '</tr></thead><tbody>';
+  d.perKelas.forEach(function (k) {
+    html += '<tr><td class="kal-nama">' + App.escapeHtml(k.nama) + '</td><td>' + k.jumlahSiswa + '</td><td>' + k.isiHariIni + '</td><td>' + k.persenIsi + '%</td>';
+    k.perHabitAvg.forEach(function (h) { html += '<td class="kal-cell">' + h.rata + '</td>'; });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  App.el('konten').innerHTML = html;
+};
+
 App.MENU = {
   siswa: [
     { key: 'isi', label: 'Isi Hari Ini' }, { key: 'kalender', label: 'Kalender Bulanan' },
@@ -41,14 +96,15 @@ App.MENU = {
     { key: 'refsiswa', label: 'Refleksi Siswa' }
   ],
   admin: [
-    { key: 'identitas', label: 'Identitas Sekolah' }, { key: 'tahun', label: 'Tahun Ajaran & Libur' },
-    { key: 'kelas', label: 'Kelas & Wali' }, { key: 'form', label: 'Form 7 Kebiasaan' },
-    { key: 'kriteria', label: 'Kriteria & Aturan' }, { key: 'akun', label: 'Akun & Keamanan' },
-    { key: 'naik', label: 'Naik Kelas' }, { key: 'pengumuman', label: 'Pengumuman' },
+    { key: 'dashboard', label: 'Dashboard' }, { key: 'identitas', label: 'Identitas Sekolah' },
+    { key: 'tahun', label: 'Tahun Ajaran & Libur' }, { key: 'kelas', label: 'Kelas & Wali' },
+    { key: 'form', label: 'Form 7 Kebiasaan' }, { key: 'kriteria', label: 'Kriteria & Aturan' },
+    { key: 'akun', label: 'Akun & Keamanan' }, { key: 'naik', label: 'Naik Kelas' },
+    { key: 'pengumuman', label: 'Pengumuman' }, { key: 'ekspor', label: 'Ekspor xlsx' },
     { key: 'lihat', label: 'Lihat sebagai Wali' }, { key: 'log', label: 'Log Aktivitas' }
   ],
   pembaca: [
-    { key: 'dashboard', label: 'Dashboard' }, { key: 'rekap', label: 'Rekap' }
+    { key: 'dashboard', label: 'Dashboard' }, { key: 'rekap', label: 'Rekap Kelas' }
   ]
 };
 
@@ -62,7 +118,7 @@ App.login = function () {
     App.setLoading('btnLogin', false);
     if (!res || !res.ok) { App.setErr('loginErr', (res && res.error) || 'Gagal masuk.'); return; }
     var d = res.data;
-    s.token = d.token; s.peran = d.peran; s.nama = d.nama; s.id_kelas = d.id_kelas || ''; s.harusGantiPin = d.harusGantiPin; s.lihatSebagai = false; s.tokenAdmin = null;
+    s.token = d.token; s.peran = d.peran; s.nama = d.nama; s.id_kelas = d.id_kelas || ''; s.harusGantiPin = d.harusGantiPin; s.lihatSebagai = false; s.tokenAdmin = null; s.namaKelasLihat = '';
     App.saveToken(d.token); App.el('loginPin').value = '';
     if (d.harusGantiPin) { App.showLayar('layar-ganti'); App.el('gpLama').focus(); App.toast('PIN pertama wajib diganti.', 'err'); }
     else App.masukApp();
@@ -84,7 +140,7 @@ App.gantiPin = function () {
 };
 App.logout = function () {
   App.api('auth.logout', {}, App.state.token).then(function () {
-    App.state = { token: null, peran: null, nama: null, id_kelas: '', harusGantiPin: false, hariIni: App.state.hariIni, lihatSebagai: false, tokenAdmin: null };
+    App.state = { token: null, peran: null, nama: null, id_kelas: '', harusGantiPin: false, hariIni: App.state.hariIni, lihatSebagai: false, tokenAdmin: null, namaKelasLihat: '' };
     App.saveToken(null); App.el('loginId').value = ''; App.el('loginPin').value = '';
     App.showLayar('layar-login'); App.el('loginId').focus(); App.toast('Anda telah keluar.');
   });
@@ -92,15 +148,15 @@ App.logout = function () {
 App.kembaliKeAdmin = function () {
   var s = App.state;
   if (!s.tokenAdmin) return;
-  s.token = s.tokenAdmin; s.peran = 'admin'; s.lihatSebagai = false; s.tokenAdmin = null; s.id_kelas = '';
-  App.saveToken(s.token);
-  App.masukApp();
+  s.token = s.tokenAdmin; s.peran = 'admin'; s.lihatSebagai = false; s.tokenAdmin = null; s.id_kelas = ''; s.namaKelasLihat = '';
+  App.saveToken(s.token); App.masukApp();
 };
-
 App.masukApp = function () {
   var s = App.state;
   App.el('akunNama').textContent = s.nama || '';
-  App.el('akunPeran').textContent = App.labelPeran(s.peran) + (s.lihatSebagai ? ' (lihat sebagai)' : '');
+  var peranText = App.labelPeran(s.peran);
+  if (s.lihatSebagai) peranText += (s.namaKelasLihat ? ' ' + s.namaKelasLihat : '') + ' (lihat sebagai)';
+  App.el('akunPeran').textContent = peranText;
   App.renderNav(s.peran);
   App.el('btnKembaliAdmin').style.display = s.lihatSebagai ? '' : 'none';
   App.showLayar('layar-app'); App.tampilkanBeranda();
@@ -119,6 +175,7 @@ App.bukaMenu = function (key) {
   if (s.peran === 'siswa' && App.bukaMenuSiswa) { App.bukaMenuSiswa(key); return; }
   if (s.peran === 'wali' && App.bukaMenuWali) { App.bukaMenuWali(key); return; }
   if (s.peran === 'admin' && App.bukaMenuAdmin) { App.bukaMenuAdmin(key); return; }
+  if (s.peran === 'pembaca' && App.bukaMenuPembaca) { App.bukaMenuPembaca(key); return; }
   App.el('konten').innerHTML = '<h2><span class="titik titik-kuning"></span>' + App.escapeHtml(m.label) + '</h2><p class="muted">Aktif di tahap berikutnya.</p>';
 };
 App.tampilkanBeranda = function () {
@@ -126,20 +183,13 @@ App.tampilkanBeranda = function () {
   if (s.peran === 'siswa') {
     html = '<h2><span class="titik titik-hijau"></span>Halo, ' + App.escapeHtml(s.nama) + '!</h2><p class="muted">Tekan <b>Isi Hari Ini</b> untuk mengisi catatan harianmu.</p><div id="stikerBox"></div><div id="pengumumanBox"></div>';
     App.el('konten').innerHTML = html;
-    App.api('siswa.stiker', {}, s.token).then(function (res) {
-      if (!res || !res.ok || !res.data) return; var d = res.data, h = '';
-      if (d.lengkapHariIni) h += '<div class="stiker stiker-bintang"><div class="stiker-cap">' + d.rentetan + '</div><div><b>7 Kebiasaan lengkap hari ini!</b><br>Rentetan: ' + d.rentetan + ' hari berturut-turut. Pertahankan!</div></div>';
-      else h += '<div class="stiker"><div class="stiker-cap">?</div><div>Ayo lengkapi 7 kebiasaan hari ini!</div></div>';
-      App.el('stikerBox').innerHTML = h;
-    });
-    App.api('publik.pengumuman', {}, s.token).then(function (res) {
-      if (!res || !res.ok || !res.data || !res.data.pengumuman.length) return;
-      var h = '<div class="habit-nama" style="margin-top:14px">Pengumuman</div>';
-      res.data.pengumuman.forEach(function (p) { h += '<div class="pengumuman-item"><b>' + App.escapeHtml(p.judul) + '</b><br><span class="muted kecil">' + App.escapeHtml(p.isi) + '</span></div>'; });
-      App.el('pengumumanBox').innerHTML = h;
-    });
+    App.api('siswa.stiker', {}, s.token).then(function (res) { if (!res || !res.ok || !res.data) return; var d = res.data, h = ''; if (d.lengkapHariIni) h += '<div class="stiker stiker-bintang"><div class="stiker-cap">' + d.rentetan + '</div><div><b>7 Kebiasaan lengkap hari ini!</b><br>Rentetan: ' + d.rentetan + ' hari berturut-turut.</div></div>'; else h += '<div class="stiker"><div class="stiker-cap">?</div><div>Ayo lengkapi 7 kebiasaan hari ini!</div></div>'; App.el('stikerBox').innerHTML = h; });
+    App.api('publik.pengumuman', {}, s.token).then(function (res) { if (!res || !res.ok || !res.data || !res.data.pengumuman.length) return; var h = '<div class="habit-nama" style="margin-top:14px">Pengumuman</div>'; res.data.pengumuman.forEach(function (p) { h += '<div class="pengumuman-item"><b>' + App.escapeHtml(p.judul) + '</b><br><span class="muted kecil">' + App.escapeHtml(p.isi) + '</span></div>'; }); App.el('pengumumanBox').innerHTML = h; });
+  } else if (s.peran === 'pembaca') {
+    html = '<h2><span class="titik titik-hijau"></span>Halo, ' + App.escapeHtml(s.nama) + '!</h2><p class="muted">Pilih <b>Dashboard</b> untuk melihat rekap sekolah, atau <b>Rekap Kelas</b> untuk kelas tertentu.</p>';
+    App.el('konten').innerHTML = html;
   } else {
-    html = '<h2><span class="titik titik-hijau"></span>Selamat datang, ' + App.escapeHtml(s.nama) + '!</h2><p class="muted">Anda masuk sebagai <b>' + App.labelPeran(s.peran) + '</b>' + (s.lihatSebagai ? ' (sedang melihat sebagai wali kelas)' : '') + '. Pilih menu di bawah.</p>';
+    html = '<h2><span class="titik titik-hijau"></span>Selamat datang, ' + App.escapeHtml(s.nama) + '!</h2><p class="muted">Anda masuk sebagai <b>' + App.labelPeran(s.peran) + '</b>' + (s.lihatSebagai ? ' (sedang melihat sebagai wali kelas' + (s.namaKelasLihat ? ' ' + s.namaKelasLihat : '') + ')' : '') + '. Pilih menu di bawah.</p>';
     App.el('konten').innerHTML = html;
   }
 };
@@ -151,22 +201,12 @@ document.addEventListener('DOMContentLoaded', function () {
   App.el('btnKembaliAdmin').addEventListener('click', App.kembaliKeAdmin);
   App.el('loginPin').addEventListener('keypress', function (e) { if (e.key === 'Enter') App.login(); });
   App.el('gpKonfirm').addEventListener('keypress', function (e) { if (e.key === 'Enter') App.gantiPin(); });
-  App.api('system.status').then(function (res) {
-    if (res && res.ok && res.data) {
-      if (res.data.namaAplikasi) App.el('judul').textContent = res.data.namaAplikasi;
-      if (res.data.sambutan) App.el('sambutan').textContent = res.data.sambutan;
-      if (res.data.namaSekolah) App.el('sekolahInfo').textContent = res.data.namaSekolah;
-      App.state.hariIni = res.data.tanggalServer;
-    }
-  });
+  App.api('system.status').then(function (res) { if (res && res.ok && res.data) { if (res.data.namaAplikasi) App.el('judul').textContent = res.data.namaAplikasi; if (res.data.sambutan) App.el('sambutan').textContent = res.data.sambutan; if (res.data.namaSekolah) App.el('sekolahInfo').textContent = res.data.namaSekolah; App.state.hariIni = res.data.tanggalServer; } });
   var token = App.getToken();
   if (token) {
     App.api('auth.status', {}, token).then(function (res) {
-      if (res && res.ok && res.data && res.data.login) {
-        App.state.token = token; App.state.peran = res.data.peran; App.state.nama = res.data.nama; App.state.id_kelas = res.data.id_kelas || ''; App.state.harusGantiPin = res.data.harusGantiPin;
-        if (App.state.harusGantiPin) { App.showLayar('layar-ganti'); App.el('gpLama').focus(); }
-        else App.masukApp();
-      } else { App.saveToken(null); App.showLayar('layar-login'); App.el('loginId').focus(); }
+      if (res && res.ok && res.data && res.data.login) { App.state.token = token; App.state.peran = res.data.peran; App.state.nama = res.data.nama; App.state.id_kelas = res.data.id_kelas || ''; App.state.harusGantiPin = res.data.harusGantiPin; if (App.state.harusGantiPin) { App.showLayar('layar-ganti'); App.el('gpLama').focus(); } else App.masukApp(); }
+      else { App.saveToken(null); App.showLayar('layar-login'); App.el('loginId').focus(); }
     });
   } else { App.showLayar('layar-login'); App.el('loginId').focus(); }
 });
