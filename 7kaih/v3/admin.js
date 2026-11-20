@@ -306,7 +306,7 @@
     });
   }
   //Lihat sebagai wali
-  function bukaLihat() {
+    function bukaLihat() {
     App.el('konten').innerHTML = '<h2>Lihat sebagai Wali Kelas</h2><p class="muted"><span class="spinner"></span> Memuat…</p>';
     App.api('admin.kelasList', {}, App.state.token).then(function (res) {
       if (!res || !res.ok) { App.el('konten').innerHTML = '<p class="muted">Gagal.</p>'; return; }
@@ -323,7 +323,7 @@
           App.api('admin.lihatSebagai', { idKelas: idKelas }, App.state.token).then(function (r) {
             if (r && r.ok) {
               App.state.tokenAdmin = App.state.token;
-              App.state.token = r.data.token; App.state.peran = 'wali'; App.state.nama = App.state.nama + ' (lihat)'; App.state.id_kelas = r.data.idKelas; App.state.lihatSebagai = true;
+              App.state.token = r.data.token; App.state.peran = 'wali'; App.state.id_kelas = r.data.idKelas; App.state.lihatSebagai = true;
               App.masukApp(); App.toast('Melihat sebagai wali kelas ' + r.data.namaKelas, 'ok');
             } else App.toast((r && r.error) || 'Gagal.', 'err');
           });
