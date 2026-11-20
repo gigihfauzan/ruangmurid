@@ -235,3 +235,32 @@ footer { text-align: center; padding: 22px 16px; font-size: 13px; color: var(--t
 .stiker-bintang { background: linear-gradient(135deg, #FEF3C7, #FDE68A); }
 .stiker-cap { width: 44px; height: 44px; border-radius: 50%; background: var(--kuning); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 20px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
 .stiker .stiker-cap + div { font-size: 14px; color: var(--teks); }
+
+/* === Tambahan Tahap 4 (wali kelas) — tempel di akhir style.css === */
+
+.siswa-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: #F8FAFC; border: 1px solid #E0F2FE; border-radius: 14px;
+  padding: 10px 12px; margin-bottom: 8px; flex-wrap: wrap;
+}
+.siswa-info { flex: 1; min-width: 160px; font-size: 14px; }
+.siswa-aksi { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.vx-info {
+  flex: 1; min-height: 48px; display: flex; align-items: center; justify-content: center;
+  border: 2px solid #E0F2FE; border-radius: 12px; background: #fff;
+  font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; color: var(--teks-lembut);
+}
+.vx-info.cell-v { background: #DCFCE7; color: var(--ok); border-color: #BBF7D0; }
+.vx-info.cell-x { background: #FEE2E2; color: var(--koral); border-color: #FECACA; }
+.vx-info + .vx { max-width: 130px; }
+
+.garis-pemisah { border: none; border-top: 1px dashed var(--garis); margin: 18px 0; }
+
+.input-catatan {
+  min-height: 40px; padding: 6px 8px; border: 1px solid #E0F2FE; border-radius: 8px;
+  font-family: 'Nunito', sans-serif; font-size: 12px; color: var(--teks); background: #fff;
+  width: 140px; outline: none;
+}
+.input-catatan:focus { border-color: var(--utama); }
+
