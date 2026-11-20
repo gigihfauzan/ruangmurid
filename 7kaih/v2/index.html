@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1a73e8">
   <title>Catatan Harian 7KAIH</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -10,23 +11,14 @@
   <link rel="stylesheet" href="assets/app.css">
 </head>
 <body>
-  <main class="hero">
-    <p class="school" id="sekolah"></p>
-    <h1 id="judul">Catatan Harian 7KAIH</h1>
-    <p class="lead" id="sambutan">Memuat…</p>
-    <ul class="habits" aria-label="Tujuh kebiasaan">
-      <li style="--c:var(--k1)">Bangun Pagi</li>
-      <li style="--c:var(--k2)">Beribadah</li>
-      <li style="--c:var(--k3)">Berolahraga</li>
-      <li style="--c:var(--k4)">Makan Sehat</li>
-      <li style="--c:var(--k5)">Gemar Belajar</li>
-      <li style="--c:var(--k6)">Bermasyarakat</li>
-      <li style="--c:var(--k7)">Tidur Cepat</li>
-    </ul>
-    <p id="status" class="chip">Menghubungkan…</p>
-  </main>
+  <div id="app"></div>
+  <div id="toast" aria-live="polite"></div>
+  <noscript><p style="padding:24px">Aplikasi ini membutuhkan JavaScript. Aktifkan JavaScript di browser Anda.</p></noscript>
   <script src="assets/config.js"></script>
   <script src="assets/api.js"></script>
+  <script src="assets/ui.js"></script>
+  <script src="assets/auth.js"></script>
+  <script src="assets/shell.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>
