@@ -167,3 +167,71 @@ footer { text-align: center; padding: 22px 16px; font-size: 13px; color: var(--t
   header.app h1 { font-size: 28px; }
   header.app p { font-size: 15px; }
 }
+
+/* === Tambahan Tahap 3 (siswa) — tempel di akhir style.css === */
+
+/* Layar Memuat */
+.layar-muat { text-align: center; }
+.layar-muat p { color: var(--teks-lembut); margin-top: 14px; }
+
+/* Chip tanggal */
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.chip {
+  min-height: 44px; padding: 6px 14px; border: 2px solid #BAE6FD; border-radius: 12px;
+  background: #fff; color: var(--utama-gelap); font-family: 'Nunito', sans-serif;
+  font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s ease;
+}
+.chip:hover { background: #E0F2FE; }
+.chip.aktif { background: var(--utama); color: #fff; border-color: var(--utama); }
+
+/* Baris kebiasaan + tombol v/x */
+.habit-row { background: #F8FAFC; border: 1px solid #E0F2FE; border-radius: 16px; padding: 12px 14px; margin-bottom: 10px; }
+.habit-nama { font-weight: 700; font-size: 15px; color: var(--teks); margin-bottom: 8px; }
+.vx-group { display: flex; gap: 8px; }
+.vx {
+  flex: 1; min-height: 48px; border: 2px solid #BAE6FD; border-radius: 12px;
+  background: #fff; font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 800;
+  cursor: pointer; transition: all 0.15s ease;
+}
+.vx-v { color: var(--ok); }
+.vx-x { color: var(--koral); }
+.vx:hover { background: #F0F9FF; }
+.vx.aktif.vx-v { background: var(--ok); color: #fff; border-color: var(--ok); }
+.vx.aktif.vx-x { background: var(--koral); color: #fff; border-color: var(--koral); }
+.kecil-label { font-size: 12px; margin: 8px 0 4px; }
+.cek { display: flex; align-items: center; gap: 10px; margin: 16px 0; font-weight: 700; color: var(--teks); }
+.cek input { width: 22px; height: 22px; accent-color: var(--utama); }
+
+/* Kalender */
+.bulan-nav { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px; font-weight: 700; }
+.kal-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 14px; border: 1px solid var(--garis); }
+.kal { border-collapse: collapse; font-size: 12px; }
+.kal th, .kal td { border: 1px solid #E0F2FE; padding: 4px 2px; text-align: center; min-width: 28px; }
+.kal thead th { background: var(--utama); color: #fff; font-weight: 700; }
+.kal td.kal-nama { text-align: left; padding: 4px 8px; font-weight: 700; color: var(--teks); background: #F0F9FF; position: sticky; left: 0; min-width: 120px; }
+.kal-cell { color: var(--teks-lembut); }
+.kal-cell.kecil { font-size: 10px; }
+.kal-cell.cell-v { background: #DCFCE7; color: var(--ok); font-weight: 700; }
+.kal-cell.cell-x { background: #FEE2E2; color: var(--koral); font-weight: 700; }
+.kal-cell.paraf { background: #FEF3C7; color: #B45309; font-weight: 700; }
+
+/* Ringkasan */
+.ring-item { margin-bottom: 14px; }
+.ring-nama { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.ring-bar { height: 12px; background: #E0F2FE; border-radius: 999px; overflow: hidden; }
+.ring-fill { height: 100%; background: linear-gradient(90deg, var(--utama), var(--utama-gelap)); border-radius: 999px; }
+.ring-meta { font-size: 13px; color: var(--teks-lembut); margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Refleksi & Definisi */
+.ref-item { background: #F8FAFC; border: 1px solid #E0F2FE; border-radius: 14px; padding: 12px; margin-bottom: 10px; }
+.ref-nama { font-weight: 700; color: var(--utama-gelap); margin-bottom: 6px; }
+.def-item { background: #F8FAFC; border: 1px solid #E0F2FE; border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; }
+.def-nama { font-weight: 800; color: var(--utama-gelap); font-family: 'Fredoka', sans-serif; }
+.def-isi { color: var(--teks-lembut); font-size: 14px; margin-top: 4px; line-height: 1.5; }
+
+/* Mini card & stiker */
+.card-mini { background: #F0F9FF; border-radius: 12px; padding: 10px 12px; margin-top: 10px; font-size: 14px; color: var(--teks); }
+.stiker { display: flex; align-items: center; gap: 12px; background: #FEF9C3; border: 2px solid #FDE68A; border-radius: 16px; padding: 12px 14px; margin-top: 12px; }
+.stiker-bintang { background: linear-gradient(135deg, #FEF3C7, #FDE68A); }
+.stiker-cap { width: 44px; height: 44px; border-radius: 50%; background: var(--kuning); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 20px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+.stiker .stiker-cap + div { font-size: 14px; color: var(--teks); }
