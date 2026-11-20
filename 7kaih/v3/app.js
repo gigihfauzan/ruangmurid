@@ -88,12 +88,12 @@ App.MENU = {
   siswa: [
     { key: 'isi', label: 'Isi Hari Ini' }, { key: 'kalender', label: 'Kalender Bulanan' },
     { key: 'ringkasan', label: 'Ringkasan Bulan' }, { key: 'refleksi', label: 'Refleksi Bulanan' },
-    { key: 'definisi', label: 'Definisi 7 Kebiasaan' }
+    { key: 'definisi', label: 'Definisi 7 Kebiasaan' }, { key: 'bantuan', label: 'Panduan' }
   ],
   wali: [
     { key: 'siswa', label: 'Kelola Siswa' }, { key: 'pantau', label: 'Pemantauan Hari Ini' },
     { key: 'validasi', label: 'Validasi (Paraf)' }, { key: 'rekap', label: 'Rekap Bulanan' },
-    { key: 'refsiswa', label: 'Refleksi Siswa' }
+    { key: 'refsiswa', label: 'Refleksi Siswa' }, { key: 'bantuan', label: 'Panduan' }
   ],
   admin: [
     { key: 'dashboard', label: 'Dashboard' }, { key: 'identitas', label: 'Identitas Sekolah' },
@@ -101,10 +101,11 @@ App.MENU = {
     { key: 'form', label: 'Form 7 Kebiasaan' }, { key: 'kriteria', label: 'Kriteria & Aturan' },
     { key: 'akun', label: 'Akun & Keamanan' }, { key: 'naik', label: 'Naik Kelas' },
     { key: 'pengumuman', label: 'Pengumuman' }, { key: 'ekspor', label: 'Ekspor xlsx' },
-    { key: 'lihat', label: 'Lihat sebagai Wali' }, { key: 'log', label: 'Log Aktivitas' }
+    { key: 'backup', label: 'Backup' }, { key: 'lihat', label: 'Lihat sebagai Wali' },
+    { key: 'log', label: 'Log Aktivitas' }, { key: 'bantuan', label: 'Panduan' }
   ],
   pembaca: [
-    { key: 'dashboard', label: 'Dashboard' }, { key: 'rekap', label: 'Rekap Kelas' }
+    { key: 'dashboard', label: 'Dashboard' }, { key: 'rekap', label: 'Rekap Kelas' }, { key: 'bantuan', label: 'Panduan' }
   ]
 };
 
@@ -172,6 +173,7 @@ App.bukaMenu = function (key) {
   if (!m) return;
   Array.prototype.forEach.call(App.el('nav').querySelectorAll('.nav-item'), function (b) { b.classList.remove('aktif'); });
   var cur = App.el('nav').querySelector('[data-key="' + key + '"]'); if (cur) cur.classList.add('aktif');
+  if (key === 'bantuan') { App.bukaBantuan(); return; }
   if (s.peran === 'siswa' && App.bukaMenuSiswa) { App.bukaMenuSiswa(key); return; }
   if (s.peran === 'wali' && App.bukaMenuWali) { App.bukaMenuWali(key); return; }
   if (s.peran === 'admin' && App.bukaMenuAdmin) { App.bukaMenuAdmin(key); return; }
@@ -192,6 +194,45 @@ App.tampilkanBeranda = function () {
     html = '<h2><span class="titik titik-hijau"></span>Selamat datang, ' + App.escapeHtml(s.nama) + '!</h2><p class="muted">Anda masuk sebagai <b>' + App.labelPeran(s.peran) + '</b>' + (s.lihatSebagai ? ' (sedang melihat sebagai wali kelas' + (s.namaKelasLihat ? ' ' + s.namaKelasLihat : '') + ')' : '') + '. Pilih menu di bawah.</p>';
     App.el('konten').innerHTML = html;
   }
+};
+App.bukaBantuan = function () {
+  var s = App.state;
+  var panduan = {
+    siswa: [
+      'Isi Hari Ini: pilih tanggal (hari ini atau maks 2 hari ke belakang), tandai tiap kebiasaan ✓ Sudah / ✗ Belum, isi jam bangun & jam tidur, centang "Diketahui orang tua", lalu Simpan.',
+      'Kalender Bulanan: lihat rekap v/x per tanggal, jam bangun/tidur, dan jumlah paraf.',
+      'Ringkasan Bulan: lihat kategori Sudah/Belum Terbiasa per kebiasaan + rata-rata durasi tidur.',
+      'Refleksi Bulanan: isi kesimpulan & tindak lanjut per kebiasaan bersama orang tua di akhir bulan.',
+      'Stiker: lengkapi 7 kebiasaan ✓ hari ini untuk dapat stiker; berturut-turut menambah rentetan.'
+    ],
+    wali: [
+      'Kelola Siswa: tambah satu per satu atau impor massal (NISN, Nama, L/P). Edit (modal), reset PIN, nonaktifkan.',
+      'Pemantauan Hari Ini: lihat siswa belum mengisi & yang perlu perhatian (3 hari kosong / kurang tidur).',
+      'Validasi (Paraf): pilih siswa + tanggal, tandai paraf per kebiasaan; atau paraf massal untuk rentang tanggal.',
+      'Rekap Bulanan: lihat jumlah hari per kebiasaan per siswa + kategori; isi catatan wali; unduh xlsx Lampiran 3.',
+      'Refleksi Siswa: lihat refleksi siswa per bulan (read-only).'
+    ],
+    admin: [
+      'Dashboard: rekap sekolah (isi hari ini, rata-rata per kebiasaan, per kelas).',
+      'Identitas Sekolah & Kriteria: nama sekolah, NPSN, kepala sekolah, warna tema, ambang "Sudah Terbiasa", batas hari mundur, dll.',
+      'Tahun Ajaran & Libur: buat tahun aktif, tambah libur. Arsipkan tahun lama (data dipindah ke spreadsheet arsip).',
+      'Kelas & Wali: tambah kelas, assign wali, atur jadwal buka-tutup pengisian per kelas (bergelombang).',
+      'Form 7 Kebiasaan: ubah nama/urutan/aktif kebiasaan & isian; versi form baru otomatis.',
+      'Akun & Keamanan: kelola admin/wali/pembaca (modal edit), reset PIN, lihat log aktivitas.',
+      'Naik Kelas: luluskan kelas 9, naikkan jenjang, atau atur ulang kelas via impor (untuk pengacakan).',
+      'Ekspor xlsx: unduh rekap per kelas (Lampiran 3) atau semua kelas.',
+      'Backup: atur folder Drive, retensi, aktifkan backup harian otomatis.'
+    ],
+    pembaca: [
+      'Dashboard: lihat rekap sekolah (isi hari ini, rata-rata per kebiasaan, per kelas).',
+      'Rekap Kelas: pilih kelas + bulan, lihat rekap & unduh xlsx (read-only, tidak mengubah data).'
+    ]
+  };
+  var list = panduan[s.peran] || [];
+  var html = '<h2><span class="titik titik-hijau"></span>Panduan Pemakaian</h2>';
+  list.forEach(function (t) { html += '<div class="def-item"><div class="def-isi">' + App.escapeHtml(t) + '</div></div>'; });
+  html += '<p class="muted kecil" style="margin-top:12px">Bila lupa PIN, hubungi admin atau wali kelas untuk direset.</p>';
+  App.el('konten').innerHTML = html;
 };
 
 document.addEventListener('DOMContentLoaded', function () {
