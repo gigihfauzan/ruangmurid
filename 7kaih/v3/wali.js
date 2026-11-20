@@ -55,15 +55,18 @@
     App.el('btnImpor').disabled = true;
     App.api('wali.siswaImpor', { rows: rows }, App.state.token).then(function (res) { App.el('btnImpor').disabled = false; if (!res || !res.ok) { hasil.textContent = (res && res.error) || 'Gagal.'; return; } var d = res.data; hasil.textContent = 'Berhasil: ' + d.sukses + '. Gagal: ' + d.errors.length + (d.errors.length ? ' — ' + d.errors.join('; ') : ''); if (d.sukses > 0) { App.toast(d.sukses + ' siswa diimpor.', 'ok'); bukaKelola(); } });
   }
-    function aksiSiswa(act, id) {
+  function aksiSiswa(act, id) {
     if (act === 'edit') {
       var s = null;
       for (var i = 0; i < App.state.siswaListWali.length; i++) if (App.state.siswaListWali[i].id === id) { s = App.state.siswaListWali[i]; break; }
       if (!s) return;
-      var nisn = window.prompt('NISN:', s.nisn); if (nisn === null) return;
-      var nama = window.prompt('Nama:', s.nama); if (nama === null) return;
-      var jk = window.prompt('Jenis kelamin (L/P):', s.jk); if (jk === null) return; jk = jk.toUpperCase().trim();
-      App.api('wali.siswaEdit', { idSiswa: id, nisn: nisn, nama: nama, jk: jk }, App.state.token).then(function (res) { if (res && res.ok) { App.toast('Diperbarui.', 'ok'); bukaKelola(); } else App.toast((res && res.error) || 'Gagal.', 'err'); });
+      App.modalForm('Edit Siswa', [
+        { kunci: 'nisn', label: 'NISN', val: s.nisn },
+        { kunci: 'nama', label: 'Nama', val: s.nama },
+        { kunci: 'jk', label: 'Jenis Kelamin', val: s.jk, type: 'select', opts: [{ v: 'L', l: 'Laki-laki' }, { v: 'P', l: 'Perempuan' }] }
+      ], function (v) {
+        App.api('wali.siswaEdit', { idSiswa: id, nisn: v.nisn, nama: v.nama, jk: v.jk }, App.state.token).then(function (res) { if (res && res.ok) { App.toast('Diperbarui.', 'ok'); bukaKelola(); } else App.toast((res && res.error) || 'Gagal.', 'err'); });
+      });
     } else if (act === 'reset') { if (!window.confirm('Reset PIN siswa?')) return; App.api('wali.siswaResetPin', { idSiswa: id }, App.state.token).then(function (res) { if (res && res.ok) App.toast('PIN direset ke: ' + res.data.pin, 'ok'); else App.toast((res && res.error) || 'Gagal.', 'err'); }); }
     else if (act === 'nonaktif') { if (!window.confirm('Nonaktifkan siswa ini?')) return; App.api('wali.siswaNonaktif', { idSiswa: id, aktif: false }, App.state.token).then(function (res) { if (res && res.ok) { App.toast('Dinonaktifkan.', 'ok'); bukaKelola(); } else App.toast((res && res.error) || 'Gagal.', 'err'); }); }
   }
@@ -121,7 +124,20 @@
   function renderRekap(data) {
     var html = '<h2><span class="titik titik-hijau"></span>Rekap ' + App.formatBulan(data.bulan) + '</h2>';
     html += '<div class="bulan-nav"><button class="chip" id="rekPrev">&laquo;</button><span>' + App.formatBulan(data.bulan) + '</span><button class="chip" id="rekNext">&raquo;</button></div>';
-    html += '<p class="muted kecil">Ambang "Sudah Terbiasa": minimal ' + data.ambangHari + ' dari ' + data.totalHari + ' hari.</p>';
+    //html += '<p class="muted kecil">Ambang "Sudah Terbiasa": minimal ' + data.ambangHari + ' dari ' + data.totalHari + ' hari.</p>';
+    html += '<button id="btnUnduhRekap" class="btn btn-block btn-ghost" style="margin-top:12px">Unduh xlsx (Lampiran 3)</button><p id="unduhHasil" class="muted kecil"></p>';
+    html += '<p class="muted kecil">Angka = jumlah hari melakukan. Hijau = Sudah Terbiasa. Catatan tersimpan saat berpindah kolom.</p>';
+    App.el('konten').innerHTML = html;
+    App.el('rekPrev').addEventListener('click', function () { App.state.bulanRekap = App.geserBulan(data.bulan, -1); bukaRekap(); });
+    App.el('rekNext').addEventListener('click', function () { App.state.bulanRekap = App.geserBulan(data.bulan, 1); bukaRekap(); });
+    App.el('btnUnduhRekap').addEventListener('click', function () {
+      App.setLoading('btnUnduhRekap', true); App.el('unduhHasil').textContent = 'Menyusun xlsx…';
+      App.api('wali.eksporKelas', { bulan: data.bulan }, App.state.token).then(function (r) {
+        App.setLoading('btnUnduhRekap', false);
+        if (r && r.ok) { App.unduhFile(r.data.file, r.data.nama); App.el('unduhHasil').textContent = 'Terunduh: ' + r.data.nama; }
+        else App.el('unduhHasil').textContent = (r && r.error) || 'Gagal.';
+      });
+    });
     //Header pakai NAMA LENGKAP kebiasaan
     html += '<div class="kal-scroll"><table class="kal rekap-tbl"><thead><tr><th>No</th><th>Nama</th><th>L/P</th>';
     data.habits.forEach(function (h) { html += '<th class="th-habit">' + App.escapeHtml(h.nama) + '</th>'; });
