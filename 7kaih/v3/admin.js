@@ -1,7 +1,8 @@
 // admin.js — layar admin utama (Tahap 5).
 (function () {
-  App.bukaMenuAdmin = function (key) {
-    if (key === 'identitas') bukaIdentitas();
+    App.bukaMenuAdmin = function (key) {
+    if (key === 'dashboard') bukaDashboard();
+    else if (key === 'identitas') bukaIdentitas();
     else if (key === 'tahun') bukaTahun();
     else if (key === 'kelas') bukaKelas();
     else if (key === 'form') bukaForm();
@@ -9,6 +10,7 @@
     else if (key === 'akun') bukaAkun();
     else if (key === 'naik') bukaNaik();
     else if (key === 'pengumuman') bukaPengumuman();
+    else if (key === 'ekspor') bukaEkspor();
     else if (key === 'lihat') bukaLihat();
     else if (key === 'log') bukaLog();
   };
@@ -222,7 +224,7 @@
     });
   }
   //Akun staff
-    function bukaAkun() {
+  function bukaAkun() {
     App.el('konten').innerHTML = '<h2>Akun & Keamanan</h2><p class="muted"><span class="spinner"></span> Memuat…</p>';
     Promise.all([App.api('admin.akunList', {}, App.state.token), App.api('admin.kelasList', {}, App.state.token)]).then(function (rs) {
       var ar = rs[0], kr = rs[1];
@@ -251,10 +253,13 @@
           if (act === 'edit') {
             var a = null; for (var i = 0; i < akunList.length; i++) if (akunList[i].id === id) { a = akunList[i]; break; }
             if (!a) return;
-            var nama = window.prompt('Nama:', a.nama); if (nama === null) return;
-            var username = window.prompt('Username:', a.username); if (username === null) return;
-            var nip = window.prompt('NIP:', a.nip || ''); if (nip === null) return;
-            App.api('admin.akunEdit', { idAkun: id, nama: nama, username: username, nip: nip }, App.state.token).then(function (r) { if (r && r.ok) { App.toast('Diperbarui.', 'ok'); bukaAkun(); } else App.toast((r && r.error) || 'Gagal.', 'err'); });
+            App.modalForm('Edit Akun', [
+              { kunci: 'nama', label: 'Nama', val: a.nama },
+              { kunci: 'username', label: 'Username', val: a.username },
+              { kunci: 'nip', label: 'NIP', val: a.nip || '' }
+            ], function (v) {
+              App.api('admin.akunEdit', { idAkun: id, nama: v.nama, username: v.username, nip: v.nip }, App.state.token).then(function (r) { if (r && r.ok) { App.toast('Diperbarui.', 'ok'); bukaAkun(); } else App.toast((r && r.error) || 'Gagal.', 'err'); });
+            });
           } else if (act === 'reset') { if (window.confirm('Reset PIN ke awal?')) App.api('admin.akunResetPin', { idAkun: id }, App.state.token).then(function (r) { if (r && r.ok) App.toast('PIN direset ke: ' + r.data.pin, 'ok'); else App.toast('Gagal.', 'err'); }); }
           else if (act === 'nonaktif') App.api('admin.akunNonaktif', { idAkun: id, aktif: false }, App.state.token).then(function () { App.toast('Diperbarui.', 'ok'); bukaAkun(); });
         });
@@ -325,7 +330,7 @@
     });
   }
   //Lihat sebagai wali
-    function bukaLihat() {
+  function bukaLihat() {
     App.el('konten').innerHTML = '<h2>Lihat sebagai Wali Kelas</h2><p class="muted"><span class="spinner"></span> Memuat…</p>';
     App.api('admin.kelasList', {}, App.state.token).then(function (res) {
       if (!res || !res.ok) { App.el('konten').innerHTML = '<p class="muted">Gagal.</p>'; return; }
@@ -333,17 +338,17 @@
       html += '<p class="muted kecil">Buka tampilan wali kelas untuk kelas tertentu. Tombol <b>Kembali ke Admin</b> tersedia di kartu Akun Saya.</p>';
       res.data.kelas.forEach(function (k) {
         if (k.nonaktif) return;
-        html += '<div class="siswa-item"><div class="siswa-info"><b>' + App.escapeHtml(k.nama) + '</b> · Wali: ' + App.escapeHtml(k.waliNama || '-') + '</div><button class="chip" data-id="' + k.id + '">Buka</button></div>';
+        html += '<div class="siswa-item"><div class="siswa-info"><b>' + App.escapeHtml(k.nama) + '</b> · Wali: ' + App.escapeHtml(k.waliNama || '-') + '</div><button class="chip" data-id="' + k.id + '" data-nama="' + App.escapeAttr(k.nama) + '">Buka</button></div>';
       });
       App.el('konten').innerHTML = html;
       Array.prototype.forEach.call(App.el('konten').querySelectorAll('.siswa-item .chip'), function (btn) {
         btn.addEventListener('click', function () {
-          var idKelas = btn.getAttribute('data-id');
+          var idKelas = btn.getAttribute('data-id'), namaKelas = btn.getAttribute('data-nama');
           App.api('admin.lihatSebagai', { idKelas: idKelas }, App.state.token).then(function (r) {
             if (r && r.ok) {
               App.state.tokenAdmin = App.state.token;
-              App.state.token = r.data.token; App.state.peran = 'wali'; App.state.id_kelas = r.data.idKelas; App.state.lihatSebagai = true;
-              App.masukApp(); App.toast('Melihat sebagai wali kelas ' + r.data.namaKelas, 'ok');
+              App.state.token = r.data.token; App.state.peran = 'wali'; App.state.id_kelas = r.data.idKelas; App.state.lihatSebagai = true; App.state.namaKelasLihat = namaKelas;
+              App.masukApp(); App.toast('Melihat sebagai wali kelas ' + namaKelas, 'ok');
             } else App.toast((r && r.error) || 'Gagal.', 'err');
           });
         });
@@ -359,6 +364,36 @@
       if (!res.data.log.length) html += '<p class="muted">Belum ada.</p>';
       res.data.log.forEach(function (l) { html += '<div class="log-item"><span class="muted kecil">' + App.escapeHtml(l.waktu) + '</span> · <b>' + App.escapeHtml(l.aksi) + '</b> <span class="muted kecil">(' + App.escapeHtml(l.detail || '') + ')</span></div>'; });
       App.el('konten').innerHTML = html;
+    });
+  }
+
+  function bukaDashboard() {
+    App.el('konten').innerHTML = '<h2>Dashboard Sekolah</h2><p class="muted"><span class="spinner"></span> Memuat…</p>';
+    App.api('admin.dashboard', {}, App.state.token).then(function (res) { if (!res || !res.ok) { App.el('konten').innerHTML = '<p class="muted">Gagal.</p>'; return; } App.renderDashboard(res.data); });
+  }
+  function bukaEkspor() {
+    App.el('konten').innerHTML = '<h2>Ekspor xlsx</h2><p class="muted"><span class="spinner"></span> Memuat…</p>';
+    App.api('admin.kelasList', {}, App.state.token).then(function (res) {
+      if (!res || !res.ok) { App.el('konten').innerHTML = '<p class="muted">Gagal.</p>'; return; }
+      var bulan = App.monthKey(App.state.hariIni);
+      var html = '<h2><span class="titik titik-kuning"></span>Ekspor xlsx (Rekap Bulanan)</h2>';
+      html += '<p class="muted kecil">Format Lampiran 3: identitas, tabel 7 kebiasaan + catatan, tanda tangan kepala sekolah & wali kelas. Ditambah lembar kategori & data harian.</p>';
+      html += '<label class="label">Bulan</label><input id="ekBulan" class="input" type="month" value="' + bulan + '">';
+      html += '<label class="label">Kelas</label><select id="ekKelas" class="input"><option value="">Semua Kelas (satu sheet per kelas + ringkasan sekolah)</option>';
+      res.data.kelas.forEach(function (k) { if (!k.nonaktif) html += '<option value="' + k.id + '">' + App.escapeHtml(k.nama) + '</option>'; });
+      html += '</select><button id="btnEkspor" class="btn btn-block">Unduh xlsx</button><p id="ekHasil" class="muted kecil"></p>';
+      App.el('konten').innerHTML = html;
+      App.el('btnEkspor').addEventListener('click', function () {
+        var bln = App.el('ekBulan').value || bulan, idKelas = App.el('ekKelas').value;
+        var action = idKelas ? 'admin.eksporKelas' : 'admin.eksporSemua';
+        var payload = idKelas ? { idKelas: idKelas, bulan: bln } : { bulan: bln };
+        App.setLoading('btnEkspor', true); App.el('ekHasil').textContent = 'Menyusun xlsx…';
+        App.api(action, payload, App.state.token).then(function (r) {
+          App.setLoading('btnEkspor', false);
+          if (r && r.ok) { App.unduhFile(r.data.file, r.data.nama); App.el('ekHasil').textContent = 'Terunduh: ' + r.data.nama; }
+          else App.el('ekHasil').textContent = (r && r.error) || 'Gagal.';
+        });
+      });
     });
   }
 })();
