@@ -55,9 +55,16 @@
     App.el('btnImpor').disabled = true;
     App.api('wali.siswaImpor', { rows: rows }, App.state.token).then(function (res) { App.el('btnImpor').disabled = false; if (!res || !res.ok) { hasil.textContent = (res && res.error) || 'Gagal.'; return; } var d = res.data; hasil.textContent = 'Berhasil: ' + d.sukses + '. Gagal: ' + d.errors.length + (d.errors.length ? ' — ' + d.errors.join('; ') : ''); if (d.sukses > 0) { App.toast(d.sukses + ' siswa diimpor.', 'ok'); bukaKelola(); } });
   }
-  function aksiSiswa(act, id) {
-    if (act === 'edit') { var nama = window.prompt('Nama baru:'); if (nama === null) return; var jk = window.prompt('Jenis kelamin (L/P):'); if (jk === null) return; jk = jk.toUpperCase().trim(); App.api('wali.siswaEdit', { idSiswa: id, nama: nama, jk: jk }, App.state.token).then(function (res) { if (res && res.ok) { App.toast('Diperbarui.', 'ok'); bukaKelola(); } else App.toast((res && res.error) || 'Gagal.', 'err'); }); }
-    else if (act === 'reset') { if (!window.confirm('Reset PIN siswa?')) return; App.api('wali.siswaResetPin', { idSiswa: id }, App.state.token).then(function (res) { if (res && res.ok) App.toast('PIN direset ke: ' + res.data.pin, 'ok'); else App.toast((res && res.error) || 'Gagal.', 'err'); }); }
+    function aksiSiswa(act, id) {
+    if (act === 'edit') {
+      var s = null;
+      for (var i = 0; i < App.state.siswaListWali.length; i++) if (App.state.siswaListWali[i].id === id) { s = App.state.siswaListWali[i]; break; }
+      if (!s) return;
+      var nisn = window.prompt('NISN:', s.nisn); if (nisn === null) return;
+      var nama = window.prompt('Nama:', s.nama); if (nama === null) return;
+      var jk = window.prompt('Jenis kelamin (L/P):', s.jk); if (jk === null) return; jk = jk.toUpperCase().trim();
+      App.api('wali.siswaEdit', { idSiswa: id, nisn: nisn, nama: nama, jk: jk }, App.state.token).then(function (res) { if (res && res.ok) { App.toast('Diperbarui.', 'ok'); bukaKelola(); } else App.toast((res && res.error) || 'Gagal.', 'err'); });
+    } else if (act === 'reset') { if (!window.confirm('Reset PIN siswa?')) return; App.api('wali.siswaResetPin', { idSiswa: id }, App.state.token).then(function (res) { if (res && res.ok) App.toast('PIN direset ke: ' + res.data.pin, 'ok'); else App.toast((res && res.error) || 'Gagal.', 'err'); }); }
     else if (act === 'nonaktif') { if (!window.confirm('Nonaktifkan siswa ini?')) return; App.api('wali.siswaNonaktif', { idSiswa: id, aktif: false }, App.state.token).then(function (res) { if (res && res.ok) { App.toast('Dinonaktifkan.', 'ok'); bukaKelola(); } else App.toast((res && res.error) || 'Gagal.', 'err'); }); }
   }
   function bukaPemantauan() {
