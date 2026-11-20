@@ -1,6 +1,6 @@
 // admin.js — layar admin utama (Tahap 5).
 (function () {
-    App.bukaMenuAdmin = function (key) {
+  App.bukaMenuAdmin = function (key) {
     if (key === 'dashboard') bukaDashboard();
     else if (key === 'identitas') bukaIdentitas();
     else if (key === 'tahun') bukaTahun();
@@ -11,6 +11,7 @@
     else if (key === 'naik') bukaNaik();
     else if (key === 'pengumuman') bukaPengumuman();
     else if (key === 'ekspor') bukaEkspor();
+    else if (key === 'backup') bukaBackup();
     else if (key === 'lihat') bukaLihat();
     else if (key === 'log') bukaLog();
   };
@@ -83,8 +84,7 @@
       html += '<div class="habit-row"><div class="habit-nama">Tambah Tahun Ajaran</div>';
       html += '<input id="thNama" class="input" placeholder="Nama (mis. 2025/2026)">';
       html += '<select id="thSem" class="input" style="margin-top:8px"><option>Ganjil</option><option>Genap</option></select>';
-      html += '<input id="thMulai" class="input" style="margin-top:8px" type="date" placeholder="Mulai">';
-      html += '<input id="thAkhir" class="input" style="margin-top:8px" type="date" placeholder="Akhir">';
+      html += '<input id="thMulai" class="input" style="margin-top:8px" type="date"><input id="thAkhir" class="input" style="margin-top:8px" type="date">';
       html += '<label class="cek" style="margin-top:8px"><input type="checkbox" id="thAktif" checked> Jadikan aktif</label>';
       html += '<button id="btnThTambah" class="btn btn-block">Tambah</button></div>';
       html += '<div class="habit-nama" style="margin-top:14px">Daftar Tahun Ajaran</div>';
@@ -93,7 +93,7 @@
         html += '<div class="siswa-item"><div class="siswa-info"><b>' + App.escapeHtml(t.nama) + '</b> ' + App.escapeHtml(t.semester || '') + ' (' + (t.mulai || '?') + ' → ' + (t.akhir || '?') + ') ' + badge + '</div>';
         html += '<div class="siswa-aksi">';
         if (!t.aktif) html += '<button class="chip" data-act="aktif" data-id="' + t.id + '">Jadikan Aktif</button>';
-        if (!t.arsip) html += '<button class="chip" data-act="arsip" data-id="' + t.id + '">Arsipkan</button>';
+        if (!t.arsip) html += '<button class="chip" data-act="arsip" data-id="' + t.id + '">Arsipkan &amp; Pindah Data</button>';
         html += '<button class="chip" data-act="libur" data-id="' + t.id + '">Libur</button></div></div>';
       });
       App.el('konten').innerHTML = html;
@@ -104,7 +104,13 @@
         btn.addEventListener('click', function () {
           var act = btn.getAttribute('data-act'), id = btn.getAttribute('data-id');
           if (act === 'aktif') App.api('admin.tahunSetAktif', { id: id }, App.state.token).then(function () { App.toast('Dijadikan aktif.', 'ok'); bukaTahun(); });
-          else if (act === 'arsip') { if (window.confirm('Arsipkan tahun ini?')) App.api('admin.tahunArsip', { id: id }, App.state.token).then(function () { App.toast('Diarsipkan.', 'ok'); bukaTahun(); }); }
+          else if (act === 'arsip') {
+            if (!window.confirm('Arsipkan tahun ini? Data Jurnal & Refleksi tahun ini akan DIPINDAH ke spreadsheet arsip (terpisah) lalu dihapus dari database aktif agar aplikasi tetap cepat. Lanjutkan?')) return;
+            App.api('admin.tahunArsipPenuh', { idTahun: id }, App.state.token).then(function (r) {
+              if (r && r.ok) { App.toast('Diarsipkan: ' + r.data.jurnal + ' jurnal, ' + r.data.refleksi + ' refleksi.', 'ok'); window.prompt('URL spreadsheet arsip (salin & simpan):', r.data.url); bukaTahun(); }
+              else App.toast((r && r.error) || 'Gagal.', 'err');
+            });
+          }
           else if (act === 'libur') bukaLibur(id);
         });
       });
@@ -396,4 +402,29 @@
       });
     });
   }
+
+  function bukaBackup() {
+    App.el('konten').innerHTML = '<h2>Backup</h2><p class="muted"><span class="spinner"></span> Memuat…</p>';
+    App.api('admin.backupInfo', {}, App.state.token).then(function (res) {
+      if (!res || !res.ok) { App.el('konten').innerHTML = '<p class="muted">Gagal.</p>'; return; }
+      var d = res.data, html = '<h2><span class="titik titik-kuning"></span>Backup Data</h2>';
+      html += '<p class="muted kecil">Backup menyalin spreadsheet database ke folder Google Drive Anda. Backup harian otomatis berjalan pukul ~02:00 WIB bila diaktifkan.</p>';
+      html += '<div class="habit-row"><div class="habit-nama">Pengaturan</div>';
+      html += '<label class="label">ID Folder Google Drive</label><input id="bkFolder" class="input" value="' + App.escapeAttr(d.folderId || '') + '" placeholder="tempel ID folder">';
+      html += '<p class="muted kecil">Cara dapat ID: buka folder di Drive, salin bagian URL setelah <code>/folders/</code>.</p>';
+      html += '<label class="label" style="margin-top:8px">Retensi (hari, backup lama dibuang)</label><input id="bkRetensi" class="input" type="number" value="' + (d.retensiHari || 30) + '">';
+      html += '<button id="btnBkSimpan" class="btn btn-block">Simpan Pengaturan</button></div>';
+      html += '<div class="habit-row"><div class="habit-nama">Status</div>';
+      html += '<p class="muted kecil">Folder: ' + (d.folderAda ? App.escapeHtml(d.namaFolder) : '<b>belum diset / tidak ditemukan</b>') + '</p>';
+      html += '<p class="muted kecil">Backup terakhir: ' + (d.lastBackup || 'belum ada') + '</p>';
+      html += '<p class="muted kecil">Backup harian otomatis: ' + (d.triggerAktif ? '<span class="badge badge-ok">Aktif</span>' : '<span class="badge badge-belum">Nonaktif</span>') + '</p>';
+      html += '<button id="btnBkSekarang" class="btn btn-block btn-ghost" style="margin-top:8px">Backup Sekarang</button>';
+      html += '<button id="btnBkAktifkan" class="btn btn-block">' + (d.triggerAktif ? 'Matikan Backup Harian' : 'Aktifkan Backup Harian') + '</button>';
+      html += '<p id="bkHasil" class="muted kecil"></p></div>';
+      App.el('konten').innerHTML = html;
+      App.el('btnBkSimpan').addEventListener('click', function () { App.api('admin.backupAtur', { folderId: App.el('bkFolder').value, retensiHari: App.el('bkRetensi').value }, App.state.token).then(function (r) { if (r && r.ok) { App.toast('Tersimpan.', 'ok'); bukaBackup(); } else App.toast((r && r.error) || 'Gagal.', 'err'); }); });
+      App.el('btnBkSekarang').addEventListener('click', function () { App.setLoading('btnBkSekarang', true); App.api('admin.backupSekarang', {}, App.state.token).then(function (r) { App.setLoading('btnBkSekarang', false); if (r && r.ok) { App.toast('Backup dibuat.', 'ok'); bukaBackup(); } else App.toast((r && r.error) || 'Gagal.', 'err'); }); });
+      App.el('btnBkAktifkan').addEventListener('click', function () { var aktif = !d.triggerAktif; App.api('admin.backupAtur', { aktifkan: aktif }, App.state.token).then(function (r) { if (r && r.ok) { App.toast(aktif ? 'Backup harian diaktifkan.' : 'Backup harian dimatikan.', 'ok'); bukaBackup(); } else App.toast('Gagal.', 'err'); }); });
+    });
+  }  
 })();
