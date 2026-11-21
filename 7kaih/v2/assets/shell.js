@@ -130,3 +130,4 @@ function renderShell(root, profile, settings, actions) {
     setChildren(content, view);
     window.scrollTo(0, 0);
   }
+}
