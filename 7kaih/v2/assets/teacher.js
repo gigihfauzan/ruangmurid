@@ -444,7 +444,7 @@ function renderRecap(d, redraw) {
     h('p', { class: 'field-hint' }, 'Angka besar = jumlah hari melakukan. Hijau = Sudah Terbiasa, kuning = Belum Terbiasa. ✍ = jumlah paraf.'));
 }
 
-function viewRecap(profile, settings) {
+/* function viewRecap(profile, settings) {
   return teacherFrame(profile, '📋 Rekap Bulanan', function (kelasId, body) {
     let month = settings.hari_ini.substring(0, 7), last = null;
     function load() {
@@ -454,6 +454,23 @@ function viewRecap(profile, settings) {
         if (!res.ok) { setChildren(body, nav, errorBlock(res.error.pesan, load)); return; }
         last = res.data;
         setChildren(body, nav, renderRecap(last, function () { setChildren(body, nav, renderRecap(last, arguments.callee)); }));
+      });
+    }
+    load();
+  });
+}*/
+
+function viewRecap(profile, settings) {
+  return teacherFrame(profile, '📋 Rekap Bulanan', function (kelasId, body) {
+    let month = settings.hari_ini.substring(0, 7);
+    function load() {
+      const nav = monthNav(month, settings.hari_ini, function (m) { month = m; load(); });
+      setChildren(body, nav, loading());
+      Api.call('rekap_kelas', { id_kelas: kelasId, bulan: month }, { retries: 2 }).then(function (res) {
+        if (!res.ok) { setChildren(body, nav, errorBlock(res.error.pesan, load)); return; }
+        const d = res.data;
+        const paint = function () { setChildren(body, nav, renderRecap(d, paint)); };
+        paint();
       });
     }
     load();
