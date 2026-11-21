@@ -111,23 +111,11 @@ function renderShell(root, profile, settings, actions) {
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     let view;
-    try {
-      if (isStudent && typeof STUDENT_VIEWS !== 'undefined' && STUDENT_VIEWS[item.id]) {
-        view = STUDENT_VIEWS[item.id](profile, settings);
-      } else if (profile.peran === 'wali') {
-        if (typeof TEACHER_VIEWS === 'undefined') throw new Error('Berkas assets/teacher.js belum termuat. Periksa unggahan dan index.html.');
-        view = TEACHER_VIEWS[item.id] ? TEACHER_VIEWS[item.id](profile, settings) : viewSoon(item);
-      } else {
-        view = viewSoon(item);
-      }
-    } catch (e) {
-      if (window.console) console.error(e);
-      view = h('div', { class: 'card center' },
-        h('div', { class: 'big-emoji', 'aria-hidden': 'true' }, '🛠️'),
-        h('p', { class: 'form-msg' }, 'Halaman ini gagal ditampilkan: ' + (e && e.message ? e.message : e)),
-        h('p', { class: 'field-hint' }, 'Muat ulang paksa halaman (Ctrl+F5). Jika pesan yang sama muncul, kirimkan pesan di atas.'));
-    }
+    if (isStudent && STUDENT_VIEWS[item.id]) view = STUDENT_VIEWS[item.id](profile, settings);
+    else view = viewSoon(item);
     setChildren(content, view);
     window.scrollTo(0, 0);
   }
+  window.onhashchange = route;
+  route();
 }
