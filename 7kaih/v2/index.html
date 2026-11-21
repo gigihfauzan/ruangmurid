@@ -8,19 +8,31 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/app.css">
+  <link rel="stylesheet" href="assets/app.css?v=4">
 </head>
 <body>
   <div id="app"></div>
   <div id="toast" aria-live="polite"></div>
   <noscript><p style="padding:24px">Aplikasi ini membutuhkan JavaScript. Aktifkan JavaScript di browser Anda.</p></noscript>
-  <script src="assets/config.js"></script>
-  <script src="assets/api.js"></script>
-  <script src="assets/ui.js"></script>
-  <script src="assets/auth.js"></script>
-  <script src="assets/shell.js"></script>
-  <script src="assets/student.js"></script>
-  <script src="assets/teacher.js"></script>
-  <script src="assets/app.js"></script>
+  <script>
+    // Menampilkan galat tampilan di layar (membantu mencari penyebab layar kosong).
+    window.addEventListener('error', function (e) {
+      var box = document.getElementById('toast');
+      if (!box || !e || !e.message) return;
+      var d = document.createElement('div');
+      d.className = 'toast err';
+      d.textContent = 'Galat tampilan: ' + e.message + (e.filename ? ' [' + e.filename.split('/').pop().split('?')[0] + ' baris ' + e.lineno + ']' : '');
+      box.appendChild(d);
+      setTimeout(function () { d.remove(); }, 30000);
+    });
+  </script>
+  <script src="assets/config.js?v=4"></script>
+  <script src="assets/api.js?v=4"></script>
+  <script src="assets/ui.js?v=4"></script>
+  <script src="assets/auth.js?v=4"></script>
+  <script src="assets/shell.js?v=4"></script>
+  <script src="assets/student.js?v=4"></script>
+  <script src="assets/teacher.js?v=4"></script>
+  <script src="assets/app.js?v=4"></script>
 </body>
 </html>
