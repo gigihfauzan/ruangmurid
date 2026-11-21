@@ -113,6 +113,7 @@ function renderShell(root, profile, settings, actions) {
     let view;
     if (isStudent && STUDENT_VIEWS[item.id]) view = STUDENT_VIEWS[item.id](profile, settings);
     else if (profile.peran === 'wali' && TEACHER_VIEWS[item.id]) view = TEACHER_VIEWS[item.id](profile, settings);
+    else if (profile.peran === 'admin' && ADMIN_VIEWS[item.id]) view = ADMIN_VIEWS[item.id](profile, settings);
     else view = viewSoon(item);
     setChildren(content, view);
     window.scrollTo(0, 0);
