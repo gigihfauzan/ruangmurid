@@ -209,3 +209,39 @@ table.cal { border-collapse: separate; border-spacing: 0; font-size: .82rem; min
 .confetti span { position: absolute; top: -30px; font-size: 1.6rem; animation: jatuh 2.6s linear forwards; }
 @keyframes jatuh { to { transform: translateY(110vh) rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .confetti { display: none; } }
+
+/* ---------- Tahap 4: wali kelas ---------- */
+.srow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0; padding: 14px 16px; background: #fff; border-radius: var(--r); box-shadow: var(--shadow); }
+.srow.off { opacity: .6; }
+.sinfo { display: grid; min-width: 180px; }
+.stags, .sbtns { display: flex; flex-wrap: wrap; gap: 8px; }
+.mini { min-height: 44px; padding: 0 14px; border: 2px solid var(--line); border-radius: 12px; background: #fff; font-weight: 800; cursor: pointer; }
+.mini.danger { color: var(--err); }
+.linkbtn { padding: 0; border: 0; background: transparent; font-weight: 800; text-align: left; cursor: pointer; color: inherit; }
+.linkbtn small { color: var(--muted); font-weight: 700; }
+.btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+.steps { margin: 0 0 8px; padding-left: 20px; }
+table.plain { width: 100%; border-collapse: collapse; }
+.plain th, .plain td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); }
+.pin-cell { font-weight: 800; font-size: 1.1rem; letter-spacing: .15em; }
+.att { margin: 10px 0; padding: 14px 16px; border-left: 6px solid #f59e0b; border-radius: var(--r); background: #fffbeb; }
+.att .field-hint { margin: 4px 0 0; }
+.names { display: flex; flex-wrap: wrap; gap: 8px; }
+.name-chip { padding: 6px 14px; border-radius: 999px; background: var(--tema-soft); color: var(--tema-ink); font-weight: 700; }
+.progress.light { background: rgba(255, 255, 255, .3); }
+.progress.light > span { background: #fff; }
+.paraf { min-width: 40px; height: 36px; border: 2px solid var(--line); border-radius: 10px; background: #fff; font-weight: 800; cursor: pointer; }
+.paraf.on { background: var(--tema); border-color: var(--tema); color: #fff; }
+.colhead { min-width: 78px; padding: 6px 4px; }
+.colhead small { display: block; font-size: .62rem; line-height: 1.15; font-weight: 700; color: var(--muted); white-space: normal; }
+.rc { min-width: 78px; padding: 6px 4px !important; line-height: 1.2; }
+.rc.ok { background: #ecfdf3; }
+.rc.wait { background: #fffbeb; }
+.rc small { display: block; font-size: .7rem; font-weight: 700; color: var(--muted); }
+.prewrap { margin-top: 0; white-space: pre-wrap; word-break: break-word; }
+#print-area { display: none; }
+@media print {
+  body > *:not(#print-area) { display: none !important; }
+  #print-area { display: block !important; padding: 16px; }
+}
+
