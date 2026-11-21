@@ -245,3 +245,11 @@ table.plain { width: 100%; border-collapse: collapse; }
   #print-area { display: block !important; padding: 16px; }
 }
 
+/* ---------- Tahap 5: admin ---------- */
+input.color { height: 54px; padding: 4px 8px; cursor: pointer; }
+.frow { display: grid; gap: 8px; margin: 8px 0; padding: 12px; border-radius: 14px; background: var(--bg); }
+.line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.line .input { flex: 1 1 200px; }
+.hcard { margin: 12px 0; padding: 14px; border-left: 8px solid var(--c); border-radius: var(--r); background: #fff; box-shadow: var(--shadow); display: grid; gap: 10px; }
+.arrows { display: flex; gap: 6px; margin-left: auto; }
+.logtable td { font-size: .85rem; white-space: nowrap; }
