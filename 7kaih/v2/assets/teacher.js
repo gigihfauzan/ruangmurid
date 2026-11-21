@@ -446,15 +446,14 @@ function renderRecap(d, redraw) {
 
 function viewRecap(profile, settings) {
   return teacherFrame(profile, '📋 Rekap Bulanan', function (kelasId, body) {
-    let month = settings.hari_ini.substring(0, 7);
+    let month = settings.hari_ini.substring(0, 7), last = null;
     function load() {
       const nav = monthNav(month, settings.hari_ini, function (m) { month = m; load(); });
       setChildren(body, nav, loading());
       Api.call('rekap_kelas', { id_kelas: kelasId, bulan: month }, { retries: 2 }).then(function (res) {
         if (!res.ok) { setChildren(body, nav, errorBlock(res.error.pesan, load)); return; }
-        const d = res.data;
-        const paint = function () { setChildren(body, nav, renderRecap(d, paint)); };
-        paint();
+        last = res.data;
+        setChildren(body, nav, renderRecap(last, function () { setChildren(body, nav, renderRecap(last, arguments.callee)); }));
       });
     }
     load();
