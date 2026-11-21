@@ -241,7 +241,7 @@ function viewStudents(profile) {
                 confirmDialog('Nonaktifkan ' + s.nama + '?', 'Siswa tidak bisa masuk dan tidak dihitung di pemantauan dan rekap. Datanya tetap tersimpan, dan bisa diaktifkan lagi.', 'Nonaktifkan', async function () { setStatus(s, 'nonaktif'); });
               }
             }, 'Nonaktifkan')
-            : h('button', { type: 'button', class: 'mini', onclick: function () { setStatus(s, 'aktif'); } }, 'Aktifkan'));
+            : h('button', { type: 'button', class: 'mini', onclick: function () { setStatus(s, 'aktif'); } }, 'Aktifkan');
     }
     function draw(d) {
       setChildren(body,
