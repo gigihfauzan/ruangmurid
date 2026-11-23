@@ -23,7 +23,8 @@ const MENUS = {
     { id: 'akun', label: 'Akun', emoji: '🔐', tahap: 5, desc: 'Kelola admin, wali kelas, dan pembaca.' },
     { id: 'lihat-wali', label: 'Lihat Wali', emoji: '🔎', tahap: 5, desc: 'Buka tampilan wali kelas mana pun.' },
     { id: 'pengumuman', label: 'Pengumuman', emoji: '📣', tahap: 5, desc: 'Pengumuman singkat di beranda siswa.' },
-    { id: 'ekspor', label: 'Ekspor', emoji: '📤', tahap: 6, desc: 'Unduh rekap dan data harian dalam format xlsx.' }
+    { id: 'ekspor', label: 'Ekspor', emoji: '📤', tahap: 6, desc: 'Unduh rekap dan data harian dalam format xlsx.' },
+    { id: 'cadangan', label: 'Cadangan', emoji: '💾', tahap: 7, desc: 'Cadangan, pemulihan, dan arsip tahun ajaran.' }
   ],
   pembaca: [
     { id: 'dashboard', label: 'Dashboard', emoji: '🏫', tahap: 6, desc: 'Rekap sekolah per kelas dan per kebiasaan.' },
