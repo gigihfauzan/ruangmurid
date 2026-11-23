@@ -13,7 +13,8 @@ const MENUS = {
     { id: 'siswa', label: 'Siswa', emoji: '👥', tahap: 4, desc: 'Kelola data siswa kelas Anda, impor dari Excel, dan reset PIN.' },
     { id: 'validasi', label: 'Validasi', emoji: '✍️', tahap: 4, desc: 'Paraf digital per siswa, tanggal, dan kebiasaan.' },
     { id: 'rekap', label: 'Rekap', emoji: '📋', tahap: 4, desc: 'Rekap bulanan kelas dan catatan wali kelas.' },
-    { id: 'refleksi', label: 'Refleksi', emoji: '📝', tahap: 4, desc: 'Baca refleksi bulanan siswa.' }
+    { id: 'refleksi', label: 'Refleksi', emoji: '📝', tahap: 4, desc: 'Baca refleksi bulanan siswa.' },
+    { id: 'unduh', label: 'Unduh', emoji: '⬇️', tahap: 6, desc: 'Unduh rekap bulanan dalam format xlsx.' }
   ],
   admin: [
     { id: 'dashboard', label: 'Dashboard', emoji: '🏫', tahap: 6, desc: 'Rekap sekolah per kelas dan per kebiasaan.' },
@@ -111,9 +112,11 @@ function renderShell(root, profile, settings, actions) {
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     let view;
+    const extra = (typeof EXTRA_VIEWS !== 'undefined' && EXTRA_VIEWS[profile.peran]) ? EXTRA_VIEWS[profile.peran][item.id] : null;
     if (isStudent && STUDENT_VIEWS[item.id]) view = STUDENT_VIEWS[item.id](profile, settings);
     else if (profile.peran === 'wali' && TEACHER_VIEWS[item.id]) view = TEACHER_VIEWS[item.id](profile, settings);
     else if (profile.peran === 'admin' && ADMIN_VIEWS[item.id]) view = ADMIN_VIEWS[item.id](profile, settings);
+    else if (extra) view = extra(profile, settings);
     else view = viewSoon(item);
     setChildren(content, view);
     window.scrollTo(0, 0);
