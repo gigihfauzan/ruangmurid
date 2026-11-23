@@ -463,7 +463,8 @@ function viewAdminClasses() {
     setChildren(body,
       h('div', { class: 'btn-row' },
         h('button', { type: 'button', class: 'btn', onclick: function () { openClassForm(null, d.wali, load); } }, '➕ Tambah kelas'),
-        h('button', { type: 'button', class: 'btn ghost', onclick: function () { openPromotion(d, load); } }, '🎓 Naik Kelas')),
+        //h('button', { type: 'button', class: 'btn ghost', onclick: function () { openPromotion(d, load); } }, '🎓 Naik Kelas')),
+        h('button', { type: 'button', class: 'btn ghost', onclick: function () { openPromotionHub(d, load); } }, '🎓 Naik Kelas')
       d.kelas.length ? d.kelas.map(function (k) {
         const jadwal = (k.jam_buka && k.jam_tutup) ? 'Dibuka ' + k.jam_buka + '–' + k.jam_tutup : 'Pengisian selalu terbuka';
         return h('div', { class: 'srow' + (k.status === 'aktif' ? '' : ' off') },
@@ -709,4 +710,263 @@ function viewAdminAnnouncements() {
   setChildren(root, h('h1', { class: 'page-title' }, '📣 Pengumuman'), body);
   load();
   return root;
+}
+
+/* ========== NAIK KELAS: lulus, kembali ke rombel (8→9), acak (7→8) ========== */
+function hubButton(title, desc, fn) {
+  return h('button', { type: 'button', class: 'hubbtn', onclick: fn }, h('strong', {}, title), h('small', {}, desc));
+}
+
+function openPromotionHub(d, onDone) {
+  let m;
+  m = openModal('🎓 Naik Kelas', h('div', {},
+    h('div', { class: 'banner info' }, 'Urutan di akhir tahun ajaran: ① Kelas 9 lulus → ② Kelas 8 ke 9 → ③ Kelas 7 ke 8. Cadangkan dulu: Google Sheet → Berkas → Buat salinan.'),
+    hubButton('① Kelas 9 lulus', 'Arsipkan kelas 9 dan luluskan siswanya.', function () { m.close(); openGraduation(d, onDone); }),
+    hubButton('② Kelas 8 → 9 (kembali ke rombel kelas 7)', 'Siswa kembali ke kelompok kelas 7-nya. Siswa tanpa catatan rombel asal ditetapkan lewat Excel.', function () { m.close(); openReturnToOrigin(onDone); }),
+    hubButton('③ Kelas 7 → 8 (diacak)', 'Acak otomatis atau tempel pembagian dari Excel. Rombel asal kelas 7 disimpan untuk kelas 9.', function () { m.close(); openShuffle(onDone); }),
+    hubButton('Naik bersama kelasnya (tanpa diacak)', 'Cara sederhana untuk sekolah yang tidak mengacak kelas.', function () { m.close(); openPromotion(d, onDone); })));
+}
+
+function openGraduation(d, onDone) {
+  const t9 = d.kelas.filter(function (k) { return k.status === 'aktif' && k.tingkat === '9'; });
+  if (!t9.length) { openModal('① Kelas 9 lulus', h('p', {}, 'Tidak ada kelas 9 aktif.')); return; }
+  const checks = t9.map(function (k) { return { k: k, c: checkRow('', k.nama + ' (' + k.jumlah_aktif + ' siswa) lulus', true) }; });
+  const conf = h('input', { class: 'input', id: 'gr-conf', placeholder: 'NAIK KELAS', autocomplete: 'off' });
+  formModal('① Kelas 9 lulus', [
+    h('div', { class: 'banner' }, '⚠️ Kelas 9 diarsipkan dan siswanya berstatus lulus. Mereka tidak bisa masuk lagi.'),
+    checks.map(function (x) { return x.c.el; }),
+    field('Ketik NAIK KELAS untuk melanjutkan', 'gr-conf', conf)
+  ], 'Luluskan', async function () {
+    const ids = checks.filter(function (x) { return x.c.get(); }).map(function (x) { return x.k.id_kelas; });
+    const r = await Api.call('naik_kelas', { pemetaan: [], lulus: ids, konfirmasi: conf.value.trim() }, { retries: 0 });
+    if (!r.ok) return r.error.pesan;
+    Toast.show(r.data.lulus_siswa + ' siswa lulus ✓', 'ok');
+    onDone();
+    return '';
+  });
+}
+
+/* ---------- Pembantu data rombel ---------- */
+function suggestNinthName(nama) {
+  return nama.replace(/VII(?!I)/i, function (m) { return m === m.toLowerCase() ? 'ix' : 'IX'; }).replace(/\b7/, '9');
+}
+
+function loadRombel(title, cb) {
+  const holder = h('div', {}, loading());
+  const m = openModal(title, holder);
+  Api.call('rombel_pratinjau', {}, { retries: 2 }).then(function (res) {
+    if (!res.ok) { setChildren(holder, h('p', { class: 'form-msg' }, res.error.pesan)); return; }
+    m.close();
+    cb(res.data);
+  });
+}
+
+function rombelIndex(d) {
+  const kmap = {};
+  d.kelas.forEach(function (k) { kmap[k.id_kelas] = k; });
+  return kmap;
+}
+
+function studentsInGrade(d, kmap, tingkat) {
+  return d.siswa.filter(function (s) { const k = kmap[s.id_kelas]; return k && k.status === 'aktif' && k.tingkat === tingkat; });
+}
+
+/** Rombel asal yang sah: kelas 7 yang sudah tidak aktif atau sudah kosong. */
+function validOrigin(kmap, s) {
+  const a = kmap[s.id_kelas_asal];
+  return (a && a.tingkat === '7' && (a.status !== 'aktif' || a.jumlah_aktif === 0)) ? a : null;
+}
+
+function randInt(n) {
+  if (window.crypto && window.crypto.getRandomValues) {
+    const b = new Uint32Array(1);
+    window.crypto.getRandomValues(b);
+    return b[0] % n;
+  }
+  return Math.floor(Math.random() * n);
+}
+
+function shuffled(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = randInt(i + 1); const t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+
+/* ---------- ② Kelas 8 → 9 ---------- */
+function openReturnToOrigin(onDone) {
+  loadRombel('② Kelas 8 → 9', function (d) {
+    const kmap = rombelIndex(d), groups = {}, tanpa = [];
+    studentsInGrade(d, kmap, '8').forEach(function (s) {
+      const a = validOrigin(kmap, s);
+      if (a) (groups[a.id_kelas] = groups[a.id_kelas] || []).push(s); else tanpa.push(s);
+    });
+    const ids = Object.keys(groups).sort(function (x, y) { return kmap[x].nama.localeCompare(kmap[y].nama, 'id'); });
+    const assignBtn = tanpa.length
+      ? h('button', { type: 'button', class: 'btn ghost', style: 'margin-top:10px', onclick: function () { openAssignNinth(onDone); } }, 'Tetapkan ' + tanpa.length + ' siswa tanpa rombel asal lewat Excel…')
+      : null;
+    if (!ids.length) {
+      openModal('② Kelas 8 → 9', h('div', {},
+        h('div', { class: 'banner' }, 'Belum ada siswa kelas 8 yang punya catatan rombel asal (kelas 7). Ini wajar pada tahun pertama aplikasi dipakai. Buat dulu kelas 9 di menu Kelas, lalu tetapkan siswa lewat Excel.'),
+        assignBtn));
+      return;
+    }
+    const inputs = {};
+    const rows = ids.map(function (id) {
+      const inp = h('input', { class: 'input', maxlength: '30', style: 'max-width:150px', 'aria-label': 'Nama kelas 9 untuk rombel ' + kmap[id].nama });
+      inp.value = suggestNinthName(kmap[id].nama);
+      inputs[id] = inp;
+      return h('div', { class: 'drow' }, h('span', {}, 'Rombel ' + kmap[id].nama + ' (' + groups[id].length + ' siswa) →'), inp);
+    });
+    const conf = h('input', { class: 'input', id: 'rb-conf', placeholder: 'KEMBALI KE ROMBEL', autocomplete: 'off' });
+    formModal('② Kelas 8 → 9', [
+      h('p', {}, 'Siswa kelas 8 dikembalikan ke kelompok kelas 7-nya. Kelas lama diaktifkan lagi sebagai kelas 9 dengan nama baru. Wali kelasnya dikosongkan supaya bisa Anda tetapkan di menu Kelas.'),
+      rows,
+      tanpa.length ? h('div', { class: 'banner' }, tanpa.length + ' siswa kelas 8 belum punya rombel asal. Tetapkan kelas 9 mereka setelah langkah ini.') : null,
+      field('Ketik KEMBALI KE ROMBEL untuk melanjutkan', 'rb-conf', conf)
+    ], 'Kembalikan ke rombel', async function () {
+      const pemetaan = ids.map(function (id) { return { id_kelas_asal: id, nama_baru: inputs[id].value }; });
+      const r = await Api.call('rombel_kembali', { pemetaan: pemetaan, konfirmasi: conf.value.trim() }, { retries: 0 });
+      if (!r.ok) return r.error.pesan;
+      Toast.show(r.data.siswa + ' siswa kembali ke ' + r.data.kelas + ' kelas ✓', 'ok');
+      onDone();
+      if (tanpa.length) openAssignNinth(onDone);
+      return '';
+    });
+  });
+}
+
+/** Menetapkan kelas 9 untuk siswa kelas 8 yang tidak punya rombel asal (lewat tempel dari Excel). */
+function openAssignNinth(onDone) {
+  loadRombel('Tetapkan kelas 9', function (d) {
+    const kmap = rombelIndex(d);
+    const src = studentsInGrade(d, kmap, '8').filter(function (s) { return !validOrigin(kmap, s); });
+    const tgt = d.kelas.filter(function (k) { return k.status === 'aktif' && k.tingkat === '9'; });
+    if (!src.length) { openModal('Tetapkan kelas 9', h('p', {}, 'Semua siswa kelas 8 sudah memiliki rombel asal atau sudah dipindahkan.')); return; }
+    if (!tgt.length) {
+      openModal('Tetapkan kelas 9', h('div', { class: 'banner' }, 'Belum ada kelas 9 aktif. Buat dulu kelas 9 di menu Kelas (Tambah kelas → tingkat 9), lalu ulangi.'));
+      return;
+    }
+    openBulkMove({ title: 'Tetapkan kelas 9 untuk ' + src.length + ' siswa', siswa: src, kelas: tgt, random: false, catatAsal: false, confirmWord: 'PINDAHKAN' }, onDone);
+  });
+}
+
+/* ---------- ③ Kelas 7 → 8 (diacak) ---------- */
+function openShuffle(onDone) {
+  loadRombel('③ Kelas 7 → 8', function (d) {
+    const kmap = rombelIndex(d);
+    const src = studentsInGrade(d, kmap, '7');
+    const tgt = d.kelas.filter(function (k) { return k.status === 'aktif' && k.tingkat === '8'; });
+    if (!src.length) { openModal('③ Kelas 7 → 8', h('p', {}, 'Tidak ada siswa di kelas 7 aktif.')); return; }
+    if (!tgt.length) {
+      openModal('③ Kelas 7 → 8', h('div', { class: 'banner' }, 'Belum ada kelas 8 aktif. Buat dulu kelas 8 di menu Kelas, atau pakai kelas 8 lama yang sudah kosong setelah langkah ②.'));
+      return;
+    }
+    const srcClasses = {};
+    src.forEach(function (s) { srcClasses[s.id_kelas] = true; });
+    openBulkMove({
+      title: '③ Kelas 7 → 8 untuk ' + src.length + ' siswa', siswa: src, kelas: tgt, random: true, catatAsal: true, confirmWord: 'ACAK KELAS',
+      archiveTingkat: '7', archiveIds: Object.keys(srcClasses)
+    }, onDone);
+  });
+}
+
+/** Pembagian massal: acak otomatis (seimbang jumlah dan L/P) atau tempel NISN + kelas dari Excel. */
+function openBulkMove(cfg, onDone) {
+  const byNisn = {}, nameToClass = {}, state = { map: {}, errors: [] };
+  cfg.siswa.forEach(function (s) { byNisn[s.nisn] = s; });
+  cfg.kelas.forEach(function (k) { nameToClass[k.nama.trim().toLowerCase()] = k; });
+  const picks = cfg.kelas.map(function (k) {
+    return { k: k, c: checkRow('', 'Kelas ' + k.nama + (k.jumlah_aktif ? ' (masih berisi ' + k.jumlah_aktif + ' siswa)' : ''), !k.jumlah_aktif) };
+  });
+  const out = h('div', {}), tabsBox = h('div', {});
+  const ta = h('textarea', { class: 'input', id: 'bm-paste', rows: '6', placeholder: 'NISN dan kelas tujuan, satu siswa per baris.\n0012345678\tVIII A' });
+  const conf = h('input', { class: 'input', id: 'bm-conf', placeholder: cfg.confirmWord, autocomplete: 'off' });
+  let method = cfg.random ? 'acak' : 'tempel';
+
+  function paintSummary() {
+    const per = {};
+    cfg.kelas.forEach(function (k) { per[k.id_kelas] = { n: 0, l: 0, p: 0 }; });
+    let assigned = 0;
+    cfg.siswa.forEach(function (s) {
+      const kid = state.map[s.id_siswa];
+      if (!kid || !per[kid]) return;
+      per[kid].n++;
+      if (s.jk === 'L') per[kid].l++; else per[kid].p++;
+      assigned++;
+    });
+    setChildren(out,
+      h('p', { class: 'field-hint' }, assigned + ' dari ' + cfg.siswa.length + ' siswa sudah mendapat kelas tujuan.' + (assigned < cfg.siswa.length ? ' Sisanya tetap di kelas sekarang.' : '')),
+      state.errors.length ? h('div', { class: 'banner' }, state.errors.slice(0, 8).map(function (e) { return h('div', {}, e); }),
+        state.errors.length > 8 ? h('div', {}, '… dan ' + (state.errors.length - 8) + ' lainnya.') : null) : null,
+      h('div', { class: 'cal-wrap' }, h('table', { class: 'plain' },
+        h('thead', {}, h('tr', {}, h('th', {}, 'Kelas'), h('th', {}, 'Jumlah'), h('th', {}, 'L'), h('th', {}, 'P'))),
+        h('tbody', {}, cfg.kelas.map(function (k) {
+          return h('tr', {}, h('td', {}, k.nama), h('td', {}, per[k.id_kelas].n), h('td', {}, per[k.id_kelas].l), h('td', {}, per[k.id_kelas].p));
+        })))));
+  }
+
+  function doRandom() {
+    const chosen = picks.filter(function (x) { return x.c.get(); }).map(function (x) { return x.k; });
+    if (!chosen.length) { Toast.show('Pilih minimal satu kelas tujuan.', 'err'); return; }
+    const L = shuffled(cfg.siswa.filter(function (s) { return s.jk === 'L'; }));
+    const P = shuffled(cfg.siswa.filter(function (s) { return s.jk !== 'L'; }));
+    state.map = {}; state.errors = [];
+    L.concat(P).forEach(function (s, i) { state.map[s.id_siswa] = chosen[i % chosen.length].id_kelas; });
+    paintSummary();
+  }
+
+  function parsePaste() {
+    const map = {}, errors = [];
+    ta.value.split(/\r?\n/).map(function (t) { return t.trim(); }).filter(Boolean).forEach(function (ln, i) {
+      const delim = ln.indexOf('\t') >= 0 ? '\t' : (ln.indexOf(';') >= 0 ? ';' : ',');
+      const cells = ln.split(delim).map(function (c) { return c.trim().replace(/^"(.*)"$/, '$1').trim(); });
+      if (i === 0 && /nisn/i.test(cells[0])) return;
+      let nisn = cells[0] || '';
+      if (/^\d{5,9}$/.test(nisn)) nisn = nisn.padStart(10, '0');
+      const kname = cells[cells.length - 1] || '';
+      const s = byNisn[nisn], k = nameToClass[kname.toLowerCase()];
+      if (!s) errors.push('Baris ' + (i + 1) + ': NISN ' + nisn + ' tidak ada di daftar siswa yang akan dipindahkan.');
+      else if (!k) errors.push('Baris ' + (i + 1) + ': kelas "' + kname + '" bukan kelas tujuan yang aktif.');
+      else map[s.id_siswa] = k.id_kelas;
+    });
+    state.map = map; state.errors = errors;
+    paintSummary();
+  }
+
+  const boxRandom = h('div', {},
+    h('button', { type: 'button', class: 'btn ghost', onclick: doRandom }, '🔀 Acak sekarang (seimbang laki-laki/perempuan)'),
+    h('p', { class: 'field-hint' }, 'Bisa diacak ulang sampai Anda puas dengan hasilnya.'));
+  const boxPaste = h('div', {},
+    field('Tempel dari Excel', 'bm-paste', ta, 'Dua kolom: NISN dan nama kelas tujuan (sesuai nama kelas di atas).'),
+    h('button', { type: 'button', class: 'btn ghost', onclick: parsePaste }, 'Baca data tempel'));
+
+  function showMethod() {
+    boxRandom.hidden = method !== 'acak';
+    boxPaste.hidden = method !== 'tempel';
+    setChildren(tabsBox, cfg.random
+      ? chipTabs([{ id: 'acak', t: '🔀 Acak otomatis' }, { id: 'tempel', t: '📋 Tempel dari Excel' }], method, function (id) { method = id; showMethod(); })
+      : null);
+  }
+
+  formModal(cfg.title, [
+    h('strong', {}, 'Kelas tujuan'), picks.map(function (x) { return x.c.el; }),
+    tabsBox, boxRandom, boxPaste, out,
+    field('Ketik ' + cfg.confirmWord + ' untuk menerapkan', 'bm-conf', conf)
+  ], 'Terapkan', async function () {
+    const ids = Object.keys(state.map);
+    if (!ids.length) return 'Belum ada pembagian. Klik Acak sekarang atau Baca data tempel dulu.';
+    if (conf.value.trim() !== cfg.confirmWord) return 'Ketik ' + cfg.confirmWord + ' untuk melanjutkan.';
+    const r = await Api.call('rombel_pindah_massal', {
+      pindah: ids.map(function (id) { return { id_siswa: id, id_kelas: state.map[id] }; }), catat_asal: !!cfg.catatAsal
+    }, { retries: 0 });
+    if (!r.ok) return r.error.pesan;
+    Toast.show(r.data.dipindah + ' siswa dipindahkan ✓', 'ok');
+    if (cfg.archiveIds && cfg.archiveIds.length) {
+      await Api.call('kelas_arsipkan_kosong', { tingkat: cfg.archiveTingkat, ids: cfg.archiveIds }, { retries: 0 });
+    }
+    onDone();
+    return '';
+  });
+  showMethod();
+  paintSummary();
 }
