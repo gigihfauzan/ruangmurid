@@ -464,7 +464,7 @@ function viewAdminClasses() {
       h('div', { class: 'btn-row' },
         h('button', { type: 'button', class: 'btn', onclick: function () { openClassForm(null, d.wali, load); } }, '➕ Tambah kelas'),
         //h('button', { type: 'button', class: 'btn ghost', onclick: function () { openPromotion(d, load); } }, '🎓 Naik Kelas')),
-        h('button', { type: 'button', class: 'btn ghost', onclick: function () { openPromotionHub(d, load); } }, '🎓 Naik Kelas')
+        h('button', { type: 'button', class: 'btn ghost', onclick: function () { openPromotionHub(d, load); } }, '🎓 Naik Kelas'),
       d.kelas.length ? d.kelas.map(function (k) {
         const jadwal = (k.jam_buka && k.jam_tutup) ? 'Dibuka ' + k.jam_buka + '–' + k.jam_tutup : 'Pengisian selalu terbuka';
         return h('div', { class: 'srow' + (k.status === 'aktif' ? '' : ' off') },
