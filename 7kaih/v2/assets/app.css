@@ -258,3 +258,6 @@ input.color { height: 54px; padding: 4px 8px; cursor: pointer; }
 .hubbtn { display: grid; gap: 4px; width: 100%; margin: 8px 0; padding: 14px 16px; border: 2px solid var(--line); border-radius: 16px; background: #fff; text-align: left; font-size: 1rem; cursor: pointer; }
 .hubbtn small { color: var(--muted); }
 
+/* ---------- Tahap 6 ---------- */
+.rc.low { background: #fef2f2; }
+
