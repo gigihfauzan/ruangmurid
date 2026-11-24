@@ -248,6 +248,9 @@
       <button type="button" id="tab-guru-unduh" class="tab-bagian">
         📦 Unduh Rekap, PDF &amp; ZIP
       </button>
+      <button type="button" id="tab-guru-kunci" class="tab-bagian">
+        🔑 Kunci Skor Otomatis
+      </button>
       <button type="button" id="tab-guru-pengaturan" class="tab-bagian">
         ⚙️ Pengaturan Kelas &amp; Akses
       </button>
@@ -370,6 +373,22 @@
           </button>
           <button type="button" id="tombol-unduh-zip-semua" class="tombol tombol-sekunder">
             🗂️ Unduh ZIP Seluruh Siswa
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Panel 2B: Pengelola Kunci Skor Otomatis (Rahasia di Server) -->
+    <section id="panel-guru-kunci" class="tersembunyi" style="margin-top: 12px;">
+      <div class="kartu">
+        <h2 class="judul-bagian-kartu">🔑 Pengaturan Kunci Jawaban (Fitur Skor Otomatis)</h2>
+        <p style="color: var(--warna-teks-sekunder); margin-top: 0;">
+          Kunci jawaban disimpan aman di tab <code>Kunci</code> pada Google Sheet dan tidak pernah dikirim ke browser siswa. Untuk beberapa alternatif jawaban benar, pisahkan dengan tanda <code>|</code>.
+        </p>
+        <div id="wadah-form-kunci-otomatis"></div>
+        <div style="margin-top: 16px;">
+          <button type="button" id="tombol-simpan-kunci-otomatis" class="tombol tombol-utama">
+            💾 Simpan Kunci Jawaban ke Server
           </button>
         </div>
       </div>
@@ -538,6 +557,7 @@
   <!-- Skrip Aplikasi -->
   <script src="config.js"></script>
   <script src="konten.js"></script>
+  <script src="konten-daftar.js"></script>
   <script src="js/umum.js"></script>
   <script src="js/api.js"></script>
   <script src="js/unduh.js"></script>

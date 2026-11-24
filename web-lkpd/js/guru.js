@@ -57,6 +57,7 @@ window.GuruApp = (function () {
 
     pasangEventLoginGuru();
     pasangEventTabDanFilter();
+    pasangEventKunciOtomatis();
     pasangEventPengaturan();
     pasangEventModalDetail();
     pasangEventUnduh();
@@ -361,335 +362,128 @@ window.GuruApp = (function () {
 
   /**
    * ==========================================================================
-   * MODAL PEMERIKSAAN PEKERJAAN & PENILAIAN SISWA
+   * PENGELOLA KUNCI SKOR OTOMATIS (KELOLA KUNCI DI SERVER)
    * ==========================================================================
    */
-  async function bukaModalDetailSiswa(idSiswa) {
+  async function muatDanRenderFormKunci() {
+    const wadah = document.getElementById('wadah-form-kunci-otomatis');
+    if (!wadah) return;
+    wadah.innerHTML = '<p style="color:#64748b;">Memuat kunci jawaban dari server...</p>';
+
     const idLkpd = (state.lkpd && state.lkpd.meta && state.lkpd.meta.id) || '';
-    const res = await window.ApiLKPD.kirim('lihatPekerjaan', {
+    const res = await window.ApiLKPD.kirim('kelolaKunci', {
       token: state.token,
-      idSiswa: idSiswa,
+      mode: 'baca',
       idLkpd: idLkpd
     });
 
-    if (!res || !res.ok || !res.data) {
-      window.Umum.tampilkanToast((res && res.pesan) || 'Gagal memuat pekerjaan siswa.', 'bahaya');
+    const mapKunci = {};
+    if (res && res.ok && res.data && Array.isArray(res.data.daftarKunci)) {
+      res.data.daftarKunci.forEach(function (k) {
+        mapKunci[k.idSoal] = k;
+      });
+    }
+
+    const soalOtomatis = ambilSemuaSoalKonten().filter(function (s) {
+      return ['pilihan_ganda', 'benar_salah', 'isian_angka'].indexOf(String(s.tipe)) !== -1;
+    });
+
+    wadah.innerHTML = '';
+    if (soalOtomatis.length === 0) {
+      wadah.innerHTML = '<p>Tidak ada soal bertipe pilihan_ganda, benar_salah, atau isian_angka pada konten ini.</p>';
       return;
     }
 
-    state.detailAktif = {
-      siswa: res.data.siswa,
-      pengerjaan: res.data.pengerjaan,
-      jawaban: res.data.jawaban || [],
-      berkas: res.data.berkas || [],
-      nilai: res.data.nilai || { daftar: [], totalSkor: null },
-      cacheGambar: {}
-    };
+    soalOtomatis.forEach(function (soal) {
+      const ada = mapKunci[soal.id] || { kunciJawaban: '', toleransi: 0, bobot: 10 };
+      const baris = document.createElement('div');
+      baris.className = 'item-jawaban-guru';
 
-    const s = state.detailAktif.siswa;
-    const p = state.detailAktif.pengerjaan;
-    document.getElementById('judul-modal-siswa').textContent =
-      '📋 ' + s.nama + ' (Kelas ' + s.kelas + ')';
-    document.getElementById('subjudul-modal-siswa').textContent =
-      'Status: ' +
-      String(p.status || 'belum').toUpperCase() +
-      (p.waktuKumpul ? ' • Dikumpulkan: ' + window.Umum.formatWaktuIndonesia(p.waktuKumpul) : '');
-
-    renderIsiDetailJawabanDanBerkas();
-    isiNilaiTersimpanKeForm();
-
-    document.getElementById('modal-detail-siswa').classList.remove('tersembunyi');
-    window.Umum.renderMatematika(document.getElementById('wadah-isi-detail-siswa'));
-  }
-
-  function ambilSemuaSoalKonten() {
-    if (!state.lkpd || !Array.isArray(state.lkpd.bagian)) return [];
-    const daftar = [];
-    state.lkpd.bagian.forEach(function (bag) {
-      (bag.blok || []).forEach(function (b) {
-        if (b.jenis === 'soal') daftar.push(b);
-      });
-    });
-    return daftar;
-  }
-
-  function renderIsiDetailJawabanDanBerkas() {
-    const wadah = document.getElementById('wadah-isi-detail-siswa');
-    wadah.innerHTML = '';
-
-    const detail = state.detailAktif;
-    const mapJawaban = {};
-    detail.jawaban.forEach(function (j) {
-      mapJawaban[j.idSoal] = j;
-    });
-
-    const mapNilaiSoal = {};
-    (detail.nilai.daftar || []).forEach(function (n) {
-      mapNilaiSoal[n.idSoal] = n;
-    });
-
-    const daftarSoal = ambilSemuaSoalKonten();
-
-    daftarSoal.forEach(function (soal) {
-      const jwb = mapJawaban[soal.id] || { teks: '', dataJson: '' };
-      const nilaiSoal = mapNilaiSoal[soal.id] || { skor: '', komentar: '' };
-      const berkasSoal = detail.berkas.filter(function (b) {
-        return b.idSoal === soal.id;
-      });
-
-      const item = document.createElement('div');
-      item.className = 'item-jawaban-guru';
-
-      const header = document.createElement('div');
-      header.innerHTML =
-        '<strong style="color:var(--warna-utama-gelap);font-family:var(--font-judul);">Soal ' +
+      baris.innerHTML =
+        '<div style="font-weight:800;margin-bottom:8px;">Soal ' +
         window.Umum.escapeHtml(soal.nomor) +
         ' (' +
         window.Umum.escapeHtml(soal.tipe) +
-        ')</strong>' +
-        '<div style="margin:6px 0 10px;font-weight:700;">' +
-        window.Umum.formatTeksMateriAman(soal.teks || '') +
+        ') — ' +
+        window.Umum.escapeHtml(soal.teks || '') +
+        '</div>' +
+        '<div class="grid-nilai-guru" style="grid-template-columns: 2fr 1fr 1fr; margin-top:0; padding-top:0; border-top:none;">' +
+        '<div><label class="label-form" style="font-size:0.82rem;">Kunci Jawaban</label>' +
+        '<input type="text" class="input-teks input-kunci-jwb" data-id-soal="' +
+        window.Umum.escapeHtml(soal.id) +
+        '" data-tipe="' +
+        window.Umum.escapeHtml(soal.tipe) +
+        '" value="' +
+        window.Umum.escapeHtml(ada.kunciJawaban || '') +
+        '" placeholder="Contoh: (-3)^5 atau 43" /></div>' +
+        '<div><label class="label-form" style="font-size:0.82rem;">Toleransi Angka</label>' +
+        '<input type="number" step="0.01" class="input-teks input-kunci-tol" data-id-soal="' +
+        window.Umum.escapeHtml(soal.id) +
+        '" value="' +
+        window.Umum.escapeHtml(ada.toleransi !== undefined ? ada.toleransi : 0) +
+        '" /></div>' +
+        '<div><label class="label-form" style="font-size:0.82rem;">Bobot Skor</label>' +
+        '<input type="number" step="0.5" class="input-teks input-kunci-bobot" data-id-soal="' +
+        window.Umum.escapeHtml(soal.id) +
+        '" value="' +
+        window.Umum.escapeHtml(ada.bobot !== undefined ? ada.bobot : 10) +
+        '" /></div>' +
         '</div>';
-      item.appendChild(header);
 
-      // Tampilkan jawaban terstruktur jika ada (tabel / menjodohkan / urutan)
-      const boxJawaban = document.createElement('div');
-      boxJawaban.style.cssText =
-        'background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:8px;';
-
-      if (soal.tipe === 'tabel_isian' && jwb.dataJson) {
-        try {
-          const matriks = JSON.parse(jwb.dataJson);
-          if (Array.isArray(matriks)) {
-            const tbl = document.createElement('table');
-            tbl.className = 'tabel-isian';
-            tbl.style.minWidth = '360px';
-            if (Array.isArray(soal.kolom)) {
-              const thead = document.createElement('thead');
-              const trH = document.createElement('tr');
-              soal.kolom.forEach(function (k) {
-                const th = document.createElement('th');
-                th.textContent = k;
-                trH.appendChild(th);
-              });
-              thead.appendChild(trH);
-              tbl.appendChild(thead);
-            }
-            const tbody = document.createElement('tbody');
-            matriks.forEach(function (row) {
-              const tr = document.createElement('tr');
-              (row || []).forEach(function (sel) {
-                const td = document.createElement('td');
-                td.textContent = sel || '-';
-                tr.appendChild(td);
-              });
-              tbody.appendChild(tr);
-            });
-            tbl.appendChild(tbody);
-            boxJawaban.appendChild(tbl);
-          }
-        } catch (err) {
-          boxJawaban.textContent = jwb.teks || '(Kosong)';
-        }
-      } else {
-        boxJawaban.innerHTML = jwb.teks
-          ? window.Umum.formatTeksMateriAman(jwb.teks)
-          : '<em style="color:#94a3b8;">Belum dijawab</em>';
-      }
-
-      item.appendChild(boxJawaban);
-
-      // Tampilkan berkas foto atau gambar kanvas milik soal ini
-      if (berkasSoal.length > 0) {
-        const galeri = document.createElement('div');
-        galeri.className = 'galeri-berkas';
-
-        berkasSoal.forEach(function (brk) {
-          const kartuB = document.createElement('div');
-          kartuB.className = 'kartu-berkas-item';
-
-          const img = document.createElement('img');
-          img.className = 'pratinjau-berkas-img';
-          img.alt = brk.namaFile || 'Berkas siswa';
-          img.src =
-            detail.cacheGambar[brk.idBerkas] ||
-            'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120"><rect width="100%" height="100%" fill="%23e0f2fe"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="%230369a1">Memuat...</text></svg>';
-
-          if (!detail.cacheGambar[brk.idBerkas]) {
-            muatGambarGuru(brk.idBerkas, img);
-          }
-
-          img.addEventListener('click', function () {
-            if (detail.cacheGambar[brk.idBerkas]) {
-              document.getElementById('img-pratinjau-penuh').src = detail.cacheGambar[brk.idBerkas];
-              document.getElementById('modal-pratinjau-gambar').classList.remove('tersembunyi');
-            }
-          });
-
-          const ket = document.createElement('div');
-          ket.style.cssText = 'font-size:0.78rem;font-weight:700;color:#475569;';
-          ket.textContent = (brk.jenis === 'gambar' ? '🎨 Kanvas: ' : '📸 Foto: ') + brk.namaFile;
-
-          kartuB.appendChild(img);
-          kartuB.appendChild(ket);
-          galeri.appendChild(kartuB);
-        });
-
-        item.appendChild(galeri);
-      }
-
-      // Input skor & komentar per soal
-      const gridNilai = document.createElement('div');
-      gridNilai.className = 'grid-nilai-guru';
-
-      const divSkor = document.createElement('div');
-      divSkor.innerHTML =
-        '<label class="label-form" style="font-size:0.84rem;">Skor Soal ' +
-        soal.nomor +
-        '</label>';
-      const inpSkor = document.createElement('input');
-      inpSkor.type = 'number';
-      inpSkor.step = '0.5';
-      inpSkor.className = 'input-teks input-skor-per-soal';
-      inpSkor.dataset.idSoal = soal.id;
-      inpSkor.value =
-        nilaiSoal.skor !== null && nilaiSoal.skor !== undefined ? String(nilaiSoal.skor) : '';
-      inpSkor.placeholder = 'Skor';
-      divSkor.appendChild(inpSkor);
-
-      const divKom = document.createElement('div');
-      divKom.innerHTML =
-        '<label class="label-form" style="font-size:0.84rem;">Komentar Guru (Soal ' +
-        soal.nomor +
-        ')</label>';
-      const inpKom = document.createElement('input');
-      inpKom.type = 'text';
-      inpKom.className = 'input-teks input-komentar-per-soal';
-      inpKom.dataset.idSoal = soal.id;
-      inpKom.value = nilaiSoal.komentar || '';
-      inpKom.placeholder = 'Komentar untuk jawaban nomor ' + soal.nomor + '...';
-      divKom.appendChild(inpKom);
-
-      gridNilai.appendChild(divSkor);
-      gridNilai.appendChild(divKom);
-      item.appendChild(gridNilai);
-
-      wadah.appendChild(item);
+      wadah.appendChild(baris);
     });
   }
 
-  async function muatGambarGuru(idBerkas, elemenImg) {
-    const res = await window.ApiLKPD.kirim('ambilBerkasGuru', {
-      token: state.token,
-      idBerkas: idBerkas
-    });
-    if (res && res.ok && res.data && res.data.base64Data) {
-      if (state.detailAktif) {
-        state.detailAktif.cacheGambar[idBerkas] = res.data.base64Data;
-      }
-      if (elemenImg) {
-        elemenImg.src = res.data.base64Data;
-      }
-    }
-  }
+  function pasangEventKunciOtomatis() {
+    const btnSimpan = document.getElementById('tombol-simpan-kunci-otomatis');
+    if (!btnSimpan) return;
 
-  function isiNilaiTersimpanKeForm() {
-    const inpTotal = document.getElementById('input-skor-total-guru');
-    const inpKomTotal = document.getElementById('input-komentar-total-guru');
+    btnSimpan.addEventListener('click', async function () {
+      const daftarKunci = [];
+      const inputsJwb = document.querySelectorAll('.input-kunci-jwb');
+      const mapTol = {};
+      const mapBobot = {};
 
-    const nilai = (state.detailAktif && state.detailAktif.nilai) || { daftar: [], totalSkor: null };
-    const itemTotal = (nilai.daftar || []).find(function (n) {
-      return n.idSoal === '__TOTAL__';
-    });
-
-    inpTotal.value =
-      nilai.totalSkor !== null && nilai.totalSkor !== undefined ? String(nilai.totalSkor) : '';
-    inpKomTotal.value = itemTotal && itemTotal.komentar ? itemTotal.komentar : '';
-  }
-
-  function pasangEventModalDetail() {
-    document.getElementById('tombol-tutup-modal-siswa').addEventListener('click', function () {
-      document.getElementById('modal-detail-siswa').classList.add('tersembunyi');
-      state.detailAktif = null;
-    });
-
-    document.getElementById('tombol-tutup-pratinjau').addEventListener('click', function () {
-      document.getElementById('modal-pratinjau-gambar').classList.add('tersembunyi');
-    });
-
-    document.getElementById('tombol-simpan-nilai-guru').addEventListener('click', async function () {
-      if (!state.detailAktif) return;
-
-      const paketNilai = [];
-      const skorInputs = document.querySelectorAll('.input-skor-per-soal');
-      const komInputs = document.querySelectorAll('.input-komentar-per-soal');
-
-      const mapKom = {};
-      komInputs.forEach(function (el) {
-        mapKom[el.dataset.idSoal] = el.value;
+      document.querySelectorAll('.input-kunci-tol').forEach(function (el) {
+        mapTol[el.dataset.idSoal] = el.value;
+      });
+      document.querySelectorAll('.input-kunci-bobot').forEach(function (el) {
+        mapBobot[el.dataset.idSoal] = el.value;
       });
 
-      skorInputs.forEach(function (el) {
+      inputsJwb.forEach(function (el) {
         const idSoal = el.dataset.idSoal;
-        const skorVal = el.value.trim();
-        const komVal = (mapKom[idSoal] || '').trim();
-        if (skorVal !== '' || komVal !== '') {
-          paketNilai.push({
+        const kunciVal = el.value.trim();
+        if (kunciVal) {
+          daftarKunci.push({
             idSoal: idSoal,
-            skor: skorVal !== '' ? Number(skorVal) : '',
-            komentar: komVal
+            tipe: el.dataset.tipe,
+            kunciJawaban: kunciVal,
+            toleransi: Number(mapTol[idSoal] || 0),
+            bobot: Number(mapBobot[idSoal] || 10)
           });
         }
       });
 
-      const skorTotalRaw = document.getElementById('input-skor-total-guru').value.trim();
-      const komTotalRaw = document.getElementById('input-komentar-total-guru').value.trim();
-      if (skorTotalRaw !== '' || komTotalRaw !== '') {
-        paketNilai.push({
-          idSoal: '__TOTAL__',
-          skor: skorTotalRaw !== '' ? Number(skorTotalRaw) : '',
-          komentar: komTotalRaw
-        });
-      }
-
-      if (paketNilai.length === 0) {
-        window.Umum.tampilkanToast('Isi skor atau komentar terlebih dahulu sebelum menyimpan.', 'peringatan');
-        return;
-      }
-
-      const btnSimpan = document.getElementById('tombol-simpan-nilai-guru');
       btnSimpan.disabled = true;
-      btnSimpan.textContent = '⏳ Menyimpan nilai...';
-
+      btnSimpan.textContent = '⏳ Menyimpan kunci...';
       try {
         const idLkpd = (state.lkpd && state.lkpd.meta && state.lkpd.meta.id) || '';
-        const res = await window.ApiLKPD.kirim('beriNilai', {
+        const res = await window.ApiLKPD.kirim('kelolaKunci', {
           token: state.token,
-          idSiswa: state.detailAktif.siswa.idSiswa,
+          mode: 'simpan',
           idLkpd: idLkpd,
-          daftarNilai: paketNilai
+          daftarKunci: daftarKunci
         });
-
         if (!res || !res.ok) {
-          window.Umum.tampilkanToast((res && res.pesan) || 'Gagal menyimpan nilai.', 'bahaya');
+          window.Umum.tampilkanToast((res && res.pesan) || 'Gagal menyimpan kunci.', 'bahaya');
           return;
         }
-
-        window.Umum.tampilkanToast('Nilai & komentar siswa berhasil disimpan!', 'sukses');
-        await muatDaftarSiswaDariServer();
+        window.Umum.tampilkanToast('Kunci jawaban berhasil disimpan ke server!', 'sukses');
       } finally {
         btnSimpan.disabled = false;
-        btnSimpan.textContent = '💾 Simpan Nilai & Komentar';
+        btnSimpan.textContent = '💾 Simpan Kunci Jawaban ke Server';
       }
-    });
-
-    document.getElementById('tombol-unduh-pdf-modal').addEventListener('click', async function () {
-      if (!state.detailAktif || !window.UnduhLKPD) return;
-      await window.UnduhLKPD.unduhPdfDetailGuru({
-        lkpd: state.lkpd,
-        detail: state.detailAktif,
-        token: state.token
-      });
     });
   }
 
@@ -801,6 +595,7 @@ window.GuruApp = (function () {
     const tabs = [
       { btn: 'tab-guru-siswa', panel: 'panel-guru-siswa' },
       { btn: 'tab-guru-unduh', panel: 'panel-guru-unduh' },
+      { btn: 'tab-guru-kunci', panel: 'panel-guru-kunci' },
       { btn: 'tab-guru-pengaturan', panel: 'panel-guru-pengaturan' }
     ];
 
@@ -815,6 +610,8 @@ window.GuruApp = (function () {
 
         if (t.panel === 'panel-guru-pengaturan') {
           isiFormPengaturan();
+        } else if (t.panel === 'panel-guru-kunci') {
+          muatDanRenderFormKunci();
         }
       });
     });

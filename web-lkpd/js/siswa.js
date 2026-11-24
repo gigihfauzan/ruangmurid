@@ -23,6 +23,7 @@ window.SiswaApp = (function () {
   // Status aplikasi aktif di memori
   const state = {
     lkpd: null,
+    daftarBab: [],
     pengaturanServer: {},
     daftarKelas: [],
     sesi: null, // { token, siswa: { idSiswa, kelas, nama } }
@@ -916,7 +917,11 @@ window.SiswaApp = (function () {
    * ==========================================================================
    */
   async function mulai() {
+    state.daftarBab = Array.isArray(window.DAFTAR_ELKPD) ? window.DAFTAR_ELKPD : [];
     state.lkpd = window.ELKPD;
+    if (!state.lkpd && state.daftarBab.length > 0 && typeof state.daftarBab[0].konten === 'function') {
+      state.lkpd = state.daftarBab[0].konten();
+    }
     if (!state.lkpd) {
       document.getElementById('tajuk-judul').textContent = 'Konten LKPD tidak ditemukan';
       return;
@@ -1195,6 +1200,25 @@ window.SiswaApp = (function () {
   async function masukKeRuangKerja() {
     document.getElementById('tampilan-login').classList.add('tersembunyi');
     document.getElementById('tampilan-kerja').classList.remove('tersembunyi');
+
+    // Jika fitur MULTI_BAB aktif dan tersedia lebih dari 1 bab, pilih bab aktif dari server/daftar
+    const multiBabAktif = Boolean(
+      window.KONFIG && window.KONFIG.FITUR && window.KONFIG.FITUR.MULTI_BAB
+    );
+    if (multiBabAktif && state.daftarBab.length > 0) {
+      const idTarget =
+        (state.pengaturanServer && state.pengaturanServer.lkpd_aktif) ||
+        (state.lkpd && state.lkpd.meta && state.lkpd.meta.id);
+      const babCocok = state.daftarBab.find(function (b) {
+        return b.id === idTarget;
+      });
+      if (babCocok && typeof babCocok.konten === 'function') {
+        state.lkpd = babCocok.konten();
+        window.ELKPD = state.lkpd;
+        window.Umum.terapkanTema(state.lkpd.tema);
+        renderTajukIdentitas();
+      }
+    }
 
     document.getElementById('badge-kelas-aktif').textContent = 'Kelas ' + state.sesi.siswa.kelas;
     document.getElementById('nama-siswa-aktif').textContent = state.sesi.siswa.nama;
