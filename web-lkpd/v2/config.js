@@ -18,7 +18,7 @@ window.KONFIG_APLIKASI = {
   // URL Web App Google Apps Script (dari Deploy → New deployment → Web app).
   // Contoh format: 'https://script.google.com/macros/s/AKfyc.../exec'
   // GANTI nilai ini dengan URL Anda sebelum dipakai siswa.
-  urlWebApp: 'https://script.google.com/macros/s/SCRIPT_ID_ANDA/exec',
+  urlWebApp: 'https://script.google.com/macros/s/AKfycbwCN20yWJad5aDC570VPBEHzY-_lG2Q6VcWuA9i1WrdFcsphSLgsD_fHFXHeLIzmpGX/exec',
 
   // --- Pengaturan simpan otomatis ---
   simpanOtomatisAktif: true,        // aktifkan simpan otomatis
