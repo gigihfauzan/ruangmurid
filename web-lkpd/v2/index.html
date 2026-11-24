@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#3b82f6" />
+  <meta name="description" content="e-LKPD interaktif Matematika — Bilangan Berpangkat" />
+  <title>e-LKPD — Petualangan Bilangan Berpangkat</title>
+
+  <!-- Google Fonts: Fredoka (judul) & Nunito (isi) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+
+  <!-- Stylesheet utama -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="aplikasi-pembungkus">
+
+    <!-- ============================================================
+         LAYAR LOGIN
+         ============================================================ -->
+    <section id="layar-login" class="layar aktif" aria-label="Halaman masuk siswa">
+      <div class="login-kartu">
+        <div class="login-kepala">
+          <span class="login-maskot" aria-hidden="true">🦊</span>
+          <h1 class="login-judul" id="login-judul-app">e-LKPD Matematika</h1>
+          <p class="login-subjudul" id="login-subjudul">Petualangan Bilangan Berpangkat</p>
+        </div>
+        <div class="login-badan">
+          <div class="login-grup">
+            <label for="login-kelas" class="login-label">Kelas</label>
+            <select id="login-kelas" class="login-input" aria-required="true">
+              <option value="">-- Pilih Kelas --</option>
+            </select>
+          </div>
+          <div class="login-grup">
+            <label for="login-nama" class="login-label">Nama Lengkap</label>
+            <input type="text" id="login-nama" class="login-input" placeholder="Tulis nama lengkapmu" autocomplete="off" aria-required="true" />
+          </div>
+          <p id="login-galat" class="login-galat" role="alert" style="display:none;"></p>
+          <button id="btn-login-lanjut" class="tombol tombol-primer tombol-besar" type="button">Lanjut</button>
+        </div>
+        <div class="login-kaki">
+          <p class="login-info-sekolah" id="login-info-sekolah">SMP Negeri 2 Kedungbanteng</p>
+          <p class="login-info-guru" id="login-info-guru">Guru: Gigih Ichyar Fauzan, S.Pd.</p>
+          <p class="login-info-catatan">PIN dibuat saat pertama masuk. Lupa PIN? Minta guru mereset.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         LAYAR BUAT PIN (pertama kali)
+         ============================================================ -->
+    <section id="layar-buat-pin" class="layar" aria-label="Buat PIN">
+      <div class="login-kartu">
+        <div class="login-kepala">
+          <span class="login-maskot" aria-hidden="true">🔐</span>
+          <h1 class="login-judul">Buat PIN Baru</h1>
+          <p class="login-subjudul">Halo, <strong id="buat-pin-nama"></strong> (Kelas <strong id="buat-pin-kelas"></strong>)</p>
+        </div>
+        <div class="login-badan">
+          <p class="pin-petunjuk">Buat PIN 4–6 angka. Ingat baik-baik, jangan beri tahu teman ya!</p>
+          <div class="login-grup">
+            <label for="buat-pin-input" class="login-label">PIN Baru</label>
+            <input type="password" id="buat-pin-input" class="login-input" inputmode="numeric" pattern="\d{4,6}" maxlength="6" placeholder="4–6 angka" autocomplete="new-password" aria-required="true" />
+          </div>
+          <div class="login-grup">
+            <label for="buat-pin-konfirmasi" class="login-label">Ulangi PIN</label>
+            <input type="password" id="buat-pin-konfirmasi" class="login-input" inputmode="numeric" pattern="\d{4,6}" maxlength="6" placeholder="Ketik ulang PIN" autocomplete="new-password" aria-required="true" />
+          </div>
+          <p id="buat-pin-galat" class="login-galat" role="alert" style="display:none;"></p>
+          <div class="login-baris-tombol">
+            <button id="btn-buat-pin-kembali" class="tombol tombol-sekunder" type="button">Kembali</button>
+            <button id="btn-buat-pin" class="tombol tombol-primer" type="button">Buat PIN &amp; Masuk</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         LAYAR MASUK PIN (siswa lama)
+         ============================================================ -->
+    <section id="layar-masuk-pin" class="layar" aria-label="Masuk dengan PIN">
+      <div class="login-kartu">
+        <div class="login-kepala">
+          <span class="login-maskot" aria-hidden="true">👋</span>
+          <h1 class="login-judul">Masuk dengan PIN</h1>
+          <p class="login-subjudul">Selamat datang kembali, <strong id="masuk-pin-nama"></strong> (Kelas <strong id="masuk-pin-kelas"></strong>)</p>
+        </div>
+        <div class="login-badan">
+          <div class="login-grup">
+            <label for="masuk-pin-input" class="login-label">PIN</label>
+            <input type="password" id="masuk-pin-input" class="login-input" inputmode="numeric" pattern="\d{4,6}" maxlength="6" placeholder="4–6 angka" autocomplete="current-password" aria-required="true" />
+          </div>
+          <p id="masuk-pin-galat" class="login-galat" role="alert" style="display:none;"></p>
+          <div class="login-baris-tombol">
+            <button id="btn-masuk-pin-kembali" class="tombol tombol-sekunder" type="button">Kembali</button>
+            <button id="btn-masuk-pin" class="tombol tombol-primer" type="button">Masuk</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         LAYAR KERJA
+         ============================================================ -->
+    <section id="layar-kerja" class="layar layar-kerja" aria-label="Pengerjaan LKPD">
+      <!-- Header -->
+      <header class="kerja-header" id="kerja-header"></header>
+
+      <!-- Bilah progres -->
+      <div class="bilah-progres">
+        <div class="progres-wadah" role="progressbar" aria-label="Progres pengerjaan">
+          <div class="progres-isi" id="progres-bar" style="width:0%;"></div>
+        </div>
+        <span class="progres-teks" id="progres-teks" aria-live="polite">Soal terisi: 0 dari 0</span>
+      </div>
+
+      <!-- Bilah simbol matematika -->
+      <div class="kerja-simbol" id="kerja-simbol" role="toolbar" aria-label="Bilah simbol matematika"></div>
+
+      <!-- Konten utama -->
+      <main class="kerja-konten" id="kerja-konten"></main>
+
+      <!-- Navigasi bagian -->
+      <nav class="kerja-nav" id="kerja-nav" aria-label="Navigasi bagian"></nav>
+
+      <!-- Footer (sticky) -->
+      <footer class="kerja-footer" id="kerja-footer">
+        <div class="footer-kiri">
+          <span class="status-simpan" id="status-simpan" aria-live="polite" role="status">Tersimpan otomatis</span>
+        </div>
+        <div class="footer-kanan">
+          <button id="btn-simpan" class="tombol tombol-sekunder" type="button" title="Simpan sekarang">💾 Simpan</button>
+          <button id="btn-kumpulkan" class="tombol tombol-primer" type="button">Kumpulkan</button>
+        </div>
+      </footer>
+
+      <!-- Tombol keluar & navigasi bagian (di luar footer agar tidak sesak) -->
+      <div class="kerja-atas-tombol">
+        <button id="btn-keluar" class="tombol-tautan" type="button" title="Keluar">⏻ Keluar</button>
+        <div class="kerja-nav-tombol">
+          <button id="btn-bagian-sebelum" class="tombol tombol-sekunder" type="button" title="Bagian sebelumnya">◀ Sebelumnya</button>
+          <button id="btn-bagian-sesudah" class="tombol tombol-sekunder" type="button" title="Bagian berikutnya">Berikutnya ▶</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         LAYAR SUKSES (konfeti)
+         ============================================================ -->
+    <section id="layar-sukses" class="layar layar-sukses" aria-label="Pekerjaan terkirim">
+      <div class="konfeti" id="konfeti" aria-hidden="true"></div>
+      <div class="sukses-konten">
+        <div class="sukses-ikon">✅</div>
+        <h1 class="sukses-judul">Berhasil Dikumpulkan!</h1>
+        <p class="sukses-teks">Kerja bagus! Jawabanmu sudah tersimpan.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         LAYAR TERKUMPUL (status setelah kumpul)
+         ============================================================ -->
+    <section id="layar-terkumpul" class="layar" aria-label="Status terkumpul">
+      <div class="status-kartu">
+        <div id="terkumpul-info"></div>
+        <div class="status-tombol">
+          <button id="btn-unduh-pekerjaanku" class="tombol tombol-primer" type="button">📄 Unduh Pekerjaanku</button>
+        </div>
+        <p class="status-kaki" id="terkumpul-kaki">e-LKPD — SMP Negeri 2 Kedungbanteng</p>
+        <p class="status-kaki-tautan"><a href="guru.html" class="tombol-tautan">Dashboard Guru →</a></p>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         LAYAR NILAI
+         ============================================================ -->
+    <section id="layar-nilai" class="layar" aria-label="Nilai pekerjaan">
+      <div class="status-kartu">
+        <div id="nilai-info"></div>
+        <div class="status-tombol">
+          <button id="btn-unduh-pekerjaanku-2" class="tombol tombol-primer" type="button">📄 Unduh Pekerjaanku</button>
+        </div>
+        <p class="status-kaki" id="nilai-kaki">e-LKPD — SMP Negeri 2 Kedungbanteng</p>
+        <p class="status-kaki-tautan"><a href="guru.html" class="tombol-tautan">Dashboard Guru →</a></p>
+      </div>
+    </section>
+
+  </div><!-- /.aplikasi-pembungkus -->
+
+  <!-- ============================================================
+       PUSTAKA PIHAK KETIGA (versi dikunci)
+       — JSZip, SheetJS, jsPDF dipakai di Tahap 3 (unduh).
+       — KaTeX hanya jika fitur matematika diaktifkan (Tahap 4).
+       ============================================================ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <!-- KaTeX (dimuat tapi baru dipakai di Tahap 4 jika fitur aktif) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js" defer></script>
+
+  <!-- ============================================================
+       SKRIP APLIKASI (urutan penting)
+       ============================================================ -->
+  <script src="config.js"></script>
+  <script src="konten-daftar.js"></script>
+  <script src="konten.js"></script>
+  <script src="js/umum.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/gambar.js"></script>
+  <script src="js/foto.js"></script>
+  <script src="js/unduh.js"></script>
+  <script src="js/siswa.js"></script>
+</body>
+</html>

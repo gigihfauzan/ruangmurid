@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#3b82f6" />
+  <meta name="description" content="Dashboard guru e-LKPD interaktif" />
+  <title>Dashboard Guru — e-LKPD</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="aplikasi-pembungkus">
+
+    <!-- ============================================================
+         LAYAR LOGIN GURU
+         ============================================================ -->
+    <section id="layar-login-guru" class="layar aktif" aria-label="Halaman masuk guru">
+      <div class="login-kartu">
+        <div class="login-kepala">
+          <span class="login-maskot" aria-hidden="true">🧑‍🏫</span>
+          <h1 class="login-judul" id="guru-judul-app">Dashboard Guru</h1>
+          <p class="login-subjudul" id="guru-subjudul">e-LKPD</p>
+        </div>
+        <div class="login-badan">
+          <div class="login-grup">
+            <label for="guru-sandi" class="login-label">Kata Sandi Guru</label>
+            <input type="password" id="guru-sandi" class="login-input" placeholder="Kata sandi" autocomplete="current-password" aria-required="true" />
+          </div>
+          <p id="guru-login-galat" class="login-galat" role="alert" style="display:none;"></p>
+          <button id="btn-guru-masuk" class="tombol tombol-primer tombol-besar" type="button">Masuk</button>
+        </div>
+        <div class="login-kaki">
+          <p class="login-info-sekolah" id="guru-info-sekolah">SMP Negeri 2 Kedungbanteng</p>
+          <p class="login-info-guru" id="guru-info-guru">Guru: Gigih Ichyar Fauzan, S.Pd.</p>
+          <p class="login-info-catatan"><a href="index.html" class="tombol-tautan">← Halaman Siswa</a></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         LAYAR DASHBOARD GURU
+         ============================================================ -->
+    <section id="layar-dashboard" class="layar" aria-label="Dashboard guru">
+      <!-- Header -->
+      <header class="kerja-header guru-header">
+        <div class="kerja-info">
+          <span class="kerja-judul" id="guru-judul-app-2">Dashboard Guru</span>
+          <span class="kerja-meta" id="guru-subjudul-2">e-LKPD</span>
+        </div>
+        <div class="kerja-siswa">
+          <span class="kerja-maskot" aria-hidden="true">🧑‍🏫</span>
+          <button id="btn-guru-keluar" class="tombol-tautan" type="button">⏻ Keluar</button>
+        </div>
+      </header>
+
+      <!-- Tab navigasi -->
+      <nav class="tab-nav" role="tablist" aria-label="Navigasi tab">
+        <button class="tab-nav-tombol aktif" data-tab="siswa" role="tab" type="button">👥 Siswa</button>
+        <button class="tab-nav-tombol" data-tab="pengaturan" role="tab" type="button">⚙️ Pengaturan</button>
+        <button class="tab-nav-tombol" data-tab="unduh" role="tab" type="button">📥 Unduh</button>
+      </nav>
+
+      <!-- Tab Panel: Siswa -->
+      <div class="tab-panel aktif" data-tab="siswa" role="tabpanel">
+        <!-- Filter & pencarian -->
+        <div class="filter-bar">
+          <div class="filter-grup">
+            <label for="filter-kelas" class="sr-only">Filter Kelas</label>
+            <select id="filter-kelas" class="login-input filter-select" aria-label="Filter kelas">
+              <option value="">Semua Kelas</option>
+            </select>
+          </div>
+          <div class="filter-grup">
+            <label for="input-pencarian" class="sr-only">Cari nama siswa</label>
+            <input type="search" id="input-pencarian" class="login-input filter-cari" placeholder="🔍 Cari nama siswa..." aria-label="Cari nama siswa" />
+          </div>
+          <button id="btn-refresh" class="tombol tombol-sekunder" type="button" title="Muat ulang">🔄 Segarkan</button>
+        </div>
+
+        <p id="info-daftar" class="info-daftar" aria-live="polite">Memuat...</p>
+
+        <!-- Tabel siswa -->
+        <div class="tabel-wadah">
+          <table class="tabel-siswa">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Nama</th>
+                <th>Kelas</th>
+                <th>Status</th>
+                <th>Waktu Kumpul</th>
+                <th>Foto</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tabel-siswa-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab Panel: Pengaturan -->
+      <div class="tab-panel" data-tab="pengaturan" role="tabpanel">
+        <div class="pengaturan-kartu">
+          <h2 class="pengaturan-judul">Pengaturan LKPD</h2>
+
+          <div class="pengaturan-grup">
+            <label class="pengaturan-label">
+              <input type="checkbox" id="set-akses-buka" />
+              <span>Akses siswa dibuka</span>
+            </label>
+            <p class="pengaturan-bantuan">Jika tidak dicentang, siswa tidak bisa membuka LKPD.</p>
+          </div>
+
+          <div class="pengaturan-grup">
+            <label class="pengaturan-label" for="set-tenggat">Tenggat Pengumpulan</label>
+            <input type="datetime-local" id="set-tenggat" class="login-input" />
+            <p class="pengaturan-bantuan">Kosongkan untuk tanpa tenggat. Waktu lokal Anda.</p>
+          </div>
+
+          <div class="pengaturan-grup">
+            <label class="pengaturan-label">
+              <input type="checkbox" id="set-tampilkan-nilai" />
+              <span>Bolehkan siswa melihat nilai setelah dinilai</span>
+            </label>
+            <p class="pengaturan-bantuan">Jika dicentang, siswa bisa melihat skor & komentar setelah Anda menilai.</p>
+          </div>
+
+          <div class="pengaturan-grup">
+            <label class="pengaturan-label" for="set-daftar-kelas">Daftar Kelas (pisahkan dengan koma)</label>
+            <input type="text" id="set-daftar-kelas" class="login-input" placeholder="VIII, IX" />
+            <p class="pengaturan-bantuan">Daftar kelas yang tersedia di halaman login siswa.</p>
+          </div>
+
+          <div class="pengaturan-grup">
+            <label class="pengaturan-label" for="set-lkpd-judul">Judul LKPD (untuk nama folder Drive)</label>
+            <input type="text" id="set-lkpd-judul" class="login-input" />
+            <p class="pengaturan-bantuan">Dipakai sebagai nama folder tempat foto siswa disimpan di Google Drive.</p>
+          </div>
+
+          <button id="btn-simpan-pengaturan" class="tombol tombol-primer tombol-besar" type="button">💾 Simpan Pengaturan</button>
+        </div>
+      </div>
+
+      <!-- Tab Panel: Unduh -->
+      <div class="tab-panel" data-tab="unduh" role="tabpanel">
+        <div class="unduh-kartu">
+          <h2 class="unduh-judul">Unduh Data</h2>
+          <p class="unduh-deskripsi">Semua diproses di browser Anda. Untuk kelas besar, proses ZIP massal memerlukan waktu dan kuota data.</p>
+
+          <div class="unduh-opsi">
+            <div class="unduh-item">
+              <div class="unduh-item-teks">
+                <strong>Rekap Excel (.xlsx)</strong>
+                <p>Satu baris per siswa, kolom per soal, nilai, status, waktu.</p>
+              </div>
+              <button id="btn-unduh-xlsx" class="tombol tombol-primer" type="button">📥 XLSX</button>
+            </div>
+
+            <div class="unduh-item">
+              <div class="unduh-item-teks">
+                <strong>Rekap CSV (.csv)</strong>
+                <p>Format sama dengan XLSX, cocok untuk dibuka di Excel/Google Sheets.</p>
+              </div>
+              <button id="btn-unduh-csv" class="tombol tombol-sekunder" type="button">📥 CSV</button>
+            </div>
+
+            <div class="unduh-item">
+              <div class="unduh-item-teks">
+                <strong>ZIP Massal</strong>
+                <p>Semua PDF siswa + foto, tersusun per kelas lalu nama. Termasuk rekap CSV.</p>
+              </div>
+              <button id="btn-unduh-zip" class="tombol tombol-primer" type="button">📦 ZIP</button>
+            </div>
+          </div>
+
+          <!-- Progres unduh -->
+          <div id="progres-unduh" class="progres-unduh" style="display:none;" aria-live="polite">
+            <div class="progres-unduh-teks" id="progres-unduh-teks">Memproses...</div>
+            <div class="progres-wadah">
+              <div class="progres-isi" id="progres-unduh-bar" style="width:0%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer sticky -->
+      <footer class="kerja-footer guru-footer">
+        <div class="footer-kiri">
+          <span class="status-simpan status-sukses">e-LKPD Dashboard Guru</span>
+        </div>
+        <div class="footer-kanan">
+          <a href="index.html" class="tombol tombol-sekunder" type="button">← Halaman Siswa</a>
+        </div>
+      </footer>
+    </section>
+
+    <!-- ============================================================
+         LAYAR DETAIL PEKERJAAN
+         ============================================================ -->
+    <section id="layar-detail" class="layar" aria-label="Detail pekerjaan siswa">
+      <div class="detail-wadah">
+        <div id="detail-info" class="detail-info"></div>
+        <main id="detail-konten" class="detail-konten"></main>
+      </div>
+    </section>
+
+  </div><!-- /.aplikasi-pembungkus -->
+
+  <!-- Pustaka pihak ketiga (versi dikunci) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+
+  <!-- Skrip aplikasi -->
+  <script src="config.js"></script>
+  <script src="konten-daftar.js"></script>
+  <script src="konten.js"></script>
+  <script src="js/umum.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/unduh.js"></script>
+  <script src="js/guru.js"></script>
+</body>
+</html>
