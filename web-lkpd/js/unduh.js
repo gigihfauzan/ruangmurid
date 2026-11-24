@@ -1,489 +1,822 @@
-/**
- * ============================================================================
- * MODUL UNDUH REKAP (.XLSX, .CSV), PDF PER SISWA & ZIP MASSAL (js/unduh.js)
- * ============================================================================
- * Seluruh proses pembuatan berkas dilakukan di browser agar tidak membebani
- * kuota waktu eksekusi maupun kuota Google Apps Script.
- */
-
-window.UnduhLKPD = (function () {
+/* ============================================================
+ * js/unduh.js — Fitur unduh (XLSX, CSV, PDF, ZIP)
+ * ============================================================
+ * Semua diproses di browser agar tidak membebani kuota Apps Script.
+ *
+ * Fitur:
+ *  - UNDUH.buatPdfSiswa(opts)   : satu PDF per siswa (dipakai siswa & guru)
+ *  - UNDUH.rekapXlsx(...)        : rekap seluruh siswa ke .xlsx
+ *  - UNDUH.rekapCsv(...)         : rekap seluruh siswa ke .csv
+ *  - UNDUH.zipMassal(...)        : ZIP berisi semua PDF + foto, per kelas/nama
+ *
+ * Pustaka (versi dikunci, dimuat di HTML):
+ *  - JSZip 3.10.1
+ *  - SheetJS (xlsx) 0.18.5
+ *  - jsPDF 2.5.1 (dengan font Unicode Roboto agar simbol ≤ ≥ √ π ° tampil)
+ *
+ * Font Unicode dimuat saat dibutuhkan dari CDN jsdelivr (pin tag jsPDF 2.5.1).
+ * Jika gagal, fallback ke font default (simbol mungkin tidak sempurna).
+ * ============================================================ */
+(function () {
   'use strict';
 
-  function ambilDaftarSoal(lkpd) {
-    if (!lkpd || !Array.isArray(lkpd.bagian)) return [];
-    const soalList = [];
-    lkpd.bagian.forEach(function (bag) {
-      (bag.blok || []).forEach(function (b) {
-        if (b.jenis === 'soal') soalList.push(b);
-      });
-    });
-    return soalList;
-  }
+  window.UNDUH = {};
+
+  // URL font TTF Unicode (versi dikunci via jsdelivr npm).
+  // DejaVu Sans mendukung simbol ≤ ≥ √ π ° ² ³ dll. Tersedia di package
+  // dejavu-fonts-ttf versi 2.37.3 (file TTF ~300KB).
+  const URL_FONT = 'https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf';
+  let fontBase64 = null;       // cache font setelah dimuat
+  let sedangMuatFont = false;
+
+  // Konstanta tata letak PDF (A4 portrait, satuan mm)
+  const PDF = {
+    lebarKertas: 210,
+    tinggiKertas: 297,
+    margin: 15,
+    lebarKonten: 180,          // 210 - 2*15
+    batasBawah: 285,           // 297 - 12
+    awalY: 20,
+  };
+
+  // ----------------------------------------------------------
+  // PEMUATAN FONT UNICODE
+  // ----------------------------------------------------------
 
   /**
-   * Membersihkan nama folder/file agar aman lintas sistem operasi (tanpa karakter khusus).
+   * Memuat font Roboto TTF sebagai base64 untuk jsPDF.
+   * Di-cache agar hanya dimuat sekali per sesi.
+   * @returns {Promise<string|null>} base64 string font, atau null jika gagal
    */
-  function namaAman(teks) {
-    return String(teks || 'berkas')
-      .replace(/[^a-zA-Z0-9_-]/g, '_')
-      .replace(/_+/g, '_')
-      .replace(/^_|_$/g, '')
-      .slice(0, 70) || 'item';
-  }
-
-  /**
-   * Menerjemahkan simbol matematika khusus (≤, ≥, √, π, °, pangkat sup) agar
-   * tidak menimbulkan karakter rusak pada font standar PDF.
-   */
-  function teksAmanUntukPdf(teks) {
-    if (teks === undefined || teks === null) return '';
-    const petaSup = {
-      '⁰': '^0',
-      '¹': '^1',
-      '²': '^2',
-      '³': '^3',
-      '⁴': '^4',
-      '⁵': '^5',
-      '⁶': '^6',
-      '⁷': '^7',
-      '⁸': '^8',
-      '⁹': '^9',
-      'ⁿ': '^n',
-      '⁻': '^-'
-    };
-
-    let hasil = String(teks);
-    Object.keys(petaSup).forEach(function (ch) {
-      hasil = hasil.split(ch).join(petaSup[ch]);
-    });
-
-    return hasil
-      .replace(/≤/g, '<=')
-      .replace(/≥/g, '>=')
-      .replace(/≠/g, '!=')
-      .replace(/≈/g, '~=')
-      .replace(/√/g, 'akar(')
-      .replace(/π/g, 'pi')
-      .replace(/°/g, ' derajat')
-      .replace(/×/g, 'x')
-      .replace(/÷/g, '/')
-      .replace(/[^\x20-\x7E\n]/g, ' ');
-  }
-
-  function memicuUnduhanBlob(blob, namaFile) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = namaFile;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function () {
-      URL.revokeObjectURL(url);
-    }, 2000);
-  }
-
-  /**
-   * Membuat rekap seluruh siswa ke format .xlsx atau .csv (satu baris per siswa).
-   */
-  async function unduhRekapSpreadsheet(opsi) {
-    const format = opsi.format === 'csv' ? 'csv' : 'xlsx';
-    const lkpd = opsi.lkpd || window.ELKPD;
-    const daftarSiswa = Array.isArray(opsi.daftarSiswa) ? opsi.daftarSiswa : [];
-    const token = opsi.token;
-    const onProgres = opsi.onProgres || function () {};
-
-    if (!daftarSiswa.length) {
-      window.Umum.tampilkanToast('Tidak ada data siswa untuk direkap.', 'peringatan');
-      return;
+  async function muatFont() {
+    if (fontBase64) return fontBase64;
+    if (sedangMuatFont) {
+      // Tunggu pemuatan sedang berjalan
+      while (sedangMuatFont) { await new Promise(r => setTimeout(r, 100)); }
+      return fontBase64;
     }
-
-    if (format === 'xlsx' && typeof window.XLSX === 'undefined') {
-      window.Umum.tampilkanToast('Pustaka SheetJS belum termuat. Periksa koneksi internet.', 'bahaya');
-      return;
-    }
-
-    const soalList = ambilDaftarSoal(lkpd);
-    const idLkpd = (lkpd && lkpd.meta && lkpd.meta.id) || '';
-    const barisRekap = [];
-
-    for (let i = 0; i < daftarSiswa.length; i++) {
-      const s = daftarSiswa[i];
-      onProgres(((i + 1) / daftarSiswa.length) * 85, 'Mengambil jawaban ' + s.nama + '...');
-
-      let mapJawaban = {};
-      if (s.idPengerjaan) {
-        const res = await window.ApiLKPD.kirim('lihatPekerjaan', {
-          token: token,
-          idSiswa: s.idSiswa,
-          idLkpd: idLkpd
-        });
-        if (res && res.ok && res.data && Array.isArray(res.data.jawaban)) {
-          res.data.jawaban.forEach(function (j) {
-            mapJawaban[j.idSoal] = j.teks || '';
-          });
-        }
+    sedangMuatFont = true;
+    try {
+      const resp = await fetch(URL_FONT);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const buf = await resp.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      // Konversi ke base64 (chunk agar tidak overflow call stack)
+      let binary = '';
+      const chunk = 8192;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + chunk, bytes.length)));
       }
-
-      const baris = {
-        No: i + 1,
-        Kelas: s.kelas,
-        'Nama Siswa': s.nama,
-        Status: s.status,
-        'Waktu Kumpul': s.waktuKumpul || '-',
-        'Jumlah Berkas': s.jumlahBerkas || 0,
-        'Nilai Total': s.totalSkor !== null && s.totalSkor !== undefined ? s.totalSkor : ''
-      };
-
-      soalList.forEach(function (soal) {
-        const kolomNama = 'Soal ' + soal.nomor + ' (' + soal.id + ')';
-        baris[kolomNama] = mapJawaban[soal.id] || '';
-      });
-
-      barisRekap.push(baris);
+      fontBase64 = btoa(binary);
+    } catch (err) {
+      console.warn('Gagal memuat font Unicode, pakai default:', err);
+      fontBase64 = null;
     }
-
-    onProgres(95, 'Menyusun berkas ' + format.toUpperCase() + '...');
-
-    const namaDasar = 'Rekap_' + namaAman((lkpd && lkpd.meta && lkpd.meta.judul) || 'eLKPD');
-
-    if (format === 'csv') {
-      const wbTemp = window.XLSX ? window.XLSX.utils.book_new() : null;
-      let csvString = '';
-      if (wbTemp) {
-        const ws = window.XLSX.utils.json_to_sheet(barisRekap);
-        csvString = window.XLSX.utils.sheet_to_csv(ws);
-      } else {
-        const headers = Object.keys(barisRekap[0]);
-        const lines = [headers.join(',')];
-        barisRekap.forEach(function (r) {
-          lines.push(
-            headers
-              .map(function (h) {
-                const v = String(r[h] === undefined || r[h] === null ? '' : r[h]).replace(
-                  /"/g,
-                  '""'
-                );
-                return '"' + v + '"';
-              })
-              .join(',')
-          );
-        });
-        csvString = lines.join('\n');
-      }
-      const blobCsv = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
-      memicuUnduhanBlob(blobCsv, namaDasar + '.csv');
-    } else {
-      const wb = window.XLSX.utils.book_new();
-      const ws = window.XLSX.utils.json_to_sheet(barisRekap);
-      window.XLSX.utils.book_append_sheet(wb, ws, 'Rekap Nilai');
-      const arrayBuffer = window.XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      const blobXlsx = new Blob([arrayBuffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
-      memicuUnduhanBlob(blobXlsx, namaDasar + '.xlsx');
-    }
-
-    onProgres(100, 'Selesai!');
-    setTimeout(function () {
-      onProgres(null, '');
-    }, 1500);
-    window.Umum.tampilkanToast('Rekap .' + format + ' berhasil diunduh.', 'sukses');
+    sedangMuatFont = false;
+    return fontBase64;
   }
 
   /**
-   * Membuat objek jsPDF untuk satu siswa lengkap dengan identitas, jawaban,
-   * nilai/komentar, dan lampiran gambar kanvas / foto.
+   * Membuat instance jsPDF baru dengan font Unicode terpasang.
+   * @returns {Promise<object>} instance jsPDF
    */
-  async function buatDokumenPdfSiswa(data) {
-    const jspdfLib = window.jspdf && window.jspdf.jsPDF;
-    if (!jspdfLib) {
+  async function buatDocPdf() {
+    const jspdfModul = window.jspdf;
+    if (!jspdfModul || !jspdfModul.jsPDF) {
       throw new Error('Pustaka jsPDF belum dimuat.');
     }
-
-    const doc = new jspdfLib({ unit: 'pt', format: 'a4' });
-    const lebarHalaman = doc.internal.pageSize.getWidth();
-    const tinggiHalaman = doc.internal.pageSize.getHeight();
-    const margin = 42;
-    const lebarIsi = lebarHalaman - margin * 2;
-    let y = 46;
-
-    function cekHalaman(tinggiDibutuhkan) {
-      if (y + tinggiDibutuhkan > tinggiHalaman - margin) {
-        doc.addPage();
-        y = 46;
-      }
-    }
-
-    const meta = (data.lkpd && data.lkpd.meta) || {};
-    const siswa = data.siswa || {};
-    const pengerjaan = data.pengerjaan || {};
-
-    // Judul Laporan
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(15);
-    doc.text(teksAmanUntukPdf(meta.judul || 'Lembar Kerja Siswa'), margin, y);
-    y += 20;
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(
-      teksAmanUntukPdf(
-        (meta.mapel || '') +
-          ' | Kelas ' +
-          (siswa.kelas || meta.kelas || '') +
-          ' | Guru: ' +
-          (meta.guru || '') +
-          ' | ' +
-          (meta.sekolah || '')
-      ),
-      margin,
-      y
-    );
-    y += 16;
-
-    doc.setFont('helvetica', 'bold');
-    doc.text(
-      teksAmanUntukPdf(
-        'Nama Siswa: ' + (siswa.nama || '-') + '   |   Status: ' + (pengerjaan.status || '-')
-      ),
-      margin,
-      y
-    );
-    y += 14;
-
-    if (data.nilai && data.nilai.totalSkor !== null && data.nilai.totalSkor !== undefined) {
-      doc.text(teksAmanUntukPdf('Nilai Total: ' + data.nilai.totalSkor), margin, y);
-      y += 14;
-    }
-
-    doc.setDrawColor(180);
-    doc.line(margin, y, lebarHalaman - margin, y);
-    y += 18;
-
-    const soalList = ambilDaftarSoal(data.lkpd);
-    const mapJawaban = data.jawabanMap || {};
-    const berkasDaftar = Array.isArray(data.berkasDaftar) ? data.berkasDaftar : [];
-    const cacheGambar = data.cacheDataUrlBerkas || {};
-
-    for (let i = 0; i < soalList.length; i++) {
-      const soal = soalList[i];
-      const jwb = mapJawaban[soal.id] || { teks: '', dataJson: '' };
-
-      cekHalaman(54);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      const barisSoal = doc.splitTextToSize(
-        teksAmanUntukPdf('Soal ' + soal.nomor + ': ' + (soal.teks || '')),
-        lebarIsi
-      );
-      doc.text(barisSoal, margin, y);
-      y += barisSoal.length * 14 + 4;
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      const teksJwb = jwb.teks ? jwb.teks : '(Belum dijawab)';
-      const barisJwb = doc.splitTextToSize(teksAmanUntukPdf('Jawaban: ' + teksJwb), lebarIsi);
-      cekHalaman(barisJwb.length * 14 + 12);
-      doc.text(barisJwb, margin, y);
-      y += barisJwb.length * 14 + 10;
-
-      // Lampirkan gambar/foto yang terkait soal ini jika tersedia
-      const berkasSoal = berkasDaftar.filter(function (b) {
-        return b.idSoal === soal.id;
-      });
-      for (let bIdx = 0; bIdx < berkasSoal.length; bIdx++) {
-        const brk = berkasSoal[bIdx];
-        const dataUrl = cacheGambar[brk.idBerkas];
-        if (dataUrl && dataUrl.indexOf('data:image/') === 0) {
-          try {
-            cekHalaman(175);
-            const formatImg = dataUrl.indexOf('image/png') !== -1 ? 'PNG' : 'JPEG';
-            doc.addImage(dataUrl, formatImg, margin, y, 220, 150);
-            y += 162;
-          } catch (err) {
-            // Abaikan jika gagal menyisipkan gambar tertentu
-          }
+    const doc = new jspdfModul.jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const font = await muatFont();
+    if (font) {
+      try {
+        doc.addFileToVFS('DejaVuSans.ttf', font);
+        // jsPDF mendaftarkan font dengan nama & style. Style 'normal' wajib cocok
+        // saat setFont dipanggil. Daftarkan kedua alias untuk kompatibilitas.
+        doc.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal');
+        doc.addFont('DejaVuSans.ttf', 'DejaVuSans', 'regular');
+        doc.setFont('DejaVuSans', 'normal');
+        // Verifikasi font benar-benar terdaftar
+        const daftar = doc.getFontList();
+        if (!daftar['DejaVuSans']) {
+          console.warn('Font DejaVuSans tidak terdaftar, pakai default helvetica.');
+          doc.setFont('helvetica', 'normal');
         }
+      } catch (e) {
+        console.warn('Gagal memasang font, pakai default:', e);
       }
     }
-
     return doc;
   }
 
-  /**
-   * Mengunduh PDF untuk siswa yang sedang login di halaman siswa.
-   */
-  async function unduhPdfSiswa(data) {
-    try {
-      const doc = await buatDokumenPdfSiswa(data);
-      const namaFile =
-        'Pekerjaan_' +
-        namaAman((data.siswa && data.siswa.nama) || 'Siswa') +
-        '_' +
-        namaAman((data.lkpd && data.lkpd.meta && data.lkpd.meta.id) || 'LKPD') +
-        '.pdf';
-      doc.save(namaFile);
-      window.Umum.tampilkanToast('PDF pekerjaanmu berhasil diunduh!', 'sukses');
-    } catch (err) {
-      window.Umum.tampilkanToast(
-        (err && err.message) || 'Gagal membuat PDF. Menggunakan tampilan cetak browser.',
-        'peringatan'
-      );
-      window.print();
-    }
+  // ----------------------------------------------------------
+  // UTILITAS NAMA FILE AMAN
+  // ----------------------------------------------------------
+
+  /** Membersihkan string agar aman jadi nama file (tanpa karakter khusus). */
+  function namaFileAman(teks) {
+    if (!teks) return 'tanpa-nama';
+    return String(teks)
+      .replace(/[\\\/:*?"<>|]/g, '-')
+      .replace(/\s+/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '')
+      .substring(0, 80) || 'tanpa-nama';
   }
 
+  // ----------------------------------------------------------
+  // NORMALISASI BERKAS
+  // ----------------------------------------------------------
+
   /**
-   * Mengunduh PDF dari modal detail guru untuk satu siswa.
+   * Menormalkan daftar berkas ke array datar.
+   * Menerima array datar atau objek { idSoal: [meta] }.
    */
-  async function unduhPdfDetailGuru(opsi) {
-    const detail = opsi.detail;
-    const lkpd = opsi.lkpd || window.ELKPD;
-    const token = opsi.token;
-
-    if (!detail) return;
-
-    // Pastikan seluruh gambar berkas sudah dimuat sebelum membuat PDF
-    for (let i = 0; i < detail.berkas.length; i++) {
-      const brk = detail.berkas[i];
-      if (!detail.cacheGambar[brk.idBerkas]) {
-        const res = await window.ApiLKPD.kirim('ambilBerkasGuru', {
-          token: token,
-          idBerkas: brk.idBerkas
+  function normalisasiBerkas(berkas) {
+    if (!berkas) return [];
+    if (Array.isArray(berkas)) return berkas.slice();
+    const flat = [];
+    for (const idSoal in berkas) {
+      if (berkas.hasOwnProperty(idSoal)) {
+        berkas[idSoal].forEach(function (b) {
+          flat.push(Object.assign({ idSoal: idSoal }, b));
         });
-        if (res && res.ok && res.data && res.data.base64Data) {
-          detail.cacheGambar[brk.idBerkas] = res.data.base64Data;
-        }
       }
     }
+    return flat;
+  }
 
-    const jawabanMap = {};
-    detail.jawaban.forEach(function (j) {
-      jawabanMap[j.idSoal] = { teks: j.teks || '', dataJson: j.dataJson || '' };
-    });
+  // ----------------------------------------------------------
+  // PENGAMBILAN BERKAS (FOTO)
+  // ----------------------------------------------------------
 
-    await unduhPdfSiswa({
-      lkpd: lkpd,
-      siswa: detail.siswa,
-      pengerjaan: detail.pengerjaan,
-      jawabanMap: jawabanMap,
-      berkasDaftar: detail.berkas,
-      cacheDataUrlBerkas: detail.cacheGambar,
-      nilai: detail.nilai
+  /**
+   * Mengambil data URL semua berkas (foto) untuk satu siswa.
+   * @param {Array} berkasList Daftar metadata berkas
+   * @param {string} token Token sesi
+   * @param {string} mode 'siswa' atau 'guru' (menentukan API yang dipakai)
+   * @param {string} pengerjaanId (wajib untuk mode siswa)
+   * @returns {Promise<object>} { berkasId: dataUrl }
+   */
+  async function ambilSemuaBerkas(berkasList, token, mode, pengerjaanId) {
+    const hasil = {};
+    for (let i = 0; i < berkasList.length; i++) {
+      const b = berkasList[i];
+      let res;
+      if (mode === 'guru') {
+        res = await API.ambilBerkasGuru(b.id, token);
+      } else {
+        res = await API.ambilBerkas(pengerjaanId, b.id, token);
+      }
+      if (res.ok && res.data && res.data.dataBase64) {
+        hasil[b.id] = 'data:' + (b.mime || 'image/jpeg') + ';base64,' + res.data.dataBase64;
+      }
+    }
+    return hasil;
+  }
+
+  // ----------------------------------------------------------
+  // RINGKASAN JAWABAN (untuk XLSX/CSV)
+  // ----------------------------------------------------------
+
+  /**
+   * Meringkas jawaban satu soal menjadi string singkat untuk sel spreadsheet.
+   */
+  function ringkasJawaban(blok, jawaban) {
+    if (!jawaban) return '';
+    const teks = jawaban.teks || '';
+    const data = jawaban.data;
+    switch (blok.tipe) {
+      case 'teks_singkat':
+      case 'uraian':
+      case 'pilihan_ganda':
+      case 'benar_salah':
+      case 'isian_angka':
+      case 'skala_refleksi':
+        return teks;
+      case 'tabel_isian':
+        if (!data || !data.sel) return '';
+        return Object.keys(data.sel).map(function (k) {
+          return data.sel[k];
+        }).filter(function (v) { return v; }).join(' | ');
+      case 'menjodohkan':
+        if (!data || !data.pasangan) return '';
+        return Object.keys(data.pasangan).map(function (k) {
+          return data.pasangan[k];
+        }).filter(function (v) { return v; }).join(' | ');
+      case 'urutkan':
+        if (!data || !data.urutan) return '';
+        return data.urutan.join(' → ');
+      case 'kanvas':
+        return (data && data.gambar) ? '(gambar kanvas)' : '';
+      case 'foto':
+        return data && data.jumlah ? data.jumlah + ' foto' : '';
+      default:
+        return teks;
+    }
+  }
+
+  // ----------------------------------------------------------
+  // PDF: BANTU TATA LETAK
+  // ----------------------------------------------------------
+
+  /** Memastikan ruang cukup; jika tidak, tambah halaman. */
+  function pastikanRuang(doc, y, tinggi) {
+    if (y + tinggi > PDF.batasBawah) {
+      doc.addPage();
+      return PDF.awalY;
+    }
+    return y;
+  }
+
+  /** Mendapat dimensi gambar (mempertahankan rasio) yang pas ke lebar maks. */
+  function hitungDimensiGambar(dataUrl, maksLebar, maksTinggi) {
+    return new Promise(function (resolve) {
+      const img = new Image();
+      img.onload = function () {
+        let w = img.naturalWidth || img.width;
+        let h = img.naturalHeight || img.height;
+        if (!w || !h) { resolve({ w: maksLebar, h: 60 }); return; }
+        const rasio = Math.min(maksLebar / w, maksTinggi / h, 1);
+        resolve({ w: Math.round(w * rasio), h: Math.round(h * rasio) });
+      };
+      img.onerror = function () { resolve({ w: maksLebar, h: 60 }); };
+      img.src = dataUrl;
     });
   }
 
+  /** Mendeteksi format gambar dari data URL untuk addImage. */
+  function formatGambar(dataUrl) {
+    if (dataUrl.indexOf('image/png') !== -1) return 'PNG';
+    if (dataUrl.indexOf('image/jpeg') !== -1 || dataUrl.indexOf('image/jpg') !== -1) return 'JPEG';
+    if (dataUrl.indexOf('image/webp') !== -1) return 'WEBP';
+    return 'PNG';
+  }
+
+  /** Menulis teks dengan pembungkusan otomatis, mengembalikan Y baru. */
+  function tulisTeks(doc, y, teks, ukuran, gaya, warna) {
+    doc.setFontSize(ukuran);
+    doc.setFont('DejaVuSans', gaya || 'normal');
+    if (warna) doc.setTextColor(warna[0], warna[1], warna[2]);
+    else doc.setTextColor(30, 41, 59);
+    const baris = doc.splitTextToSize(String(teks || ''), PDF.lebarKonten);
+    for (let i = 0; i < baris.length; i++) {
+      y = pastikanRuang(doc, y, 6);
+      doc.text(PDF.margin, y, baris[i]);
+      y += (ukuran * 0.35) + 1.5;
+    }
+    return y;
+  }
+
+  // ----------------------------------------------------------
+  // PDF: RENDER SATU SISWA
+  // ----------------------------------------------------------
+
   /**
-   * Membuat ZIP massal secara berurutan (per siswa) agar memori browser tidak penuh.
-   * Tersusun per kelas lalu per nama siswa, berisi PDF + seluruh foto/gambar asli.
+   * Membuat PDF untuk satu siswa.
+   * @param {object} opts {
+   *   lkpd, siswa:{nama,kelas}, pengerjaanId, jawaban, berkas,
+   *   nilai, token, mode:'siswa'|'guru', statusPengerjaan, waktuKumpul
+   * }
+   * @returns {Promise<Blob>} PDF blob
    */
-  async function unduhZipMassal(opsi) {
-    if (typeof window.JSZip === 'undefined') {
-      window.Umum.tampilkanToast('Pustaka JSZip belum termuat. Periksa koneksi internet.', 'bahaya');
-      return;
+  async function renderPdfSiswa(opts) {
+    const lkpd = opts.lkpd;
+    const doc = await buatDocPdf();
+    let y = PDF.awalY;
+
+    // --- Header ---
+    doc.setFillColor(59, 130, 246);
+    doc.rect(0, 0, PDF.lebarKertas, 32, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16); doc.setFont('DejaVuSans', 'normal');
+    doc.text(PDF.margin, 13, lkpd.meta.judul);
+    doc.setFontSize(10);
+    doc.text(PDF.margin, 20, lkpd.meta.mapel + '  •  Kelas ' + lkpd.meta.kelas + '  •  ' + lkpd.meta.bab);
+    doc.text(PDF.margin, 26, lkpd.meta.sekolah + '  —  Guru: ' + lkpd.meta.guru);
+
+    y = 40;
+    doc.setTextColor(30, 41, 59);
+
+    // --- Identitas ---
+    doc.setFillColor(239, 246, 255);
+    doc.rect(PDF.margin, y, PDF.lebarKonten, 24, 'F');
+    doc.setFontSize(11); doc.setFont('DejaVuSans', 'normal');
+    doc.text(PDF.margin + 4, y + 7, 'Nama: ' + (opts.siswa.nama || '-'));
+    doc.text(PDF.margin + 4, y + 14, 'Kelas: ' + (opts.siswa.kelas || '-'));
+    doc.text(PDF.margin + 4, y + 21, 'Status: ' + (opts.statusPengerjaan || '-') + (opts.waktuKumpul ? '  •  Dikumpul: ' + UMUM.formatWaktu(opts.waktuKumpul) : ''));
+    y += 30;
+
+    // --- Siapkan data berkas ---
+    const berkasList = normalisasiBerkas(opts.berkas);
+    let dataBerkas = {};
+    if (berkasList.length > 0 && opts.token) {
+      dataBerkas = await ambilSemuaBerkas(berkasList, opts.token, opts.mode || 'guru', opts.pengerjaanId);
     }
 
-    const lkpd = opsi.lkpd || window.ELKPD;
-    const daftarSiswa = Array.isArray(opsi.daftarSiswa) ? opsi.daftarSiswa : [];
-    const token = opsi.token;
-    const onProgres = opsi.onProgres || function () {};
+    // --- Grup berkas per idSoal ---
+    const berkasPerSoal = {};
+    berkasList.forEach(function (b) {
+      if (!berkasPerSoal[b.idSoal]) berkasPerSoal[b.idSoal] = [];
+      berkasPerSoal[b.idSoal].push(b);
+    });
 
-    if (!daftarSiswa.length) {
-      window.Umum.tampilkanToast('Tidak ada siswa untuk dimasukkan ke dalam ZIP.', 'peringatan');
-      return;
+    // --- Render setiap bagian & soal ---
+    (lkpd.bagian || []).forEach(function (bagian) {
+      y = pastikanRuang(doc, y, 16);
+      // Garis pemisah + judul bagian
+      doc.setDrawColor(251, 191, 36); doc.setLineWidth(0.8);
+      doc.line(PDF.margin, y - 2, PDF.margin + 4, y - 2);
+      doc.setTextColor(37, 99, 235);
+      doc.setFontSize(13); doc.setFont('DejaVuSans', 'normal');
+      const judulBag = doc.splitTextToSize(bagian.judul, PDF.lebarKonten);
+      doc.text(PDF.margin + 7, y, judulBag[0]);
+      y += 8;
+
+      (bagian.blok || []).forEach(function (blok) {
+        if (blok.jenis === 'bacaan') {
+          y = tulisTeks(doc, y, blok.judul ? blok.judul : '', 11, 'normal', [146, 64, 14]);
+          y = tulisTeks(doc, y, blok.isi || '', 10, 'normal', [100, 116, 139]);
+          y += 3;
+        } else if (blok.jenis === 'soal') {
+          // Nomor & teks soal
+          const label = blok.nomor ? 'Soal ' + blok.nomor : 'Refleksi';
+          y = tulisTeks(doc, y, label, 11, 'normal', [37, 99, 235]);
+          y = tulisTeks(doc, y, blok.teks || '', 11, 'normal');
+          y += 1;
+
+          // Jawaban
+          const jawab = opts.jawaban[blok.id];
+          y = renderJawabanPdf(doc, y, blok, jawab, dataBerkas, berkasPerSoal[blok.id] || []);
+
+          // Nilai & komentar
+          if (opts.nilai && opts.nilai[blok.id]) {
+            const n = opts.nilai[blok.id];
+            y = pastikanRuang(doc, y, 12);
+            doc.setFillColor(220, 252, 231);
+            doc.rect(PDF.margin, y, PDF.lebarKonten, 12, 'F');
+            doc.setTextColor(22, 101, 52);
+            doc.setFontSize(10); doc.setFont('DejaVuSans', 'normal');
+            const teksNilai = 'Nilai: ' + (n.skor !== undefined && n.skor !== '' ? n.skor : '-') + (n.komentar ? '   |   Komentar: ' + n.komentar : '');
+            const barisNilai = doc.splitTextToSize(teksNilai, PDF.lebarKonten - 6);
+            doc.text(PDF.margin + 3, y + 7, barisNilai[0]);
+            y += 16;
+          }
+          y += 4;
+        }
+      });
+      y += 2;
+    });
+
+    // --- Footer nomor halaman ---
+    const totalHalaman = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalHalaman; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8); doc.setTextColor(148, 163, 184);
+      doc.text('Halaman ' + i + ' dari ' + totalHalaman, PDF.margin, PDF.tinggiKertas - 6);
+      doc.text('e-LKPD — ' + lkpd.meta.sekolah, PDF.lebarKertas - PDF.margin, PDF.tinggiKertas - 6, { align: 'right' });
     }
 
-    const zip = new window.JSZip();
-    const idLkpd = (lkpd && lkpd.meta && lkpd.meta.id) || '';
+    return doc.output('blob');
+  }
 
+  /** Merender jawaban satu soal ke PDF, mengembalikan Y baru. */
+  function renderJawabanPdf(doc, y, blok, jawab, dataBerkas, berkasSoal) {
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(10); doc.setFont('DejaVuSans', 'normal');
+
+    if (!jawab) {
+      y = tulisTeks(doc, y, '(belum dijawab)', 10, 'normal', [148, 163, 184]);
+      return y;
+    }
+    const teks = jawab.teks || '';
+    const data = jawab.data;
+
+    switch (blok.tipe) {
+      case 'teks_singkat':
+      case 'uraian':
+      case 'pilihan_ganda':
+      case 'benar_salah':
+      case 'isian_angka':
+      case 'skala_refleksi':
+        y = tulisTeks(doc, y, 'Jawaban: ' + teks, 10, 'normal', [22, 101, 52]);
+        break;
+
+      case 'tabel_isian':
+        if (data && data.sel) {
+          y = renderTabelPdf(doc, y, blok, data.sel);
+        }
+        break;
+
+      case 'menjodohkan':
+        if (data && data.pasangan) {
+          y = tulisTeks(doc, y, 'Jawaban:', 10, 'normal', [22, 101, 52]);
+          (blok.item || []).forEach(function (it) {
+            const p = data.pasangan[it.id] || '-';
+            y = tulisTeks(doc, y, '  ' + it.kiri + ' → ' + p, 10, 'normal');
+          });
+        }
+        break;
+
+      case 'urutkan':
+        if (data && data.urutan) {
+          y = tulisTeks(doc, y, 'Urutan:', 10, 'normal', [22, 101, 52]);
+          const itemMap = {};
+          (blok.item || []).forEach(function (i) { itemMap[i.id] = i; });
+          data.urutan.forEach(function (idItem, idx) {
+            const it = itemMap[idItem];
+            y = tulisTeks(doc, y, '  ' + (idx + 1) + '. ' + (it ? it.teks : idItem), 10, 'normal');
+          });
+        }
+        break;
+
+      case 'kanvas':
+        if (data && data.gambar) {
+          y = tambahGambarPdf(doc, y, data.gambar, 'Gambar kanvas:');
+        } else {
+          y = tulisTeks(doc, y, '(kanvas kosong)', 10, 'normal', [148, 163, 184]);
+        }
+        break;
+
+      case 'foto':
+        if (berkasSoal && berkasSoal.length > 0) {
+          y = tulisTeks(doc, y, 'Foto (' + berkasSoal.length + '):', 10, 'normal', [22, 101, 52]);
+          berkasSoal.forEach(function (b, idx) {
+            const url = dataBerkas[b.id];
+            if (url) {
+              y = tambahGambarPdf(doc, y, url, 'Foto ' + (idx + 1) + ': ' + (b.nama || ''));
+            } else {
+              y = tulisTeks(doc, y, '  (foto tidak dapat dimuat: ' + (b.nama || '') + ')', 9, 'normal', [148, 163, 184]);
+            }
+          });
+        } else {
+          y = tulisTeks(doc, y, '(tidak ada foto)', 10, 'normal', [148, 163, 184]);
+        }
+        break;
+    }
+    return y;
+  }
+
+  /** Merender tabel isian ke PDF. */
+  function renderTabelPdf(doc, y, blok, sel) {
+    const kolom = blok.kolom || [];
+    const baris = blok.baris || [];
+    const kolomIsian = blok.kolomIsian || [];
+    const nilaiKolom = blok.nilaiKolom || {};
+    const lebarKolom = PDF.lebarKonten / kolom.length;
+
+    y = pastikanRuang(doc, y, 10);
+    // Header
+    doc.setFillColor(59, 130, 246);
+    doc.rect(PDF.margin, y, PDF.lebarKonten, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9); doc.setFont('DejaVuSans', 'normal');
+    kolom.forEach(function (k, idx) {
+      doc.text(PDF.margin + idx * lebarKolom + 2, y + 6, String(k));
+    });
+    y += 8;
+
+    // Baris
+    baris.forEach(function (barisItem, idxBaris) {
+      y = pastikanRuang(doc, y, 8);
+      if (idxBaris % 2 === 0) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(PDF.margin, y, PDF.lebarKonten, 8, 'F');
+      }
+      doc.setTextColor(30, 41, 59);
+      kolom.forEach(function (k, idxKolom) {
+        let isi = '';
+        if (kolomIsian.indexOf(idxKolom) !== -1) {
+          isi = sel[barisItem.id + '_' + idxKolom] || '';
+        } else if (nilaiKolom[idxKolom] && nilaiKolom[idxKolom][idxBaris] !== undefined) {
+          isi = String(nilaiKolom[idxKolom][idxBaris]);
+        } else if (idxKolom === 0 && barisItem.label) {
+          isi = barisItem.label;
+        }
+        const barisTeks = doc.splitTextToSize(String(isi), lebarKolom - 4);
+        doc.text(PDF.margin + idxKolom * lebarKolom + 2, y + 6, barisTeks[0]);
+      });
+      y += 8;
+    });
+    return y + 3;
+  }
+
+  /** Menambahkan gambar ke PDF dengan rasio yang benar. */
+  async function tambahGambarPdf(doc, y, dataUrl, label) {
+    if (label) {
+      y = tulisTeks(doc, y, label, 9, 'normal', [100, 116, 139]);
+    }
+    const dim = await hitungDimensiGambar(dataUrl, PDF.lebarKonten, 120);
+    y = pastikanRuang(doc, y, dim.h + 4);
+    try {
+      doc.addImage(dataUrl, formatGambar(dataUrl), PDF.margin, y, dim.w, dim.h);
+    } catch (e) {
+      y = tulisTeks(doc, y, '(gagal menambahkan gambar)', 9, 'normal', [239, 68, 68]);
+    }
+    return y + dim.h + 5;
+  }
+
+  // ----------------------------------------------------------
+  // API PUBLIK: PDF SATU SISWA
+  // ----------------------------------------------------------
+
+  /**
+   * Membuat & mengunduh PDF untuk satu siswa (tombol "Unduh Pekerjaanku").
+   * @param {object} opts lihat renderPdfSiswa
+   */
+  UNDUH.buatPdfSiswa = async function (opts) {
+    try {
+      UMUM.toast('Membuat PDF...', 'info', 4000);
+      const blob = await renderPdfSiswa(opts);
+      const nama = namaFileAman(opts.siswa.nama) + '_' + namaFileAman(opts.lkpd.meta.bab) + '.pdf';
+      UMUM.unduhBlob(blob, nama);
+      UMUM.toast('PDF siap diunduh.', 'sukses');
+    } catch (err) {
+      console.error(err);
+      UMUM.toast('Gagal membuat PDF: ' + (err.message || err), 'bahaya', 5000);
+    }
+  };
+
+  /**
+   * Membuat PDF untuk satu siswa dan mengembalikan blob (dipakai ZIP massal).
+   */
+  UNDUH.blobPdfSiswa = async function (opts) {
+    return await renderPdfSiswa(opts);
+  };
+
+  // ----------------------------------------------------------
+  // PENGAMBILAN SEMUA PEKERJAAN (untuk rekap & ZIP)
+  // ----------------------------------------------------------
+
+  /**
+   * Mengambil pekerjaan semua siswa secara berurutan (bukan serentak).
+   * @param {Array} daftarSiswa Dari API.daftarSiswa
+   * @param {string} lkpdId
+   * @param {string} token
+   * @param {function} onProgres {sekarang, total, nama}
+   * @returns {Promise<Array>} [{ siswa, pengerjaan, jawaban, berkas, nilai }]
+   */
+  async function ambilSemuaPekerjaan(daftarSiswa, lkpdId, token, onProgres) {
+    const hasil = [];
     for (let i = 0; i < daftarSiswa.length; i++) {
       const s = daftarSiswa[i];
-      const persenAwal = Math.round((i / daftarSiswa.length) * 85);
-      onProgres(persenAwal, 'Memproses (' + (i + 1) + '/' + daftarSiswa.length + '): ' + s.nama);
-
-      const folderSiswa = zip
-        .folder(namaAman('Kelas_' + (s.kelas || 'Umum')))
-        .folder(namaAman(s.nama || s.idSiswa));
-
-      let jawabanList = [];
-      let berkasList = [];
-      let nilaiObj = { daftar: [], totalSkor: s.totalSkor };
-      const cacheGambarSiswa = {};
-
-      if (s.idPengerjaan) {
-        const resDetail = await window.ApiLKPD.kirim('lihatPekerjaan', {
-          token: token,
-          idSiswa: s.idSiswa,
-          idLkpd: idLkpd
-        });
-        if (resDetail && resDetail.ok && resDetail.data) {
-          jawabanList = resDetail.data.jawaban || [];
-          berkasList = resDetail.data.berkas || [];
-          nilaiObj = resDetail.data.nilai || nilaiObj;
-        }
+      if (onProgres) onProgres({ sekarang: i + 1, total: daftarSiswa.length, nama: s.nama });
+      if (!s.pengerjaanId) {
+        // Siswa belum mulai mengerjakan
+        hasil.push({ siswa: s, pengerjaan: null, jawaban: {}, berkas: [], nilai: {} });
+        continue;
       }
-
-      // Ambil satu per satu berkas gambar/foto milik siswa ini
-      for (let b = 0; b < berkasList.length; b++) {
-        const brk = berkasList[b];
-        const resImg = await window.ApiLKPD.kirim('ambilBerkasGuru', {
-          token: token,
-          idBerkas: brk.idBerkas
+      const res = await API.lihatPekerjaan(s.pengerjaanId, token);
+      if (res.ok) {
+        hasil.push({
+          siswa: s,
+          pengerjaan: res.data.pengerjaan,
+          jawaban: res.data.jawaban || {},
+          berkas: res.data.berkas || [],
+          nilai: res.data.nilai || {}
         });
-        if (resImg && resImg.ok && resImg.data && resImg.data.base64Data) {
-          cacheGambarSiswa[brk.idBerkas] = resImg.data.base64Data;
-          const idxB64 = resImg.data.base64Data.indexOf('base64,');
-          if (idxB64 !== -1) {
-            const b64Murni = resImg.data.base64Data.slice(idxB64 + 7);
-            const namaFileBerkas = namaAman(brk.idSoal + '_' + brk.jenis + '_' + (b + 1)) +
-              (brk.mime && brk.mime.indexOf('png') !== -1 ? '.png' : '.jpg');
-            folderSiswa.file(namaFileBerkas, b64Murni, { base64: true });
+      } else {
+        hasil.push({ siswa: s, pengerjaan: null, jawaban: {}, berkas: [], nilai: {} });
+      }
+    }
+    return hasil;
+  }
+
+  /** Membangun daftar kolom soal dari LKPD untuk header rekap. */
+  function kolomSoal(lkpd) {
+    const kolom = [];
+    (lkpd.bagian || []).forEach(function (bagian) {
+      (bagian.blok || []).forEach(function (b) {
+        if (b.jenis === 'soal' && b.nomor) {
+          kolom.push({ id: b.id, header: 'Soal ' + b.nomor, blok: b });
+        }
+      });
+    });
+    return kolom;
+  }
+
+  // ----------------------------------------------------------
+  // REKAP XLSX
+  // ----------------------------------------------------------
+
+  /**
+   * Membuat rekap seluruh siswa ke file .xlsx.
+   * Satu baris per siswa, kolom per soal + nilai + status + waktu.
+   * @returns {Promise<boolean>} true jika berhasil
+   */
+  UNDUH.rekapXlsx = async function (daftarSiswa, lkpd, token, onProgres) {
+    if (!window.XLSX) { UMUM.toast('Pustaka SheetJS belum dimuat.', 'bahaya'); return false; }
+    try {
+      UMUM.toast('Mengumpulkan data siswa...', 'info', 4000);
+      const semua = await ambilSemuaPekerjaan(daftarSiswa, lkpd.meta.id, token, onProgres);
+      const daftarKolomSoal = kolomSoal(lkpd);
+
+      // Header
+      const header = ['No', 'Nama', 'Kelas', 'Status', 'Waktu Kumpul'];
+      daftarKolomSoal.forEach(function (k) { header.push(k.header); });
+      header.push('Skor Total', 'Komentar');
+
+      // Baris
+      const rows = [];
+      semua.forEach(function (item, idx) {
+        const s = item.siswa;
+        const row = [idx + 1, s.nama, s.kelas, s.status, s.waktuKumpul ? UMUM.formatWaktu(s.waktuKumpul) : ''];
+        let skorTotal = 0; let adaSkor = false; let komentarAll = [];
+        daftarKolomSoal.forEach(function (k) {
+          const jawab = item.jawaban[k.id];
+          row.push(ringkasJawaban(k.blok, jawab));
+          if (item.nilai[k.id]) {
+            const sk = Number(item.nilai[k.id].skor);
+            if (!isNaN(sk)) { skorTotal += sk; adaSkor = true; }
+            if (item.nilai[k.id].komentar) komentarAll.push(k.header + ': ' + item.nilai[k.id].komentar);
+          }
+        });
+        row.push(adaSkor ? skorTotal : '');
+        row.push(komentarAll.join(' | '));
+        rows.push(row);
+      });
+
+      // Buat workbook
+      const ws = XLSX.utils.aoa_to_sheet([header].concat(rows));
+      ws['!cols'] = header.map(function (h, i) {
+        return { wch: i === 1 ? 24 : (i < 5 ? 12 : 18) };
+      });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Rekap');
+      const namaFile = 'rekap_' + namaFileAman(lkpd.meta.bab) + '_' + lkpd.meta.kelas + '.xlsx';
+      XLSX.writeFile(wb, namaFile);
+      UMUM.toast('Rekap XLSX siap diunduh.', 'sukses');
+      return true;
+    } catch (err) {
+      console.error(err);
+      UMUM.toast('Gagal membuat XLSX: ' + (err.message || err), 'bahaya', 5000);
+      return false;
+    }
+  };
+
+  // ----------------------------------------------------------
+  // REKAP CSV
+  // ----------------------------------------------------------
+
+  /**
+   * Membuat rekap seluruh siswa ke file .csv (format yang sama dengan XLSX).
+   */
+  UNDUH.rekapCsv = async function (daftarSiswa, lkpd, token, onProgres) {
+    if (!window.XLSX) { UMUM.toast('Pustaka SheetJS belum dimuat.', 'bahaya'); return false; }
+    try {
+      UMUM.toast('Mengumpulkan data siswa...', 'info', 4000);
+      const semua = await ambilSemuaPekerjaan(daftarSiswa, lkpd.meta.id, token, onProgres);
+      const daftarKolomSoal = kolomSoal(lkpd);
+
+      const header = ['No', 'Nama', 'Kelas', 'Status', 'Waktu Kumpul'];
+      daftarKolomSoal.forEach(function (k) { header.push(k.header); });
+      header.push('Skor Total', 'Komentar');
+
+      const rows = [];
+      semua.forEach(function (item, idx) {
+        const s = item.siswa;
+        const row = [idx + 1, s.nama, s.kelas, s.status, s.waktuKumpul ? UMUM.formatWaktu(s.waktuKumpul) : ''];
+        let skorTotal = 0; let adaSkor = false; let komentarAll = [];
+        daftarKolomSoal.forEach(function (k) {
+          const jawab = item.jawaban[k.id];
+          row.push(ringkasJawaban(k.blok, jawab));
+          if (item.nilai[k.id]) {
+            const sk = Number(item.nilai[k.id].skor);
+            if (!isNaN(sk)) { skorTotal += sk; adaSkor = true; }
+            if (item.nilai[k.id].komentar) komentarAll.push(k.header + ': ' + item.nilai[k.id].komentar);
+          }
+        });
+        row.push(adaSkor ? skorTotal : '');
+        row.push(komentarAll.join(' | '));
+        rows.push(row);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet([header].concat(rows));
+      const csv = XLSX.utils.sheet_to_csv(ws);
+      // Tambah BOM agar Excel membaca UTF-8 dengan benar
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const namaFile = 'rekap_' + namaFileAman(lkpd.meta.bab) + '_' + lkpd.meta.kelas + '.csv';
+      UMUM.unduhBlob(blob, namaFile);
+      UMUM.toast('Rekap CSV siap diunduh.', 'sukses');
+      return true;
+    } catch (err) {
+      console.error(err);
+      UMUM.toast('Gagal membuat CSV: ' + (err.message || err), 'bahaya', 5000);
+      return false;
+    }
+  };
+
+  // ----------------------------------------------------------
+  // ZIP MASSAL
+  // ----------------------------------------------------------
+
+  /**
+   * Membuat ZIP berisi PDF + foto semua siswa, tersusun per kelas lalu nama.
+   * Memproses siswa secara berurutan (bukan serentak) agar memori tidak penuh.
+   * @param {Array} daftarSiswa
+   * @param {object} lkpd
+   * @param {string} token
+   * @param {function} onProgres {sekarang, total, nama, tahap}
+   * @returns {Promise<boolean>}
+   */
+  UNDUH.zipMassal = async function (daftarSiswa, lkpd, token, onProgres) {
+    if (!window.JSZip) { UMUM.toast('Pustaka JSZip belum dimuat.', 'bahaya'); return false; }
+    try {
+      const zip = new JSZip();
+      UMUM.toast('Menyiapkan ZIP massal...', 'info', 4000);
+
+      for (let i = 0; i < daftarSiswa.length; i++) {
+        const s = daftarSiswa[i];
+        if (onProgres) onProgres({ sekarang: i + 1, total: daftarSiswa.length, nama: s.nama, tahap: 'memproses' });
+
+        const folderKelas = 'Kelas_' + namaFileAman(s.kelas) + '/';
+        const folderSiswa = folderKelas + namaFileAman(s.nama) + '/';
+
+        if (!s.pengerjaanId) {
+          // Tandai belum mengerjakan dengan file catatan
+          zip.file(folderSiswa + 'BELUM_MENGERJAKAN.txt', 'Siswa ' + s.nama + ' (' + s.kelas + ') belum memulai pengerjaan.');
+          continue;
+        }
+
+        // Ambil pekerjaan lengkap
+        const res = await API.lihatPekerjaan(s.pengerjaanId, token);
+        if (!res.ok) {
+          zip.file(folderSiswa + 'GAGAL_MEMUAT.txt', 'Gagal memuat pekerjaan: ' + res.pesan);
+          continue;
+        }
+
+        // Buat PDF
+        if (onProgres) onProgres({ sekarang: i + 1, total: daftarSiswa.length, nama: s.nama, tahap: 'membuat PDF' });
+        const pdfBlob = await renderPdfSiswa({
+          lkpd: lkpd,
+          siswa: { nama: s.nama, kelas: s.kelas },
+          pengerjaanId: s.pengerjaanId,
+          jawaban: res.data.jawaban || {},
+          berkas: res.data.berkas || [],
+          nilai: res.data.nilai || {},
+          token: token,
+          mode: 'guru',
+          statusPengerjaan: s.status,
+          waktuKumpul: s.waktuKumpul
+        });
+        zip.file(folderSiswa + namaFileAman(s.nama) + '.pdf', pdfBlob);
+
+        // Tambahkan foto-foto
+        const berkasList = res.data.berkas || [];
+        for (let j = 0; j < berkasList.length; j++) {
+          const b = berkasList[j];
+          if (onProgres) onProgres({ sekarang: i + 1, total: daftarSiswa.length, nama: s.nama, tahap: 'mengambil foto ' + (j + 1) });
+          const berkasRes = await API.ambilBerkasGuru(b.id, token);
+          if (berkasRes.ok && berkasRes.data && berkasRes.data.dataBase64) {
+            const ekstensi = (b.mime === 'image/png') ? 'png' : (b.mime === 'image/webp' ? 'webp' : 'jpg');
+            const namaFoto = namaFileAman(b.idSoal) + '_' + (j + 1) + '.' + ekstensi;
+            zip.file(folderSiswa + 'foto/' + namaFoto, berkasRes.data.dataBase64, { base64: true });
           }
         }
       }
 
-      const jawabanMap = {};
-      jawabanList.forEach(function (j) {
-        jawabanMap[j.idSoal] = { teks: j.teks || '', dataJson: j.dataJson || '' };
-      });
-
-      if (window.jspdf && window.jspdf.jsPDF) {
-        const docPdf = await buatDokumenPdfSiswa({
-          lkpd: lkpd,
-          siswa: s,
-          pengerjaan: { status: s.status, waktuKumpul: s.waktuKumpul },
-          jawabanMap: jawabanMap,
-          berkasDaftar: berkasList,
-          cacheDataUrlBerkas: cacheGambarSiswa,
-          nilai: nilaiObj
+      // Tambahkan rekap XLSX ke root ZIP
+      if (onProgres) onProgres({ sekarang: daftarSiswa.length, total: daftarSiswa.length, nama: '', tahap: 'menambah rekap' });
+      const semua = await ambilSemuaPekerjaan(daftarSiswa, lkpd.meta.id, token);
+      const daftarKolomSoal = kolomSoal(lkpd);
+      const header = ['No', 'Nama', 'Kelas', 'Status', 'Waktu Kumpul'];
+      daftarKolomSoal.forEach(function (k) { header.push(k.header); });
+      header.push('Skor Total', 'Komentar');
+      const rows = [];
+      semua.forEach(function (item, idx) {
+        const s = item.siswa;
+        const row = [idx + 1, s.nama, s.kelas, s.status, s.waktuKumpul ? UMUM.formatWaktu(s.waktuKumpul) : ''];
+        let skorTotal = 0; let adaSkor = false; let komentarAll = [];
+        daftarKolomSoal.forEach(function (k) {
+          row.push(ringkasJawaban(k.blok, item.jawaban[k.id]));
+          if (item.nilai[k.id]) {
+            const sk = Number(item.nilai[k.id].skor);
+            if (!isNaN(sk)) { skorTotal += sk; adaSkor = true; }
+            if (item.nilai[k.id].komentar) komentarAll.push(k.header + ': ' + item.nilai[k.id].komentar);
+          }
         });
-        const pdfArrayBuffer = docPdf.output('arraybuffer');
-        folderSiswa.file('Laporan_' + namaAman(s.nama) + '.pdf', pdfArrayBuffer);
-      }
+        row.push(adaSkor ? skorTotal : '');
+        row.push(komentarAll.join(' | '));
+        rows.push(row);
+      });
+      const ws = XLSX.utils.aoa_to_sheet([header].concat(rows));
+      const csv = XLSX.utils.sheet_to_csv(ws);
+      zip.file('rekap_' + namaFileAman(lkpd.meta.bab) + '.csv', '\ufeff' + csv);
+
+      // Generate ZIP
+      if (onProgres) onProgres({ sekarang: daftarSiswa.length, total: daftarSiswa.length, nama: '', tahap: 'mengompres' });
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+      const namaFile = 'LKPD_' + namaFileAman(lkpd.meta.bab) + '_semua.zip';
+      UMUM.unduhBlob(blob, namaFile);
+      UMUM.toast('ZIP massal siap diunduh.', 'sukses');
+      return true;
+    } catch (err) {
+      console.error(err);
+      UMUM.toast('Gagal membuat ZIP: ' + (err.message || err), 'bahaya', 5000);
+      return false;
     }
-
-    onProgres(92, 'Mengompres arsip ZIP...');
-    const blobZip = await zip.generateAsync({ type: 'blob' }, function (metaZip) {
-      if (metaZip && typeof metaZip.percent === 'number') {
-        onProgres(92 + Math.round(metaZip.percent * 0.08), 'Mengemas ZIP...');
-      }
-    });
-
-    const namaZip = 'Arsip_' + namaAman((lkpd && lkpd.meta && lkpd.meta.judul) || 'eLKPD') + '.zip';
-    memicuUnduhanBlob(blobZip, namaZip);
-
-    onProgres(100, 'Arsip ZIP selesai diunduh!');
-    setTimeout(function () {
-      onProgres(null, '');
-    }, 1800);
-    window.Umum.tampilkanToast('Arsip ZIP seluruh siswa berhasil diunduh!', 'sukses');
-  }
-
-  return {
-    unduhRekapSpreadsheet: unduhRekapSpreadsheet,
-    unduhPdfSiswa: unduhPdfSiswa,
-    unduhPdfDetailGuru: unduhPdfDetailGuru,
-    unduhZipMassal: unduhZipMassal
   };
+
 })();
+// ============================================================
+// AKHIR FILE js/unduh.js
+// ============================================================

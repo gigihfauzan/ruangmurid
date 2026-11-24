@@ -1,151 +1,300 @@
-/**
- * ============================================================================
- * MODUL KOMUNIKASI BACKEND GOOGLE APPS SCRIPT (FETCH, TIMEOUT, RETRY)
- * ============================================================================
- * Menggunakan POST dengan Content-Type "text/plain" agar bebas dari preflight CORS
- * saat di-hosting di Netlify maupun dibuka langsung di perangkat siswa.
- */
-
-window.ApiLKPD = (function () {
+/* ============================================================
+ * js/api.js — Klien API untuk Google Apps Script Web App
+ * ============================================================
+ * Mengatur semua panggilan ke backend. Fitur:
+ *  - POST dengan Content-Type "text/plain" (menghindari preflight CORS)
+ *  - Batas waktu (timeout) & percobaan ulang otomatis
+ *  - Pemetaan kode galat server ke pesan ramah anak
+ *  - Penanganan koneksi buruk (offline, kuota terlampaui)
+ *
+ * Tidak ada rahasia di sini. URL Web App diambil dari config.js.
+ * ============================================================ */
+(function () {
   'use strict';
 
-  // Pemetaan kode galat server ke pesan ramah anak/guru
-  const PESAN_RAMAH_KODE = {
-    FORMAT_TIDAK_VALID: 'Data yang dikirim belum sesuai format. Silakan coba lagi.',
-    AKSI_TIDAK_DIKENAL: 'Perintah tidak dikenali oleh server.',
-    DATA_TIDAK_LENGKAP: 'Masih ada kolom yang belum diisi lengkap.',
-    FORMAT_PIN_SALAH: 'PIN harus terdiri dari 4 sampai 6 angka.',
-    PIN_SUDAH_ADA: 'Akun ini sudah memiliki PIN. Masukkan PIN kamu atau minta guru meresetnya.',
-    PIN_SALAH: 'PIN yang kamu masukkan belum tepat. Coba periksa kembali ya.',
-    PERLU_BUAT_PIN: 'Silakan buat PIN baru terlebih dahulu.',
-    AKUN_TERKUNCI: 'Terlalu banyak percobaan salah. Tunggu beberapa menit sebelum mencoba lagi.',
-    SESI_TIDAK_VALID: 'Sesi kamu telah berakhir. Silakan masuk kembali.',
-    AKSES_DITUTUP: 'Akses pengerjaan e-LKPD sedang ditutup oleh guru.',
-    AKSES_DITOLAK: 'Kamu tidak memiliki izin untuk mengakses data ini.',
-    TENGGAT_LEWAT: 'Batas waktu pengumpulan tugas sudah berakhir.',
-    SUDAH_TERKUMPUL: 'Pekerjaan sudah dikumpulkan dan terkunci. Hubungi guru jika perlu revisi.',
-    BERKAS_TERLALU_BESAR: 'Ukuran foto terlalu besar (maksimal 2,5 MB).',
-    TIPE_BERKAS_DITOLAK: 'Format gambar harus JPG, PNG, atau WEBP.',
-    MAKSIMAL_BERKAS: 'Jumlah foto untuk soal ini sudah mencapai batas maksimal (5 foto).',
-    SERVER_SIBUK: 'Server sedang ramai melayani banyak siswa. Sedang mencoba ulang...',
-    KUOTA_TERLAMPAUI:
-      'Batas layanan harian Google tercapai. Tunggu beberapa saat atau beri tahu Bapak/Ibu Guru.',
-    GALAT_SERVER: 'Terjadi gangguan sementara pada server. Silakan coba beberapa saat lagi.'
-  };
+  window.API = {};
 
-  function cekKonfigurasiUrl() {
-    const url = window.KONFIG && window.KONFIG.URL_WEB_APP ? window.KONFIG.URL_WEB_APP.trim() : '';
-    if (!url || url.indexOf('GANTI_DENGAN_ID_DEPLOYMENT_ANDA') !== -1) {
-      return {
-        valid: false,
-        pesan:
-          'URL Web App Google Apps Script belum diatur di file config.js. Silakan hubungi guru.'
-      };
-    }
-    return { valid: true, url: url };
-  }
+  const KONFIG = window.KONFIG_APLIKASI;
+
+  // ----------------------------------------------------------
+  // PEMETAAN KODE GALAT → PESAN RAMAH ANAK
+  // ----------------------------------------------------------
+
+  /** Peta kode galat server ke pesan yang mudah dipahami siswa SMP. */
+  const PETA_GALAT = {
+    'OK': '',  // tidak ada galat
+    'VALIDASI_GAGAL': 'Isian belum lengkap atau belum benar. Periksa lagi ya.',
+    'KREDENSIAL_SALAH': 'Kata sandi salah. Coba lagi.',
+    'PIN_BELUM_DIBUAT': 'PIN belum dibuat. Silakan buat PIN terlebih dahulu.',
+    'PIN_TIDAK_COCOK': 'PIN salah. Coba lagi ya.',
+    'PIN_TERKUNCI': 'Akun terkunci sementara karena salah PIN berulang. Tunggu beberapa menit lalu coba lagi.',
+    'PIN_SUDAH_ADA': 'PIN sudah pernah dibuat. Silakan masuk dengan PIN Anda.',
+    'TOKEN_TIDAK_VALID': 'Sesi kamu sudah berakhir. Silakan masuk lagi.',
+    'HAK_AKSES_DITOLAK': 'Kamu tidak boleh mengakses bagian ini.',
+    'TIDAK_DITEMUKAN': 'Data tidak ditemukan.',
+    'PENGERJAAN_DIKUNCI': 'Pekerjaan sudah dikumpulkan dan terkunci. Minta guru membuka revisi untuk mengubah.',
+    'TENGGAT_LEWAT': 'Waktu pengumpulan sudah habis.',
+    'AKSES_DITUTUP': 'Akses LKPD sedang ditutup oleh guru.',
+    'BERKAS_TERLALU_BESAR': 'Berkas terlalu besar (maksimal 2,5 MB).',
+    'BERKAS_JENIS_TIDAK_DIIZINKAN': 'Jenis berkas tidak didukung. Hanya JPG, PNG, dan WEBP.',
+    'BERKAS_MELEBIHI_BATAS': 'Maksimal 5 berkas per soal.',
+    'KUNCI_TIDAK_TERSEDIA': 'Server sedang sibuk. Coba lagi sebentar ya.',
+    'KUOTA_TERLAMPAUI': 'Kuota server penuh untuk sementara. Coba lagi beberapa menit lagi.',
+    'KESALAHAN_SERVER': 'Ada gangguan di server. Coba lagi ya.',
+    'AKSI_TIDAK_DIKENAL': 'Permintaan tidak dikenal.'
+  };
 
   /**
-   * Mengirim permintaan JSON ke Google Apps Script dengan batas waktu (timeout)
-   * dan percobaan ulang otomatis (retry) apabila jaringan tidak stabil.
+   * Mengubah kode galat server menjadi pesan ramah anak.
+   * @param {string} kode Kode galat dari server
+   * @param {string} pesanServer Pesan asli dari server (sebagai fallback)
+   * @returns {string} Pesan ramah anak
    */
-  async function kirim(aksi, payload, opsi) {
-    const cekUrl = cekKonfigurasiUrl();
-    if (!cekUrl.valid) {
-      return {
-        ok: false,
-        kode: 'KONFIG_BELUM_DIISI',
-        pesan: cekUrl.pesan,
-        data: null
-      };
-    }
-
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      return {
-        ok: false,
-        kode: 'OFFLINE',
-        pesan: 'Perangkat sedang offline (tidak ada internet). Jawabanmu tetap aman tersimpan di perangkat ini.',
-        data: null
-      };
-    }
-
-    const pengaturanJaringan = (window.KONFIG && window.KONFIG.JARINGAN) || {};
-    const batasWaktuMs = (opsi && opsi.timeoutMs) || pengaturanJaringan.BATAS_WAKTU_MS || 20000;
-    const maksCoba =
-      opsi && typeof opsi.maksCoba === 'number'
-        ? opsi.maksCoba
-        : pengaturanJaringan.MAKS_COBA_ULANG !== undefined
-          ? pengaturanJaringan.MAKS_COBA_ULANG
-          : 2;
-
-    const tubuhPermintaan = JSON.stringify(Object.assign({ aksi: aksi }, payload || {}));
-    let percobaan = 0;
-
-    while (percobaan <= maksCoba) {
-      percobaan++;
-      const pengontrol = new AbortController();
-      const timerBatal = setTimeout(function () {
-        pengontrol.abort();
-      }, batasWaktuMs);
-
-      try {
-        const respons = await fetch(cekUrl.url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-          },
-          body: tubuhPermintaan,
-          signal: pengontrol.signal,
-          redirect: 'follow'
-        });
-
-        clearTimeout(timerBatal);
-
-        if (!respons.ok) {
-          throw new Error('HTTP_STATUS_' + respons.status);
-        }
-
-        const hasil = await respons.json();
-
-        // Jika server sibuk (LockService penuh), coba ulang otomatis setelah jeda singkat
-        if (hasil && hasil.kode === 'SERVER_SIBUK' && percobaan <= maksCoba) {
-          await tungguMs_(900 * percobaan);
-          continue;
-        }
-
-        if (hasil && !hasil.ok) {
-          hasil.pesan = hasil.pesan || PESAN_RAMAH_KODE[hasil.kode] || PESAN_RAMAH_KODE.GALAT_SERVER;
-        }
-        return hasil;
-      } catch (err) {
-        clearTimeout(timerBatal);
-        const adalahTimeout = err && err.name === 'AbortError';
-
-        if (percobaan <= maksCoba) {
-          await tungguMs_(800 * percobaan);
-          continue;
-        }
-
-        return {
-          ok: false,
-          kode: adalahTimeout ? 'TIMEOUT' : 'KONEKSI_PUTUS',
-          pesan: adalahTimeout
-            ? 'Koneksi ke server terlalu lama (batas waktu habis). Periksa sinyal internet lalu tekan Coba Lagi.'
-            : 'Gagal terhubung ke server. Periksa koneksi internetmu lalu tekan Coba Lagi.',
-          data: null
-        };
-      }
-    }
-  }
-
-  function tungguMs_(ms) {
-    return new Promise(function (resolve) {
-      setTimeout(resolve, ms);
-    });
-  }
-
-  return {
-    kirim: kirim,
-    PESAN_RAMAH_KODE: PESAN_RAMAH_KODE
+  API.pesanGalat = function (kode, pesanServer) {
+    if (PETA_GALAT[kode]) return PETA_GALAT[kode];
+    if (pesanServer) return pesanServer;
+    return 'Terjadi kesalahan. Coba lagi ya.';
   };
+
+  // ----------------------------------------------------------
+  // FUNGSI UTAMA: panggilApi
+  // ----------------------------------------------------------
+
+  /**
+   * Memanggil aksi backend dengan timeout & percobaan ulang.
+   *
+   * @param {string} aksi Nama aksi (mis. 'cekSiswa')
+   * @param {object} payload Data tambahan (token otomatis ditambahkan jika ada)
+   * @param {object} opt { cobaMaks, jeda, timeoutMs, token } (opsional)
+   * @returns {Promise<object>} Respons server { ok, kode, data }
+   */
+  API.panggil = function (aksi, payload, opt) {
+    opt = opt || {};
+    const cobaMaks = opt.cobaMaks !== undefined ? opt.cobaMaks : KONFIG.apiMaksCoba;
+    const jeda = opt.jedaCobaMs || KONFIG.apiJedaCobaMs;
+    const timeoutMs = opt.timeoutMs || KONFIG.apiTimeoutMs;
+
+    // Susun body: tambahkan aksi & token
+    const body = Object.assign({}, payload || {}, { aksi: aksi });
+    // Token: ambil dari opt.token, atau dari sesi tersimpan
+    if (opt.token) {
+      body.token = opt.token;
+    } else {
+      const sesi = UMUM.lsBaca('sesi');
+      if (sesi && sesi.token) body.token = sesi.token;
+    }
+
+    const bodyStr = JSON.stringify(body);
+
+    // Fungsi fetch dengan timeout via AbortController
+    function fetchSekali() {
+      return new Promise(function (resolve, reject) {
+        const controller = new AbortController();
+        const timer = setTimeout(function () {
+          controller.abort();
+        }, timeoutMs);
+
+        fetch(KONFIG.urlWebApp, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: bodyStr,
+          signal: controller.signal
+        }).then(function (resp) {
+          clearTimeout(timer);
+          // Cek content-type
+          const ct = resp.headers.get('content-type') || '';
+          if (ct.indexOf('application/json') === -1 && ct.indexOf('text/plain') === -1) {
+            // Mungkin halaman error HTML dari Google
+            reject(new Error('Respons bukan JSON. Mungkin URL Web App salah atau ada error.'));
+            return;
+          }
+          return resp.text().then(function (teks) {
+            let json;
+            try {
+              json = JSON.parse(teks);
+            } catch (e) {
+              reject(new Error('Tidak bisa membaca respons server (format tidak valid).'));
+              return;
+            }
+            resolve(json);
+          });
+        }).catch(function (err) {
+          clearTimeout(timer);
+          if (err.name === 'AbortError') {
+            reject(new Error('Waktu tunggu habis. Periksa koneksi internetmu.'));
+          } else {
+            reject(err);
+          }
+        });
+      });
+    }
+
+    // Percobaan ulang dengan jeda
+    function coba(percobaan) {
+      return fetchSekali().then(function (resp) {
+        // Jika server mengembalikan kuota terlampaui atau kunci tidak tersedia, coba lagi
+        if (!resp.ok && (resp.kode === 'KUOTA_TERLAMPAUI' || resp.kode === 'KUNCI_TIDAK_TERSEDIA')) {
+          if (percobaan < cobaMaks) {
+            return jedaLaluCoba(percobaan + 1);
+          }
+        }
+        return resp;
+      }).catch(function (err) {
+        // Error jaringan → coba lagi
+        if (percobaan < cobaMaks) {
+          return jedaLaluCoba(percobaan + 1, err);
+        }
+        throw err;
+      });
+    }
+
+    function jedaLaluCoba(percobaan, errTerakhir) {
+      return new Promise(function (resolve, reject) {
+        setTimeout(function () {
+          coba(percobaan).then(resolve, reject);
+        }, jeda);
+      });
+    }
+
+    return coba(1);
+  };
+
+  // ----------------------------------------------------------
+  // BUNGKUS HASIL: panggilAman
+  // ----------------------------------------------------------
+
+  /**
+   * Membungkus panggilan API dengan penanganan error seragam.
+   * Mengembalikan { ok: boolean, data, pesan } tanpa melempar exception.
+   *
+   * @returns {Promise<{ok:boolean, data:object, pesan:string, kode:string}>}
+   */
+  API.panggilAman = function (aksi, payload, opt) {
+    return API.panggil(aksi, payload, opt).then(function (resp) {
+      if (resp && resp.ok) {
+        return { ok: true, data: resp.data || {}, pesan: '', kode: 'OK' };
+      }
+      // Server merespons tapi gagal
+      const kode = (resp && resp.kode) || 'KESALAHAN_SERVER';
+      const pesanServer = resp && resp.data && resp.data.pesan ? resp.data.pesan : '';
+      const pesan = API.pesanGalat(kode, pesanServer);
+      return { ok: false, data: resp && resp.data ? resp.data : {}, pesan: pesan, kode: kode };
+    }).catch(function (err) {
+      // Error jaringan / timeout
+      const pesan = navigator.onLine
+        ? 'Tidak bisa terhubung ke server. ' + (err.message || '')
+        : 'Kamu sedang offline. Periksa koneksi internet lalu coba lagi.';
+      return { ok: false, data: {}, pesan: pesan, kode: 'KONEKSI_GAGAL' };
+    });
+  };
+
+  // ----------------------------------------------------------
+  // API KONKRET PER AKSI (pembungkus tipis untuk keterbacaan)
+  // ----------------------------------------------------------
+
+  /** cekSiswa: cek apakah siswa sudah terdaftar & punya PIN. */
+  API.cekSiswa = function (kelas, nama) {
+    return API.panggilAman('cekSiswa', { kelas: kelas, nama: nama });
+  };
+
+  /** buatPin: buat PIN baru (pertama kali). */
+  API.buatPin = function (siswaId, pin, konfirmasiPin) {
+    return API.panggilAman('buatPin', { siswaId: siswaId, pin: pin, konfirmasiPin: konfirmasiPin });
+  };
+
+  /** masukSiswa: login siswa dengan PIN. */
+  API.masukSiswa = function (siswaId, pin) {
+    return API.panggilAman('masukSiswa', { siswaId: siswaId, pin: pin });
+  };
+
+  /** muatPekerjaan: ambil/buat pengerjaan untuk LKPD. */
+  API.muatPekerjaan = function (lkpdId, token) {
+    return API.panggilAman('muatPekerjaan', { lkpdId: lkpdId }, { token: token });
+  };
+
+  /** simpanJawaban: kirim kelompok jawaban yang berubah. */
+  API.simpanJawaban = function (pengerjaanId, jawabanArr, token) {
+    return API.panggilAman('simpanJawaban', { pengerjaanId: pengerjaanId, jawaban: jawabanArr }, { token: token });
+  };
+
+  /** unggahBerkas: unggah satu berkas foto/gambar. */
+  API.unggahBerkas = function (pengerjaanId, idSoal, jenis, nama, dataBase64, token) {
+    return API.panggilAman('unggahBerkas', {
+      pengerjaanId: pengerjaanId, idSoal: idSoal, jenis: jenis,
+      nama: nama, dataBase64: dataBase64
+    }, { token: token, timeoutMs: 60000, cobaMaks: 2 });
+  };
+
+  /** hapusBerkas: hapus satu berkas milik siswa. */
+  API.hapusBerkas = function (pengerjaanId, berkasId, token) {
+    return API.panggilAman('hapusBerkas', { pengerjaanId: pengerjaanId, berkasId: berkasId }, { token: token });
+  };
+
+  /** ambilBerkas: ambil data base64 berkas milik siswa. */
+  API.ambilBerkas = function (pengerjaanId, berkasId, token) {
+    return API.panggilAman('ambilBerkas', { pengerjaanId: pengerjaanId, berkasId: berkasId }, { token: token, timeoutMs: 60000 });
+  };
+
+  /** kumpulkan: kunci pengerjaan siswa. */
+  API.kumpulkan = function (pengerjaanId, token) {
+    return API.panggilAman('kumpulkan', { pengerjaanId: pengerjaanId }, { token: token });
+  };
+
+  /** lihatNilaiSaya: siswa lihat nilai miliknya sendiri. */
+  API.lihatNilaiSaya = function (pengerjaanId, token) {
+    return API.panggilAman('lihatNilaiSaya', { pengerjaanId: pengerjaanId }, { token: token });
+  };
+
+  // ----------------------------------------------------------
+  // API GURU
+  // ----------------------------------------------------------
+
+  /** masukGuru: login guru dengan kata sandi. */
+  API.masukGuru = function (kataSandi) {
+    return API.panggilAman('masukGuru', { kataSandi: kataSandi });
+  };
+
+  /** daftarSiswa: daftar siswa per kelas dengan status pengerjaan. */
+  API.daftarSiswa = function (kelas, lkpdId, token) {
+    return API.panggilAman('daftarSiswa', { kelas: kelas, lkpdId: lkpdId }, { token: token });
+  };
+
+  /** lihatPekerjaan: guru lihat pekerjaan satu siswa lengkap. */
+  API.lihatPekerjaan = function (pengerjaanId, token) {
+    return API.panggilAman('lihatPekerjaan', { pengerjaanId: pengerjaanId }, { token: token });
+  };
+
+  /** resetPin: guru reset PIN siswa. */
+  API.resetPin = function (siswaId, token) {
+    return API.panggilAman('resetPin', { siswaId: siswaId }, { token: token });
+  };
+
+  /** bukaRevisi: guru buka/tutup revisi pengerjaan. */
+  API.bukaRevisi = function (pengerjaanId, buka, token) {
+    return API.panggilAman('bukaRevisi', { pengerjaanId: pengerjaanId, buka: buka }, { token: token });
+  };
+
+  /** beriNilai: guru memberi nilai & komentar per soal. */
+  API.beriNilai = function (pengerjaanId, nilaiArr, token) {
+    return API.panggilAman('beriNilai', { pengerjaanId: pengerjaanId, nilai: nilaiArr }, { token: token });
+  };
+
+  /** ambilBerkasGuru: guru ambil data base64 berkas. */
+  API.ambilBerkasGuru = function (berkasId, token) {
+    return API.panggilAman('ambilBerkasGuru', { berkasId: berkasId }, { token: token, timeoutMs: 60000 });
+  };
+
+  /** simpanPengaturan: guru simpan pengaturan. */
+  API.simpanPengaturan = function (pengaturan, token) {
+    return API.panggilAman('simpanPengaturan', { pengaturan: pengaturan }, { token: token });
+  };
+
+  /** bacaPengaturan: guru baca pengaturan saat ini. */
+  API.bacaPengaturan = function (token) {
+    return API.panggilAman('bacaPengaturan', {}, { token: token });
+  };
+
 })();
+// ============================================================
+// AKHIR FILE js/api.js
+// ============================================================

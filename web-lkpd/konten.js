@@ -1,266 +1,280 @@
-/**
- * ============================================================================
- * FILE KONTEN e-LKPD (SATU-SATUNYA FILE YANG DIGANTI UNTUK MATERI BARU)
- * ============================================================================
- * Guru dapat mengubah judul, tema warna, maskot, simbol bantuan, dan daftar soal
- * di file ini tanpa perlu menyentuh file mesin (siswa.js) maupun backend.
+/* ============================================================
+ * konten.js — SATU-SATUNYA file konten LKPD
+ * ============================================================
+ * File ini berisi seluruh isi LKPD: judul, tema, teks, daftar
+ * bagian, dan soal. Mesin (siswa.js) TIDAK boleh berisi teks
+ * materi, nama bab, jumlah baris tabel, atau pilihan dropdown —
+ * semuanya datang dari sini.
  *
- * CATATAN PENTING:
- * Karena daftar soal khusus belum diisi, bagian soal di bawah ini merupakan
- * KONTEN CONTOH (10 soal) yang memperagakan seluruh 11 tipe soal dan blok materi
- * pada bab Bilangan Berpangkat. Silakan edit sesuai kebutuhan pembelajaran Anda.
- */
+ * INI ADALAH KONTEN CONTOH (10 soal) yang memperagakan SEMUA
+ * tipe soal. Beri label jelas bahwa ini contoh yang harus
+ * diganti guru. Ganti seluruh isi objek ELKPD di bawah untuk
+ * materi baru.
+ *
+ * Tipe soal yang didukung:
+ *  teks_singkat, uraian, pilihan_ganda, benar_salah,
+ *  isian_angka, tabel_isian, menjodohkan, urutkan, kanvas,
+ *  foto, skala_refleksi
+ * Blok non-soal: bacaan, gambar, tautan_video
+ * ============================================================ */
 
+// Objek ELKPD global, dibaca oleh mesin siswa.js
 window.ELKPD = {
+
+  // --- Metadata LKPD ---
   meta: {
-    id: 'matematika-8-bilangan-berpangkat',
-    judul: 'Petualangan Bilangan Berpangkat',
-    subjudul: 'Menjelajahi Konsep dan Sifat Perpangkatan Bilangan Bulat',
+    id: 'lkpd_bilangan_pangkat',            // ID unik LKPD (dipakai server untuk memisahkan data)
+    judul: 'Petualangan Bilangan Berpangkat', // judul yang menarik untuk siswa
     mapel: 'Matematika',
     kelas: 'VIII',
-    bab: 'Bab 1 - Bilangan Berpangkat',
+    bab: 'Bilangan Berpangkat',
     guru: 'Gigih Ichyar Fauzan, S.Pd.',
     sekolah: 'SMP Negeri 2 Kedungbanteng',
-    tenggat: '', // Opsional, contoh: '2026-12-31T23:59:00+07:00'
-    adalahContoh: true // Menampilkan label pengingat ramah di bagian atas untuk guru
+    tenggat: '',                             // format ISO, mis. '2025-12-31T23:59:59'. Kosong = tanpa tenggat.
+    petunjukUmum: 'Kerjakan soal-soal berikut secara berurutan. Jawaban tersimpan otomatis. Pastikan menekan tombol "Kumpulkan" di akhir setelah selesai.',
   },
 
-  // Tema visual ceria bernuansa Biru Muda (otomatis disuntikkan ke variabel CSS)
+  // --- Tema (warna, font, maskot) ---
+  // Tema diterapkan ke variabel CSS saat halaman dimuat.
+  // Ubah di sini untuk mengganti tema tanpa menyentuh style.css.
   tema: {
-    warnaUtama: '#0284c7', // Biru Langit Cerah (kontras tinggi dengan teks putih)
-    warnaUtamaGelap: '#0369a1', // Biru Laut untuk hover & fokus
-    warnaUtamaMuda: '#e0f2fe', // Biru Muda lembut untuk latar kartu/aksen
-    warnaAksen: '#f59e0b', // Kuning Madu ceria untuk bintang & sorotan
-    warnaLatar: '#f0f9ff', // Latar halaman biru sangat muda yang nyaman di mata
+    warnaUtama: '#3b82f6',     // biru muda (sesuai pilihan guru)
+    warnaUtamaGelap: '#2563eb',
+    warnaAksen: '#fbbf24',     // kuning ceria
+    warnaAksenGelap: '#f59e0b',
+    warnaLatar: '#eff6ff',      // latar lembut biru muda
     warnaKartu: '#ffffff',
-    warnaTeks: '#0f172a',
-    fontJudul: "'Fredoka', 'Baloo 2', system-ui, -apple-system, sans-serif",
-    fontIsi: "'Nunito', system-ui, -apple-system, sans-serif",
-    maskot: {
-      nama: 'Bimo si Penjelajah Angka',
-      emoji: '🚀',
-      sapaan: 'Halo Sobat Matematika SMPN 2 Kedungbanteng! Yuk taklukkan pangkat bersama Bimo!'
-    },
-    sampul: {
-      ikon: '🪐',
-      deskripsiSingkat: 'Belajar konsep perpangkatan, sifat operasi pangkat, dan penerapannya dengan cara yang seru!'
-    }
+    warnaTeks: '#1e293b',
+    warnaTeksLemah: '#64748b',
+    warnaSukses: '#22c55e',
+    warnaBahaya: '#ef4444',
+    warnaInfo: '#0ea5e9',
+    fontJudul: "'Fredoka', 'Nunito', sans-serif",
+    fontIsi: "'Nunito', system-ui, sans-serif",
+    fontMath: "'Nunito', monospace",
+    maskot: '🦊',              // rubah ceria (SVG/emoji)
+    maskotNama: 'Paksi si Rubah',
+    sampul: '',                // URL gambar sampul opsional (kosong = pakai maskot)
   },
 
-  // Bilah simbol matematika yang muncul saat siswa mengetik pada kolom isian
-  bilahSimbol: {
-    aktif: true,
-    judul: 'Bilah Simbol Matematika',
-    daftar: [
-      { label: '×', sisip: '×', keterangan: 'Tanda kali' },
-      { label: '÷', sisip: '÷', keterangan: 'Tanda bagi' },
-      { label: '²', sisip: '²', keterangan: 'Pangkat dua' },
-      { label: '³', sisip: '³', keterangan: 'Pangkat tiga' },
-      { label: '⁴', sisip: '⁴', keterangan: 'Pangkat empat' },
-      { label: 'ⁿ', sisip: 'ⁿ', keterangan: 'Pangkat n' },
-      { label: '⁻', sisip: '⁻', keterangan: 'Pangkat negatif' },
-      { label: '√', sisip: '√', keterangan: 'Akar kuadrat' },
-      { label: '±', sisip: '±', keterangan: 'Kurang lebih' },
-      { label: '≠', sisip: '≠', keterangan: 'Tidak sama dengan' },
-      { label: '≤', sisip: '≤', keterangan: 'Kurang dari atau sama dengan' },
-      { label: '≥', sisip: '≥', keterangan: 'Lebih dari atau sama dengan' },
-      { label: '≈', sisip: '≈', keterangan: 'Kira-kira sama dengan' },
-      { label: 'π', sisip: 'π', keterangan: 'Pi' },
-      { label: '°', sisip: '°', keterangan: 'Derajat' },
-      { label: '½', sisip: '½', keterangan: 'Setengah' }
-    ]
-  },
+  // --- Daftar kelas untuk pilihan login ---
+  // Pilihan dropdown kelas di halaman login mengambil dari sini.
+  daftarKelas: ['VIII'],
 
-  // Aturan sebelum siswa diperbolehkan menekan tombol Kumpulkan
-  aturanKumpul: {
-    wajibMinimalFotoAtauGambar: true, // Syarat wajib minimal ada 1 foto atau gambar kanvas sebelum kumpul
-    pesanSyaratFotoGambar:
-      'Sebelum mengumpulkan, kamu wajib melampirkan minimal 1 hasil gambar kanvas atau foto coretan pekerjaanmu.'
-  },
+  // --- Bilah simbol matematika ---
+  // Tombol-tombol ini menyisipkan teks pada kolom isian aktif.
+  // Disesuaikan untuk mapel Matematika.
+  simbol: ['²', '³', '^', '√', '≤', '≥', '≠', '≈', 'π', '°', '×', '÷', '±', '½', '∞', '⋅'],
 
-  // Daftar bagian dan 10 soal contoh yang memperagakan seluruh tipe soal
+  // --- Daftar bagian dan soal ---
+  // Setiap bagian punya id, judul, petunjuk, dan daftar blok.
+  // Blok bisa berupa "bacaan", "gambar", "tautan_video", atau "soal".
   bagian: [
+
+    // ============== BAGIAN 1 ==============
     {
-      id: 'bagian-1',
-      judul: 'Bagian 1: Konsep Dasar Perpangkatan',
-      maskotBagian: '🔭',
-      petunjuk:
-        'Bacalah pengantar singkat berikut dengan cermat, kemudian kerjakan soal nomor 1 sampai 3.',
+      id: 'b1',
+      judul: 'Bagian 1 — Mengenal Bilangan Berpangkat',
+      petunjuk: 'Pelajari bacaan berikut, lalu kerjakan soal 1 sampai 5.',
+      maskot: '🦊',
       blok: [
+
+        // --- Bacaan pengantar ---
         {
           jenis: 'bacaan',
-          judul: 'Apa Itu Bilangan Berpangkat?',
-          isi: 'Perpangkatan adalah perkalian berulang dari suatu bilangan yang sama. Jika $a$ adalah bilangan real dan $n$ adalah bilangan bulat positif, maka:\n$$a^n = \\underbrace{a \\times a \\times a \\times \\dots \\times a}_{n \\text{ faktor}}$$\nBilangan $a$ disebut **bilangan pokok (basis)**, sedangkan $n$ disebut **pangkat (eksponen)**. Contohnya: $2^4 = 2 \\times 2 \\times 2 \\times 2 = 16$.'
+          judul: 'Apa itu Bilangan Berpangkat?',
+          isi: 'Bilangan berpangkat adalah cara menuliskan perkalian berulang dari suatu bilangan. ' +
+               'Bentuk umumnya aⁿ, dibaca "a pangkat n", di mana a disebut bilangan pokok (basis) dan n disebut pangkat (eksponen). ' +
+               'Contoh: 2³ = 2 × 2 × 2 = 8. Artinya, bilangan 2 dikalikan dengan dirinya sendiri sebanyak 3 kali. ' +
+               'Khusus untuk pangkat nol, berlaku a⁰ = 1 untuk setiap a ≠ 0.'
         },
-        {
-          jenis: 'tautan_video',
-          judul: 'Video Pengantar: Memahami Perkalian Berulang',
-          deskripsi: 'Tonton video singkat ini jika kamu ingin mengulang penjelasan konsep dasar bilangan berpangkat.',
-          url: 'https://www.youtube.com/results?search_query=bilangan+berpangkat+kelas+8+smp',
-          labelTombol: 'Buka Referensi Video Pembelajaran'
-        },
+
+        // --- Soal 1: pilihan ganda ---
         {
           jenis: 'soal',
           id: 's1',
           nomor: 1,
           tipe: 'pilihan_ganda',
-          teks: 'Bentuk perpangkatan yang tepat untuk menyatakan perkalian berulang $(-3) \\times (-3) \\times (-3) \\times (-3) \\times (-3)$ adalah ...',
-          pilihan: [
-            '$(-3)^5$',
-            '$-3^5$',
-            '$5^{-3}$',
-            '$(-5)^3$'
-          ],
+          teks: 'Hasil dari 2³ adalah ...',
+          pilihan: ['6', '8', '9', '16'],
           wajib: true
         },
+
+        // --- Soal 2: benar / salah ---
         {
           jenis: 'soal',
           id: 's2',
           nomor: 2,
           tipe: 'benar_salah',
-          teks: 'Perhatikan pernyataan berikut: Nilai dari $(-2)^4$ sama dengan nilai dari $-2^4$, yaitu $-16$. Apakah pernyataan tersebut benar atau salah?',
-          labelBenar: 'Benar',
-          labelSalah: 'Salah',
+          teks: 'Setiap bilangan (kecuali 0) jika dipangkatkan nol, hasilnya sama dengan 0.',
           wajib: true
         },
+
+        // --- Soal 3: isian angka ---
         {
           jenis: 'soal',
           id: 's3',
           nomor: 3,
           tipe: 'isian_angka',
-          teks: 'Hitunglah hasil dari $3^3 + 2^4 = \\dots$',
-          satuan: '',
-          placeholder: 'Ketik angka hasil perhitungan...',
+          teks: 'Hasil dari 5² = ...',
+          satuan: '',     // opsional, ditampilkan setelah kolom
           wajib: true
-        }
-      ]
-    },
-    {
-      id: 'bagian-2',
-      judul: 'Bagian 2: Menemukan Sifat-Sifat Operasi Pangkat',
-      maskotBagian: '🧩',
-      petunjuk:
-        'Amati pola perkalian dan pembagian bilangan berpangkat pada soal nomor 4 sampai 7.',
-      blok: [
-        {
-          jenis: 'gambar',
-          judul: 'Ringkasan Sifat Bilangan Berpangkat',
-          alt: 'Ilustrasi sifat perkalian dan pembagian bilangan berpangkat dengan basis sama',
-          deskripsi: 'Gunakan sifat $a^m \\times a^n = a^{m+n}$ dan $a^m \\div a^n = a^{m-n}$ untuk menyelesaikan tantangan di bawah ini.',
-          svgIlustrasi: `<svg viewBox="0 0 560 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram Sifat Pangkat">
-            <rect x="8" y="8" width="262" height="134" rx="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="2.5"/>
-            <text x="139" y="42" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="700" fill="#0369a1">Sifat Perkalian Basis Sama</text>
-            <text x="139" y="78" text-anchor="middle" font-family="Nunito, sans-serif" font-size="20" font-weight="800" fill="#0f172a">aᵐ × aⁿ = aᵐ⁺ⁿ</text>
-            <text x="139" y="114" text-anchor="middle" font-family="Nunito, sans-serif" font-size="14" fill="#334155">Contoh: 2³ × 2² = 2³⁺² = 2⁵ = 32</text>
-
-            <rect x="290" y="8" width="262" height="134" rx="16" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5"/>
-            <text x="421" y="42" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="700" fill="#b45309">Sifat Pembagian Basis Sama</text>
-            <text x="421" y="78" text-anchor="middle" font-family="Nunito, sans-serif" font-size="20" font-weight="800" fill="#0f172a">aᵐ ÷ aⁿ = aᵐ⁻ⁿ</text>
-            <text x="421" y="114" text-anchor="middle" font-family="Nunito, sans-serif" font-size="14" fill="#334155">Contoh: 5⁶ ÷ 5⁴ = 5⁶⁻⁴ = 5² = 25</text>
-          </svg>`
         },
+
+        // --- Soal 4: tabel isian (baris & kolom bebas) ---
         {
           jenis: 'soal',
           id: 's4',
           nomor: 4,
-          tipe: 'teks_singkat',
-          teks: 'Sederhanakan bentuk $p^7 \\times p^4 \\div p^3$ menjadi satu bilangan berpangkat sederhana! (Gunakan bilah simbol jika perlu)',
-          placeholder: 'Contoh penulisan: p⁸',
+          tipe: 'tabel_isian',
+          teks: 'Lengkapi tabel berikut. Isi kolom "Hasil" dengan nilai yang benar.',
+          kolom: ['Bilangan Pokok', 'Pangkat', 'Hasil'],
+          baris: [
+            { id: 'r1', label: '3' },   // baris 1: 3 pangkat 2
+            { id: 'r2', label: '4' },   // baris 2: 4 pangkat 3
+            { id: 'r3', label: '2' }    // baris 3: 2 pangkat 5
+          ],
+          // konfigurasi kolom isian: kolom ke-2 (index 2) adalah "Hasil" yang diisi siswa
+          kolomIsian: [2],  // index kolom yang dapat diisi siswa
+          // nilai pangkat untuk tiap baris (ditampilkan sebagai petunjuk di kolom "Pangkat")
+          nilaiKolom: {
+            1: ['2', '3', '5']   // kolom index 1 ("Pangkat") sudah terisi: baris1=2, baris2=3, baris3=5
+          },
           wajib: true
         },
+
+        // --- Soal 5: teks singkat ---
         {
           jenis: 'soal',
           id: 's5',
           nomor: 5,
-          tipe: 'tabel_isian',
-          teks: 'Lengkapilah tabel eksplorasi perpangkatan berikut ini dengan tepat:',
-          kolom: ['Operasi Pangkat', 'Bentuk Pangkat Sederhana', 'Nilai Akhir'],
-          baris: [
-            { label: '$2^3 \\times 2^2$', selTetap: { 0: '2³ × 2²' } },
-            { label: '$5^4 \\div 5^2$', selTetap: { 0: '5⁴ ÷ 5²' } },
-            { label: '$(3^2)^2$', selTetap: { 0: '(3²)²' } }
-          ],
-          wajib: true
+          tipe: 'teks_singkat',
+          teks: 'Tuliskan bentuk pangkat dari perkalian 2 × 2 × 2 × 2.',
+          placeholder: 'Contoh: aⁿ',
+          wajib: false
+        }
+
+      ]
+    },
+
+    // ============== BAGIAN 2 ==============
+    {
+      id: 'b2',
+      judul: 'Bagian 2 — Sifat dan Operasi Bilangan Berpangkat',
+      petunjuk: 'Pelajari bacaan, lalu kerjakan soal 6 sampai 10. Soal 9 wajib digambar di kanvas dan soal 10 wajib diunggah fotonya.',
+      maskot: '🦊',
+      blok: [
+
+        // --- Bacaan sifat pangkat ---
+        {
+          jenis: 'bacaan',
+          judul: 'Sifat-sifat Pangkat',
+          isi: 'Beberapa sifat penting bilangan berpangkat:\n' +
+               '1. aᵐ × aⁿ = a^(m+n)  (perkalian pangkat sebasis)\n' +
+               '2. aᵐ ÷ aⁿ = a^(m−n)  (pembagian pangkat sebasis)\n' +
+               '3. (aᵐ)ⁿ = a^(m×n)  (pangkat dari pangkat)\n' +
+               '4. a⁰ = 1, untuk a ≠ 0\n' +
+               '5. a⁻ⁿ = 1/aⁿ  (pangkat negatif)'
         },
+
+        // --- Soal 6: uraian ---
         {
           jenis: 'soal',
           id: 's6',
           nomor: 6,
-          tipe: 'menjodohkan',
-          teks: 'Pasangkan bentuk bilangan berpangkat di kolom kiri dengan nilainya yang tepat di kolom kanan:',
-          pasangan: [
-            { kiri: '$7^0$', pilihanKanan: ['1', '0', '1/8', '8', '1/9'] },
-            { kiri: '$2^{-3}$', pilihanKanan: ['1', '0', '1/8', '8', '1/9'] },
-            { kiri: '$3^{-2}$', pilihanKanan: ['1', '0', '1/8', '8', '1/9'] }
-          ],
+          tipe: 'uraian',
+          teks: 'Jelaskan dengan kalimatmu sendiri, apa yang dimaksud dengan 2⁴. Berapa hasilnya?',
+          baris: 4,        // tinggi textarea (jumlah baris)
           wajib: true
         },
+
+        // --- Soal 7: menjodohkan (dropdown) ---
         {
           jenis: 'soal',
           id: 's7',
           nomor: 7,
-          tipe: 'urutkan',
-          teks: 'Urutkan bilangan berpangkat berikut dari nilai yang **TERKECIL** ke nilai yang **TERBESAR** dengan menekan tombol panah atas/bawah:',
-          itemAwal: [
-            '$2^5$ (32)',
-            '$5^2$ (25)',
-            '$3^3$ (27)',
-            '$10^1$ (10)'
+          tipe: 'menjodohkan',
+          teks: 'Pasangkan bentuk pangkat di sebelah kiri dengan hasilnya di sebelah kanan dengan memilih dari dropdown.',
+          // setiap item punya id, label kiri, dan daftar pilihan dropdown
+          item: [
+            { id: 'i1', kiri: '2³', pilihan: ['6', '8', '9', '16'] },
+            { id: 'i2', kiri: '3²', pilihan: ['6', '8', '9', '16'] },
+            { id: 'i3', kiri: '5²', pilihan: ['10', '25', '15', '20'] },
+            { id: 'i4', kiri: '4²', pilihan: ['8', '12', '16', '20'] }
           ],
           wajib: true
-        }
-      ]
-    },
-    {
-      id: 'bagian-3',
-      judul: 'Bagian 3: Pemecahan Masalah, Visualisasi & Refleksi',
-      maskotBagian: '🎨',
-      petunjuk:
-        'Selesaikan soal cerita, buat sketsa pada kanvas, unggah foto coretan bukumu, dan isi refleksi belajarmu!',
-      blok: [
+        },
+
+        // --- Soal 8: urutkan ---
         {
           jenis: 'soal',
           id: 's8',
           nomor: 8,
-          tipe: 'uraian',
-          teks: 'Sebuah bakteri membelah diri menjadi $2$ bagian setiap $15$ menit. Jika mula-mula terdapat $5$ bakteri di dalam wadah, berapa banyak bakteri setelah $1$ jam? Tuliskan langkah penyelesaianmu secara runtut!',
-          placeholder: 'Tuliskan diketahui, ditanya, langkah perhitungan, dan kesimpulan...',
+          tipe: 'urutkan',
+          teks: 'Urutkan bilangan berikut dari yang terkecil ke terbesar. Gunakan tombol Naik/Turun untuk mengatur urutan.',
+          // item ditampilkan dalam urutan awal acak; siswa menyusun ulang
+          item: [
+            { id: 'u1', teks: '2³' },   // 8
+            { id: 'u2', teks: '3²' },   // 9
+            { id: 'u3', teks: '4¹' },   // 4
+            { id: 'u4', teks: '5⁰' }    // 1
+          ],
+          urutanAwal: ['u4', 'u3', 'u1', 'u2'], // urutan tampil awal (acak)
           wajib: true
         },
+
+        // --- Soal 9: kanvas (latar grid) ---
         {
           jenis: 'soal',
           id: 's9',
           nomor: 9,
           tipe: 'kanvas',
-          teks: 'Gambarkan pohon faktor atau sketsa pembelahan bakteri dari Soal Nomor 8 pada papan kanvas di bawah ini! (Kamu juga dapat melampirkan foto coretan kertasmu jika diperlukan).',
-          latar: 'grid', // Pilihan: 'polos', 'grid', 'garis_bilangan', 'koordinat', 'lingkaran'
-          izinkanFotoTambahan: true,
-          wajib: 'gambar_atau_foto'
+          teks: 'Gambar persegi panjang yang menunjukkan luas 2² × 3 satuan luas pada kanvas berikut. Gunakan alat gambar yang tersedia.',
+          latar: 'grid',     // pilihan: polos, grid, garis_bilangan, koordinat, lingkaran
+          wajib: 'gambar'    // wajib ada gambar sebelum boleh mengumpulkan
         },
+
+        // --- Soal 10: foto (wajib unggah) ---
         {
           jenis: 'soal',
           id: 's10',
           nomor: 10,
           tipe: 'foto',
-          teks: 'Foto hasil catatan atau coretan perhitunganmu di buku tulis Matematika untuk Bagian 1 sampai Bagian 3, lalu unggah di sini (maksimal 5 foto).',
-          wajib: false
+          teks: 'Foto pekerjaan tulis tanganmu tentang soal nomor 6 sampai 8 di atas. Pastikan foto terang dan jelas. Maksimal 5 foto.',
+          wajib: 'foto'      // wajib ada foto sebelum boleh mengumpulkan
         },
+
+        // --- Blok refleksi: skala_refleksi (emoji) ---
+        // Tipe skala_refleksi: siswa memilih emoji yang mewakili perasaan/confidence.
+        // Tidak bernomor (nomor null) — sebagai penutup refleksi.
         {
           jenis: 'soal',
-          id: 's_refleksi',
-          nomor: 11,
+          id: 's11',
+          nomor: null,
           tipe: 'skala_refleksi',
-          teks: 'Refleksi Diri: Bagaimana perasaan dan pemahamanmu setelah mempelajari materi Bilangan Berpangkat hari ini?',
-          opsi: [
-            { nilai: 1, emoji: '😵‍💫', label: 'Masih bingung, perlu bimbingan' },
-            { nilai: 2, emoji: '🤔', label: 'Mulai paham sebagian' },
-            { nilai: 3, emoji: '🙂', label: 'Cukup paham dan bisa mengikuti' },
-            { nilai: 4, emoji: '😄', label: 'Paham dengan baik!' },
-            { nilai: 5, emoji: '🤩', label: 'Sangat paham & siap membantu teman!' }
+          teks: 'Setelah mengerjakan LKPD ini, bagaimana perasaanmu tentang materi Bilangan Berpangkat?',
+          skala: [
+            { nilai: 1, emoji: '😣', label: 'Sangat sulit' },
+            { nilai: 2, emoji: '😕', label: 'Sulit' },
+            { nilai: 3, emoji: '🙂', label: 'Biasa saja' },
+            { nilai: 4, emoji: '😊', label: 'Mudah' },
+            { nilai: 5, emoji: '🤩', label: 'Sangat mudah' }
           ],
-          wajib: true
+          wajib: false
         }
+
       ]
     }
-  ]
-};
+
+  ] // akhir bagian
+
+}; // akhir window.ELKPD
+
+// ============================================================
+// CATATAN KONFIGURASI TAMBAHAN
+// ============================================================
+// - Konten di atas adalah CONTOH. Guru WAJIB menggantinya.
+// - Untuk membuat LKPD baru, cukup ganti seluruh objek ELKPD.
+// - Tipe soal baru dapat didaftarkan di siswa.js (lihat PENJENIS_SOAL).
+// - Kunci jawaban TIDAK ada di file ini (hanya di server, sheet Kunci).
+// ============================================================
